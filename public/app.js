@@ -5,7 +5,7 @@ const ICE_CONFIG = {
   iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }],
 };
 const CODE_RE = /[a-z]{3}-[a-z]{4}-[a-z]{3}/;
-const COLORS = ["#0d4f3c", "#146a51", "#b8892b", "#8a5a2b", "#2f6f8f", "#6b4c9a", "#a8473d", "#3d7a5c"];
+const COLORS = ["#1a73e8", "#188038", "#e37400", "#a142f4", "#12858f", "#c5221f", "#5f6368", "#b06000"];
 const REACTIONS = ["👍", "👏", "🤲", "❤️", "🌟", "✅"];
 
 const $ = (id) => document.getElementById(id);
@@ -1136,9 +1136,9 @@ setInterval(() => {
 
 window.addEventListener("beforeunload", () => state.es?.close());
 
-// إن لم يوجد ملف الشعار logo.png نعرض الشعار المرسوم
+// شعار المدرسة اختياري: يظهر فقط إذا وُجد الملف public/logo.png
 for (const img of document.querySelectorAll(".logo-img")) {
-  const fail = () => img.parentElement.classList.add("no-img");
+  const fail = () => img.remove();
   if (img.complete && !img.naturalWidth) fail();
   else img.addEventListener("error", fail);
 }

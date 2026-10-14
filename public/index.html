@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>حلقتي — مدرسة جامع الصحابة</title>
   <meta name="description" content="حلقتي: حلقات تحفيظ القرآن الكريم عن بُعد — مدرسة جامع الصحابة لتحفيظ القرآن الكريم بحي غبيراء.">
-  <meta name="theme-color" content="#0d4f3c">
+  <meta name="theme-color" content="#ffffff">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -41,99 +41,68 @@
       <symbol id="i-google" viewBox="0 0 24 24"><path d="M20.5 12.2c0-.6-.1-1.2-.2-1.7H12v3.3h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.6-3.9 2.6-6.5zM12 21c2.4 0 4.5-.8 5.9-2.2L15 16.5c-.8.5-1.8.9-3 .9-2.3 0-4.3-1.6-5-3.7H4v2.3A9 9 0 0 0 12 21zM7 13.7a5.4 5.4 0 0 1 0-3.4V8H4a9 9 0 0 0 0 8.1zM12 6.6c1.3 0 2.5.5 3.4 1.3L18 5.4A9 9 0 0 0 4 8l3 2.3c.7-2.1 2.7-3.7 5-3.7z" fill="currentColor" stroke="none"/></symbol>
       <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
       <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
-      <!-- شعار المدرسة: قوس وزخرفة -->
-      <symbol id="emblem" viewBox="0 0 100 124">
-        <path d="M8 118V50a42 42 0 0 1 84 0v68z" fill="none" stroke="currentColor" stroke-width="3.2"/>
-        <path d="M10 104h80M10 107.5h80M10 111h80M10 114.5h80" stroke="currentColor" stroke-width="1.1" opacity=".75"/>
-        <path d="M50 26c-3 14-9 30-17 38-5 5-12 6-12 2s9-4 16-1c5 2 9 4 13 4s8-2 13-4c7-3 16-3 16 1s-7 3-12-2c-8-8-14-24-17-38z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-        <path d="M50 76c-8-7-21-10-26-5-4 4 0 10 8 10 9 0 20-10 30-12 8-2 14 0 14 5s-6 7-12 6c-6-1-10-3-14-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-        <path d="M50 76c8-7 21-10 26-5 4 4 0 10-8 10-9 0-20-10-30-12-8-2-14 0-14 5s6 7 12 6c6-1 10-3 14-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      <!-- علامة حلقتي: أشخاص في حلقة -->
+      <symbol id="mark" viewBox="0 0 32 32">
+        <rect width="32" height="32" rx="9" fill="#1a73e8"/>
+        <g fill="#fff"><circle cx="24" cy="16" r="2.6"/><circle cx="20" cy="22.9" r="2.6"/><circle cx="12" cy="22.9" r="2.6"/><circle cx="8" cy="16" r="2.6"/><circle cx="12" cy="9.1" r="2.6"/><circle cx="20" cy="9.1" r="2.6"/></g>
       </symbol>
     </defs>
   </svg>
 
   <!-- الصفحة الرئيسية -->
-  <section id="home" class="view">
+  <section id="home" class="view home">
     <header class="topbar">
       <div class="brand">
-        <span class="logo"><img class="logo-img" src="logo.png" alt=""><svg class="logo-svg"><use href="#emblem"/></svg></span>
-        <span class="brand-text"><b>حلقتي</b><small>مدرسة جامع الصحابة</small></span>
+        <svg class="mark"><use href="#mark"/></svg>
+        <b>حلقتي</b>
+        <span class="school"><img class="logo-img" src="logo.png" alt=""><span>مدرسة جامع الصحابة</span></span>
       </div>
-      <div class="topbar-side">
-        <span class="clock" id="homeClock"></span>
-      </div>
+      <span class="clock" id="homeClock"></span>
     </header>
 
     <main class="home-main">
       <div class="home-text">
-        <p class="ayah">﴿ وَرَتِّلِ الْقُرْآنَ تَرْتِيلًا ﴾</p>
-        <h1>حلقات تحفيظ القرآن الكريم <em>عن بُعد</em></h1>
-        <p class="lead">مكان واحد يجمع المعلّم بطلابه بالصوت والصورة: تسميع ومراجعة وتصحيح تلاوة، من الجوال أو الكمبيوتر بدون تثبيت أي برنامج.</p>
+        <h1>حلقات القرآن الكريم، من أي مكان</h1>
+        <p class="lead">اتصال بالصوت والصورة بين المعلّم وطلابه للتسميع والمراجعة. يعمل من المتصفح على الجوال والكمبيوتر.</p>
         <div class="home-actions">
-          <button class="btn btn-primary btn-lg" id="newMeetingBtn"><svg class="i"><use href="#i-plus"/></svg>حلقة جديدة</button>
-          <button class="btn btn-lg" id="scheduleBtn"><svg class="i"><use href="#i-calendar"/></svg>جدولة حلقة</button>
+          <button class="btn btn-primary" id="newMeetingBtn"><svg class="i"><use href="#i-plus"/></svg>حلقة جديدة</button>
+          <form class="join-form" id="joinForm">
+            <label for="joinCode" class="sr-only">رمز الحلقة</label>
+            <span class="join-field"><svg class="i"><use href="#i-link"/></svg><input id="joinCode" placeholder="أدخل رمز الحلقة" autocomplete="off" dir="auto"></span>
+            <button class="btn btn-text" type="submit">دخول</button>
+          </form>
         </div>
-        <form class="join-form" id="joinForm">
-          <label for="joinCode" class="sr-only">رمز الحلقة</label>
-          <input id="joinCode" placeholder="لديك رمز حلقة؟ اكتبه هنا" autocomplete="off" dir="auto">
-          <button class="btn btn-ghost" type="submit">دخول</button>
-        </form>
+        <button class="link-btn" id="scheduleBtn"><svg class="i"><use href="#i-calendar"/></svg>جدولة حلقة لوقت لاحق</button>
         <p class="error" id="homeError" role="alert"></p>
 
         <div class="upcoming" id="upcoming" hidden>
-          <h3><svg class="i"><use href="#i-calendar"/></svg>حلقاتك القادمة</h3>
+          <h3>الحلقات القادمة</h3>
           <ul id="upcomingList"></ul>
         </div>
       </div>
 
-      <div class="home-art">
-        <figure class="emblem-card">
-          <span class="logo logo-xl"><img class="logo-img" src="logo.png" alt="شعار مدرسة جامع الصحابة"><svg class="logo-svg"><use href="#emblem"/></svg></span>
-          <figcaption>
-            <b>مدرسة جامع الصحابة</b>
-            <span>لتحفيظ القرآن الكريم بحي غبيراء</span>
-            <small>تأسست عام ١٤٢٦هـ</small>
-          </figcaption>
-        </figure>
+      <div class="home-art" aria-hidden="true">
+        <div class="mock">
+          <div class="mock-grid">
+            <div class="mock-tile big"><span class="mock-av" style="background:#1a73e8">ع</span><span class="mock-name">عبدالرحمن <em>المعلّم</em></span></div>
+            <div class="mock-tile"><span class="mock-av" style="background:#e37400">أ</span><span class="mock-name">أحمد</span></div>
+            <div class="mock-tile"><span class="mock-hand">✋</span><span class="mock-av" style="background:#188038">ي</span><span class="mock-name">يوسف</span></div>
+            <div class="mock-tile"><span class="mock-av" style="background:#a142f4">ع</span><span class="mock-name">عمر</span></div>
+          </div>
+          <div class="mock-bar"><span></span><span></span><span></span><span class="end"></span></div>
+        </div>
+        <p class="art-caption">ثبّت المعلّم في الوسط، وارفع يدك عندما يحين دورك في التسميع</p>
       </div>
     </main>
-
-    <section class="features" aria-label="المزايا">
-      <div class="feature">
-        <span class="f-icon"><svg class="i"><use href="#i-book"/></svg></span>
-        <h3>تسميع مباشر</h3>
-        <p>صوت واضح وصورة، مع تثبيت المعلّم في وسط الشاشة.</p>
-      </div>
-      <div class="feature">
-        <span class="f-icon"><svg class="i"><use href="#i-hand"/></svg></span>
-        <h3>رفع اليد</h3>
-        <p>الطالب يرفع يده عند جاهزيته للتسميع، فيعرف المعلّم الدور.</p>
-      </div>
-      <div class="feature">
-        <span class="f-icon"><svg class="i"><use href="#i-calendar"/></svg></span>
-        <h3>مواعيد الحلقات</h3>
-        <p>جدولة الحلقة وإرسال الدعوة وإضافتها للتقويم بضغطة.</p>
-      </div>
-      <div class="feature">
-        <span class="f-icon"><svg class="i"><use href="#i-rec"/></svg></span>
-        <h3>تسجيل الحلقة</h3>
-        <p>يحفظ التسجيل على جهاز المعلّم للمراجعة لاحقاً.</p>
-      </div>
-    </section>
-
-    <footer class="site-footer">
-      <span>مدرسة جامع الصحابة لتحفيظ القرآن الكريم — حي غبيراء</span>
-      <span>حلقتي</span>
-    </footer>
   </section>
 
   <!-- شاشة ما قبل الدخول -->
   <section id="lobby" class="view" hidden>
     <header class="topbar">
       <button class="btn btn-ghost" id="backHomeBtn"><svg class="i flip"><use href="#i-arrow"/></svg>الرئيسية</button>
-      <div class="brand brand-sm">
-        <span class="logo"><img class="logo-img" src="logo.png" alt=""><svg class="logo-svg"><use href="#emblem"/></svg></span>
-        <span class="brand-text"><b>حلقتي</b></span>
+      <div class="brand">
+        <svg class="mark"><use href="#mark"/></svg>
+        <b>حلقتي</b>
       </div>
     </header>
     <div class="lobby">
@@ -196,7 +165,6 @@
 
     <footer class="bar">
       <div class="bar-info">
-        <span class="logo logo-sm"><img class="logo-img" src="logo.png" alt=""><svg class="logo-svg"><use href="#emblem"/></svg></span>
         <span id="roomClock"></span>
         <span class="sep"></span>
         <span id="roomCode" dir="ltr"></span>
@@ -227,10 +195,8 @@
   <!-- بعد المغادرة -->
   <section id="left" class="view" hidden>
     <div class="left-box">
-      <span class="logo logo-lg"><img class="logo-img" src="logo.png" alt=""><svg class="logo-svg"><use href="#emblem"/></svg></span>
-      <h2>انتهت مشاركتك في الحلقة</h2>
+      <h2>غادرت الحلقة</h2>
       <p class="lead" id="leftSummary"></p>
-      <p class="dua">بارك الله فيكم ونفع بكم</p>
       <div class="home-actions center">
         <button class="btn btn-lg" id="rejoinBtn">العودة للحلقة</button>
         <button class="btn btn-primary btn-lg" id="goHomeBtn">الصفحة الرئيسية</button>
@@ -269,7 +235,7 @@
       </form>
       <div id="scheduleResult" hidden>
         <div class="success-mark"><svg class="i"><use href="#i-check"/></svg></div>
-        <h2 class="center">تمت جدولة الحلقة</h2>
+        <h2 class="center">تمت الجدولة</h2>
         <p class="muted center" id="sSummary"></p>
         <div class="link-box"><code id="sLink" dir="ltr"></code></div>
         <div class="result-actions">
