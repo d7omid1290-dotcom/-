@@ -24,12 +24,17 @@
         <p class="muted">أنشئ اجتماعاً في ثانية وشارك الرابط مع فريقك. صوت وصورة ومشاركة شاشة ودردشة — من المتصفح مباشرة دون تثبيت أي شيء.</p>
         <div class="home-actions">
           <button class="btn btn-primary" id="newMeetingBtn">🎥 اجتماع جديد</button>
+          <button class="btn" id="scheduleBtn">📅 جدولة اجتماع</button>
           <form class="join-form" id="joinForm">
             <input id="joinCode" placeholder="أدخل رمز الاجتماع أو الرابط" autocomplete="off">
             <button class="btn btn-text" type="submit">انضمام</button>
           </form>
         </div>
         <p class="error" id="homeError" role="alert"></p>
+        <div class="upcoming" id="upcoming" hidden>
+          <h3>اجتماعاتك القادمة</h3>
+          <ul id="upcomingList"></ul>
+        </div>
       </div>
       <div class="home-art" aria-hidden="true">
         <div class="ring"><span></span><span></span><span></span><span></span><span></span></div>
@@ -61,6 +66,7 @@
 
   <!-- غرفة الاجتماع -->
   <section id="room" class="view room" hidden>
+    <div class="rec-banner" id="recBanner" hidden>🔴 <span id="recText">يتم تسجيل هذا الاجتماع</span></div>
     <div class="stage">
       <div class="grid" id="grid"></div>
       <aside class="panel" id="panel" hidden>
@@ -97,6 +103,7 @@
         <button class="ctrl" id="camBtn" title="الكاميرا (Ctrl+E)">📷</button>
         <button class="ctrl" id="shareBtn" title="مشاركة الشاشة">🖥️</button>
         <button class="ctrl" id="handBtn" title="رفع اليد">✋</button>
+        <button class="ctrl" id="recBtn" title="تسجيل الاجتماع">⏺️</button>
         <div class="reactions-wrap">
           <button class="ctrl" id="reactBtn" title="تفاعل">😊</button>
           <div class="reactions" id="reactions" hidden>
@@ -123,6 +130,49 @@
       </div>
     </div>
   </section>
+
+  <!-- نافذة جدولة الاجتماع -->
+  <div class="modal" id="scheduleModal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="scheduleTitle">
+      <button class="icon-btn modal-close" data-close aria-label="إغلاق">✕</button>
+      <form id="scheduleForm">
+        <h2 id="scheduleTitle">جدولة اجتماع</h2>
+        <label for="sTitle">عنوان الاجتماع</label>
+        <input id="sTitle" required maxlength="80" placeholder="مثال: اجتماع الفريق الأسبوعي">
+        <div class="row-2">
+          <div>
+            <label for="sStart">الموعد</label>
+            <input id="sStart" type="datetime-local" required>
+          </div>
+          <div>
+            <label for="sDuration">المدة</label>
+            <select id="sDuration">
+              <option value="15">15 دقيقة</option>
+              <option value="30" selected>30 دقيقة</option>
+              <option value="45">45 دقيقة</option>
+              <option value="60">ساعة</option>
+              <option value="90">ساعة ونصف</option>
+              <option value="120">ساعتان</option>
+            </select>
+          </div>
+        </div>
+        <p class="error" id="scheduleError" role="alert"></p>
+        <button class="btn btn-primary btn-block" type="submit">إنشاء الاجتماع</button>
+      </form>
+      <div id="scheduleResult" hidden>
+        <h2>✅ تمت جدولة الاجتماع</h2>
+        <p class="muted" id="sSummary"></p>
+        <div class="link-box"><code id="sLink" dir="ltr"></code></div>
+        <div class="result-actions">
+          <button class="btn" id="sCopy">📋 نسخ الدعوة</button>
+          <a class="btn" id="sGoogle" target="_blank" rel="noopener">📅 تقويم Google</a>
+          <button class="btn" id="sIcs">⬇️ ملف تقويم (ics)</button>
+        </div>
+        <button class="btn btn-primary btn-block" data-close>تم</button>
+      </div>
+    </div>
+  </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="/app.js"></script>

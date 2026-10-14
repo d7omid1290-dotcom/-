@@ -126,6 +126,11 @@ function serveStatic(req, res, pathname) {
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+  if (url.pathname === "/healthz") {
+    let peers = 0;
+    for (const room of rooms.values()) peers += room.size;
+    return json(res, 200, { ok: true, rooms: rooms.size, peers });
+  }
   const m = url.pathname.match(/^\/api\/rooms\/([^/]+)\/(events|signal)$/);
   if (m) {
     const [, roomId, action] = m;

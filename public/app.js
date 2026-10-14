@@ -24,6 +24,8 @@ const state = {
   joinedAt: 0,
   audioCtx: null,
   meters: new Map(), // tile -> analyser
+  recorder: null,
+  recDest: null, // مزج كل الأصوات للتسجيل
 };
 
 /* ---------- أدوات عامة ---------- */
@@ -83,6 +85,7 @@ function route() {
   } else {
     stopMedia();
     show("home");
+    renderUpcoming();
   }
 }
 
@@ -232,6 +235,7 @@ function myStatus() {
     cam: state.camOn && !!camTrack(),
     hand: state.hand,
     screen: !!state.screenStream,
+    recording: !!state.recorder,
   };
 }
 
@@ -325,8 +329,10 @@ async function handleSignal({ from, type, data }) {
         cam: !!data.cam,
         hand: !!data.hand,
         screen: !!data.screen,
+        recording: !!data.recording,
       });
       updatePeerTile(peer);
+      updateRecBanner();
       renderPeople();
       break;
     case "chat":
@@ -359,7 +365,10 @@ function createPeer(id, name, initiator) {
     const video = peer.tile.querySelector("video");
     video.srcObject = peer.stream;
     video.play().catch(() => {});
-    if (e.track.kind === "audio") watchLevel(peer.stream, peer.tile);
+    if (e.track.kind === "audio") {
+      watchLevel(peer.stream, peer.tile);
+      addToRecording(peer.stream);
+    }
   };
   pc.onicecandidate = (e) => {
     if (e.candidate) signal("ice", e.candidate, id);
@@ -417,6 +426,7 @@ function removePeer(id, silent) {
   if (!silent) {
     renderPeople();
     layoutGrid();
+    updateRecBanner();
   }
 }
 
@@ -528,6 +538,7 @@ function enterRoom() {
 }
 
 function leave(navigate = true) {
+  stopRecording();
   state.es?.close();
   state.es = null;
   for (const id of [...state.peers.keys()]) removePeer(id, true);
@@ -538,6 +549,7 @@ function leave(navigate = true) {
   state.hand = false;
   state.localTile = null;
   $("panel").hidden = true;
+  $("recBanner").hidden = true;
   if (navigate) show("left");
 }
 
@@ -685,6 +697,247 @@ function renderPeople() {
   }
   $("peopleCount").textContent = everyone.length;
 }
+
+/* ---------- تسجيل الاجتماع ---------- */
+
+function updateRecBanner() {
+  const others = [...state.peers.values()].filter((p) => p.recording).map((p) => p.name);
+  const me = !!state.recorder;
+  $("recBanner").hidden = !me && others.length === 0;
+  $("recText").textContent = me
+    ? "أنت تسجّل هذا الاجتماع"
+    : `يتم تسجيل هذا الاجتماع بواسطة ${others.join("، ")}`;
+  $("recBtn").classList.toggle("recording", me);
+  $("recBtn").title = me ? "إيقاف التسجيل" : "تسجيل الاجتماع";
+}
+
+function addToRecording(stream) {
+  if (!state.recDest || !stream.getAudioTracks().length) return;
+  try {
+    state.audioCtx.createMediaStreamSource(stream).connect(state.recDest);
+  } catch {}
+}
+
+function pickMimeType() {
+  const types = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm", "video/mp4"];
+  return types.find((t) => MediaRecorder.isTypeSupported(t)) || "";
+}
+
+async function startRecording() {
+  if (!window.MediaRecorder || !navigator.mediaDevices?.getDisplayMedia || !state.audioCtx) {
+    return toast("التسجيل غير مدعوم في هذا المتصفح. جرّب Chrome أو Edge على الكمبيوتر");
+  }
+  let display;
+  try {
+    // نلتقط تبويب الاجتماع نفسه (الصورة) ونمزج كل الأصوات بأنفسنا
+    display = await navigator.mediaDevices.getDisplayMedia({
+      video: { displaySurface: "browser", frameRate: 30 },
+      audio: false,
+      preferCurrentTab: true,
+      selfBrowserSurface: "include",
+    });
+  } catch {
+    return;
+  }
+  state.recDest = state.audioCtx.createMediaStreamDestination();
+  addToRecording(state.stream);
+  for (const p of state.peers.values()) addToRecording(p.stream);
+
+  const mixed = new MediaStream([...display.getVideoTracks(), ...state.recDest.stream.getAudioTracks()]);
+  const mimeType = pickMimeType();
+  const recorder = new MediaRecorder(mixed, mimeType ? { mimeType } : undefined);
+  const chunks = [];
+  const startedAt = new Date();
+  recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+  recorder.onstop = () => {
+    display.getTracks().forEach((t) => t.stop());
+    const type = recorder.mimeType || "video/webm";
+    const blob = new Blob(chunks, { type });
+    const ext = type.includes("mp4") ? "mp4" : "webm";
+    const stamp = startedAt.toISOString().slice(0, 16).replace(/[:T]/g, "-");
+    downloadBlob(blob, `halaqati-${state.code || "meeting"}-${stamp}.${ext}`);
+    toast("تم حفظ التسجيل على جهازك");
+  };
+  display.getVideoTracks()[0].onended = stopRecording;
+  recorder.start(1000);
+  state.recorder = recorder;
+  updateRecBanner();
+  broadcastState();
+  toast("بدأ التسجيل — سيتم حفظه على جهازك عند الإيقاف");
+}
+
+function stopRecording() {
+  const recorder = state.recorder;
+  if (!recorder) return;
+  state.recorder = null;
+  state.recDest = null;
+  if (recorder.state !== "inactive") recorder.stop();
+  updateRecBanner();
+  broadcastState();
+}
+
+function downloadBlob(blob, filename) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+}
+
+$("recBtn").addEventListener("click", () => (state.recorder ? stopRecording() : startRecording()));
+
+/* ---------- جدولة الاجتماعات ---------- */
+
+const SCHEDULE_KEY = "halaqati:scheduled";
+
+function loadScheduled() {
+  try {
+    const list = JSON.parse(localStorage.getItem(SCHEDULE_KEY)) || [];
+    // نحذف الاجتماعات التي انتهت
+    return list.filter((m) => m.start + m.duration * 60000 > Date.now()).sort((a, b) => a.start - b.start);
+  } catch {
+    return [];
+  }
+}
+
+function saveScheduled(list) {
+  try {
+    localStorage.setItem(SCHEDULE_KEY, JSON.stringify(list));
+  } catch {}
+}
+
+function formatWhen(ts) {
+  return new Date(ts).toLocaleString("ar", {
+    weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit",
+  });
+}
+
+function renderUpcoming() {
+  const list = loadScheduled();
+  saveScheduled(list);
+  $("upcoming").hidden = list.length === 0;
+  const ul = $("upcomingList");
+  ul.innerHTML = "";
+  for (const m of list) {
+    const li = document.createElement("li");
+    const live = m.start - Date.now() < 10 * 60000;
+    li.innerHTML = `
+      <div class="when"><b></b><span></span></div>
+      <button class="btn btn-primary" data-join>انضمام</button>
+      <button class="icon-btn" data-del aria-label="حذف">🗑️</button>`;
+    li.querySelector("b").textContent = m.title;
+    li.querySelector("span").textContent = live ? "يبدأ الآن" : formatWhen(m.start);
+    li.querySelector("span").classList.toggle("soon", live);
+    li.querySelector("[data-join]").addEventListener("click", () => goTo(m.code));
+    li.querySelector("[data-del]").addEventListener("click", () => {
+      saveScheduled(loadScheduled().filter((x) => x.code !== m.code));
+      renderUpcoming();
+    });
+    ul.appendChild(li);
+  }
+}
+
+function toCalDate(ts) {
+  return new Date(ts).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+}
+
+function inviteText(m) {
+  return `أنت مدعو لاجتماع على حلقتي\n\n${m.title}\n${formatWhen(m.start)} (${m.duration} دقيقة)\n\nرابط الانضمام:\n${location.origin}/${m.code}`;
+}
+
+function icsFile(m) {
+  const esc = (t) => t.replace(/[\\;,]/g, (c) => "\\" + c).replace(/\n/g, "\\n");
+  const link = `${location.origin}/${m.code}`;
+  return [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Halaqati//AR", "CALSCALE:GREGORIAN", "BEGIN:VEVENT",
+    `UID:${m.code}@halaqati`,
+    `DTSTAMP:${toCalDate(Date.now())}`,
+    `DTSTART:${toCalDate(m.start)}`,
+    `DTEND:${toCalDate(m.start + m.duration * 60000)}`,
+    `SUMMARY:${esc(m.title)}`,
+    `DESCRIPTION:${esc("رابط الانضمام: " + link)}`,
+    `URL:${link}`,
+    `LOCATION:${esc(link)}`,
+    "BEGIN:VALARM", "TRIGGER:-PT10M", "ACTION:DISPLAY", `DESCRIPTION:${esc(m.title)}`, "END:VALARM",
+    "END:VEVENT", "END:VCALENDAR",
+  ].join("\r\n");
+}
+
+let lastScheduled = null;
+
+function openSchedule() {
+  const start = new Date(Date.now() + 60 * 60000);
+  start.setMinutes(start.getMinutes() < 30 ? 30 : 60, 0, 0);
+  const local = new Date(start.getTime() - start.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  $("sStart").value = local;
+  $("sTitle").value = "";
+  $("scheduleError").textContent = "";
+  $("scheduleForm").hidden = false;
+  $("scheduleResult").hidden = true;
+  $("scheduleModal").hidden = false;
+  $("sTitle").focus();
+}
+
+function closeSchedule() {
+  $("scheduleModal").hidden = true;
+  renderUpcoming();
+}
+
+$("scheduleBtn").addEventListener("click", openSchedule);
+for (const el of document.querySelectorAll("#scheduleModal [data-close]")) el.addEventListener("click", closeSchedule);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("scheduleModal").hidden) closeSchedule();
+});
+
+$("scheduleForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const start = new Date($("sStart").value).getTime();
+  if (!start || start < Date.now() - 60000) {
+    $("scheduleError").textContent = "اختر موعداً في المستقبل";
+    return;
+  }
+  const m = {
+    code: genCode(),
+    title: $("sTitle").value.trim() || "اجتماع",
+    start,
+    duration: Number($("sDuration").value),
+  };
+  saveScheduled([...loadScheduled(), m]);
+  lastScheduled = m;
+  const link = `${location.origin}/${m.code}`;
+  $("sSummary").textContent = `${m.title} — ${formatWhen(m.start)}`;
+  $("sLink").textContent = link;
+  const g = new URL("https://calendar.google.com/calendar/render");
+  g.searchParams.set("action", "TEMPLATE");
+  g.searchParams.set("text", m.title);
+  g.searchParams.set("dates", `${toCalDate(m.start)}/${toCalDate(m.start + m.duration * 60000)}`);
+  g.searchParams.set("details", `رابط الانضمام: ${link}`);
+  g.searchParams.set("location", link);
+  $("sGoogle").href = g.toString();
+  $("scheduleForm").hidden = true;
+  $("scheduleResult").hidden = false;
+});
+
+$("sCopy").addEventListener("click", async () => {
+  if (!lastScheduled) return;
+  try {
+    await navigator.clipboard.writeText(inviteText(lastScheduled));
+    toast("تم نسخ الدعوة — أرسلها لمن تريد");
+  } catch {
+    prompt("انسخ الدعوة:", inviteText(lastScheduled));
+  }
+});
+
+$("sIcs").addEventListener("click", () => {
+  if (!lastScheduled) return;
+  downloadBlob(new Blob([icsFile(lastScheduled)], { type: "text/calendar;charset=utf-8" }), `halaqati-${lastScheduled.code}.ics`);
+});
+
+setInterval(() => {
+  if (!$("home").hidden) renderUpcoming();
+}, 60000);
 
 window.addEventListener("beforeunload", () => state.es?.close());
 
