@@ -5,7 +5,7 @@ const ICE_CONFIG = {
   iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }],
 };
 const CODE_RE = /[a-z]{3}-[a-z]{4}-[a-z]{3}/;
-const COLORS = ["#1a73e8", "#188038", "#e37400", "#a142f4", "#12858f", "#c5221f", "#5f6368", "#b06000"];
+const COLORS = ["#5b8cff", "#10b981", "#f59e0b", "#8b5cf6", "#06b6d4", "#ec4899", "#f97316", "#64748b"];
 const REACTIONS = ["👍", "👏", "🤲", "❤️", "🌟", "✅"];
 
 const $ = (id) => document.getElementById(id);
