@@ -1,0 +1,1439 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>حلقتي — اجتماعات الفيديو</title>
+  <meta name="description" content="حلقتي: اجتماعات فيديو مجانية وآمنة من المتصفح مباشرة.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Ccircle%20cx%3D%2216%22%20cy%3D%2216%22%20r%3D%2211%22%20fill%3D%22none%22%20stroke%3D%22%231a73e8%22%20stroke-width%3D%225%22%2F%3E%3Ccircle%20cx%3D%2216%22%20cy%3D%225%22%20r%3D%223.5%22%20fill%3D%22%2334a853%22%2F%3E%3C%2Fsvg%3E" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+:root {
+  --bg: #ffffff;
+  --text: #1f1f1f;
+  --muted: #5f6368;
+  --border: #dadce0;
+  --primary: #1a73e8;
+  --primary-hover: #1765cc;
+  --green: #34a853;
+  --danger: #ea4335;
+  --room-bg: #202124;
+  --tile-bg: #3c4043;
+  --ctrl-bg: #3c4043;
+  --ctrl-hover: #4a4e51;
+  --panel-bg: #ffffff;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: "Tajawal", system-ui, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.6;
+}
+[hidden] { display: none !important; }
+.muted { color: var(--muted); }
+.small { font-size: .85rem; }
+.center { text-align: center; justify-content: center; }
+.error { color: var(--danger); min-height: 1.5em; margin: 8px 0 0; }
+h1, h2 { line-height: 1.3; margin: 0 0 .5em; }
+
+.view { min-height: 100%; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font: inherit; font-weight: 700; font-size: 1rem;
+  padding: 11px 22px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--border); background: #fff; color: var(--primary);
+  transition: background .15s, box-shadow .15s; text-decoration: none;
+}
+.btn:hover { background: #f6fafe; }
+.btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-hover); box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.btn-primary:disabled { opacity: .6; cursor: progress; }
+.btn-text { border-color: transparent; background: transparent; }
+.btn-block { width: 100%; }
+.icon-btn {
+  background: none; border: 0; width: 40px; height: 40px; border-radius: 50%;
+  cursor: pointer; font-size: 1.1rem; color: inherit;
+}
+.icon-btn:hover { background: rgba(0,0,0,.06); }
+input {
+  font: inherit; color: var(--text); width: 100%;
+  border: 1px solid var(--border); border-radius: 8px; padding: 11px 14px; background: #fff;
+}
+input:focus { outline: 2px solid var(--primary); outline-offset: -1px; border-color: transparent; }
+
+/* Home */
+.home-top { display: flex; justify-content: space-between; align-items: center; padding: 14px 24px; }
+.brand { display: flex; align-items: center; gap: 10px; font-size: 1.45rem; font-weight: 800; color: var(--muted); }
+.brand-mark {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 6px solid var(--primary); position: relative;
+}
+.brand-mark::after {
+  content: ""; position: absolute; width: 9px; height: 9px; border-radius: 50%;
+  background: var(--green); top: -9px; left: 4px;
+}
+.clock { color: var(--muted); }
+.home-main {
+  display: grid; grid-template-columns: 1.1fr 1fr; gap: 40px; align-items: center;
+  max-width: 1200px; margin: 0 auto; padding: 40px 24px 60px; min-height: calc(100vh - 80px);
+}
+.home-text h1 { font-size: clamp(2rem, 4.2vw, 2.9rem); font-weight: 700; }
+.home-text h1 em { font-style: normal; color: var(--primary); }
+.home-text p { font-size: 1.15rem; max-width: 540px; }
+.home-actions { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-top: 26px; }
+.join-form { display: flex; gap: 6px; flex: 1; min-width: 260px; }
+.home-art { display: grid; place-items: center; }
+.ring {
+  position: relative; width: min(360px, 80vw); aspect-ratio: 1;
+  border-radius: 50%; border: 2px dashed var(--border);
+  animation: spin 40s linear infinite;
+}
+.ring span {
+  position: absolute; width: 26%; aspect-ratio: 1; border-radius: 50%;
+  top: 50%; left: 50%; margin: -13%;
+  transform: rotate(calc(var(--i) * 72deg)) translate(0, -190%) rotate(calc(var(--i) * -72deg));
+  box-shadow: 0 6px 18px rgba(0,0,0,.12);
+}
+.ring span:nth-child(1) { --i: 0; background: #1a73e8; }
+.ring span:nth-child(2) { --i: 1; background: #34a853; }
+.ring span:nth-child(3) { --i: 2; background: #fbbc04; }
+.ring span:nth-child(4) { --i: 3; background: #ea4335; }
+.ring span:nth-child(5) { --i: 4; background: #a142f4; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .ring { animation: none; } }
+
+/* Lobby */
+.lobby {
+  display: grid; grid-template-columns: 1.4fr 1fr; gap: 40px; align-items: center;
+  max-width: 1100px; margin: 0 auto; padding: 40px 24px; min-height: 100vh;
+}
+.preview {
+  position: relative; aspect-ratio: 16 / 9; background: var(--room-bg);
+  border-radius: 12px; overflow: hidden;
+}
+.preview video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+.preview-off { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-size: 1.2rem; }
+.preview-controls { position: absolute; bottom: 16px; left: 0; right: 0; display: flex; justify-content: center; gap: 14px; }
+.lobby-side { text-align: center; display: grid; gap: 12px; }
+
+/* Controls */
+.ctrl {
+  position: relative; width: 48px; height: 48px; border-radius: 50%; border: 0;
+  background: var(--ctrl-bg); color: #fff; font-size: 1.25rem; cursor: pointer;
+  display: inline-grid; place-items: center; transition: background .15s;
+}
+.ctrl:hover { background: var(--ctrl-hover); }
+.ctrl.off { background: var(--danger); }
+.ctrl.on { background: #8ab4f8; }
+.ctrl-danger { background: var(--danger); width: 64px; border-radius: 24px; }
+.ctrl-danger:hover { background: #d33426; }
+.ctrl-flat { background: transparent; }
+.ctrl .dot {
+  position: absolute; top: 8px; right: 8px; width: 9px; height: 9px;
+  background: #8ab4f8; border-radius: 50%;
+}
+.ctrl.off::after {
+  content: ""; position: absolute; width: 60%; height: 2px; background: #fff;
+  transform: rotate(-45deg); border-radius: 2px;
+}
+
+/* Room */
+.room { height: 100vh; background: var(--room-bg); color: #e8eaed; display: flex; flex-direction: column; }
+.stage { flex: 1; display: flex; gap: 16px; padding: 16px 16px 0; min-height: 0; }
+.grid {
+  flex: 1; display: grid; gap: 10px; min-height: 0;
+  grid-template-columns: repeat(var(--cols, 1), 1fr);
+  grid-auto-rows: 1fr;
+  align-content: center;
+}
+.tile {
+  position: relative; background: var(--tile-bg); border-radius: 10px; overflow: hidden;
+  min-height: 0; display: grid; place-items: center;
+  outline: 3px solid transparent; transition: outline-color .15s;
+}
+.tile.speaking { outline-color: #8ab4f8; }
+.tile video { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
+.tile.local video.mirror { transform: scaleX(-1); }
+.tile.screen video { object-fit: contain; background: #000; }
+.tile.cam-off video { visibility: hidden; }
+.tile .avatar {
+  display: none; width: clamp(56px, 22%, 120px); aspect-ratio: 1; border-radius: 50%;
+  place-items: center; font-size: clamp(1.4rem, 4vw, 2.8rem); font-weight: 700; color: #fff; z-index: 1;
+}
+.tile.cam-off .avatar { display: grid; }
+.tile .name {
+  position: absolute; bottom: 8px; right: 10px; z-index: 2;
+  background: rgba(0,0,0,.5); padding: 2px 10px; border-radius: 6px; font-size: .9rem;
+  max-width: calc(100% - 60px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tile .badges { position: absolute; top: 8px; left: 8px; z-index: 2; display: flex; gap: 6px; }
+.tile .badges span { background: rgba(0,0,0,.55); border-radius: 50%; width: 30px; height: 30px; display: grid; place-items: center; font-size: .9rem; }
+.tile .float-reaction {
+  position: absolute; bottom: 20%; left: 50%; font-size: 2.6rem; z-index: 3;
+  animation: floatUp 2.2s ease-out forwards; pointer-events: none;
+}
+@keyframes floatUp {
+  from { transform: translate(-50%, 0) scale(.6); opacity: 0; }
+  15% { opacity: 1; transform: translate(-50%, -10px) scale(1.1); }
+  to { transform: translate(-50%, -160px) scale(1); opacity: 0; }
+}
+
+/* Side panel */
+.panel {
+  width: 340px; background: var(--panel-bg); color: var(--text); border-radius: 10px;
+  display: flex; flex-direction: column; min-height: 0;
+}
+.panel-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px 0; }
+.panel-tabs { display: flex; gap: 4px; }
+.panel-tab {
+  background: none; border: 0; font: inherit; font-weight: 700; color: var(--muted);
+  padding: 8px 12px; border-radius: 20px; cursor: pointer;
+}
+.panel-tab.active { background: #e8f0fe; color: var(--primary); }
+.panel-body { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 12px; }
+.messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+.msg b { font-size: .9rem; }
+.msg time { color: var(--muted); font-size: .8rem; margin-inline-start: 6px; }
+.msg p { margin: 2px 0 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.chat-form { display: flex; gap: 4px; margin-top: 10px; background: #f1f3f4; border-radius: 24px; padding: 4px 4px 4px 4px; }
+.chat-form input { border: 0; background: transparent; }
+.chat-form input:focus { outline: none; }
+.people { list-style: none; margin: 0; padding: 0; overflow-y: auto; }
+.people li { display: flex; align-items: center; gap: 10px; padding: 8px 4px; }
+.people .mini { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 700; flex-shrink: 0; }
+.people .pname { flex: 1; }
+.people .icons { color: var(--muted); }
+
+/* Bottom bar */
+.bar {
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+  padding: 12px 20px; gap: 12px;
+}
+.bar-info { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-info .sep { margin: 0 8px; opacity: .5; }
+.bar-controls { display: flex; gap: 10px; }
+.bar-side { display: flex; gap: 4px; justify-content: flex-end; }
+.reactions-wrap { position: relative; }
+.reactions {
+  position: absolute; bottom: 58px; left: 50%; transform: translateX(-50%);
+  background: var(--ctrl-bg); border-radius: 30px; padding: 6px; display: flex; gap: 2px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.4);
+}
+.reactions button { background: none; border: 0; font-size: 1.5rem; cursor: pointer; border-radius: 50%; width: 44px; height: 44px; }
+.reactions button:hover { background: var(--ctrl-hover); }
+
+/* Left */
+.left-box { min-height: 100vh; display: grid; place-content: center; text-align: center; padding: 24px; }
+
+.toast {
+  position: fixed; bottom: 96px; left: 50%; transform: translate(-50%, 30px);
+  background: #323232; color: #fff; padding: 12px 22px; border-radius: 8px;
+  opacity: 0; transition: .25s; z-index: 100; pointer-events: none; max-width: 90vw;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+@media (max-width: 900px) {
+  .home-main, .lobby { grid-template-columns: 1fr; text-align: center; min-height: auto; }
+  .home-text p { margin-inline: auto; }
+  .home-actions { justify-content: center; }
+  .upcoming { margin-inline: auto; }
+  .home-art { order: -1; }
+  .ring { width: 220px; }
+  .panel { position: fixed; inset: 0 0 76px 0; width: auto; border-radius: 0; z-index: 10; }
+}
+@media (max-width: 640px) {
+  .bar { grid-template-columns: 1fr; padding: 10px; }
+  .bar-info { display: none; }
+  .bar-controls, .bar-side { justify-content: center; }
+  .bar-side { order: -1; }
+  .ctrl { width: 44px; height: 44px; font-size: 1.1rem; }
+  .ctrl-danger { width: 56px; }
+  .stage { padding: 8px 8px 0; }
+  .panel { inset: 0 0 116px 0; }
+}
+
+/* Scheduling */
+.upcoming { margin-top: 28px; max-width: 560px; }
+.upcoming h3 { font-size: 1.05rem; margin: 0 0 8px; }
+.upcoming ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.upcoming li {
+  display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+  border: 1px solid var(--border); border-radius: 10px; text-align: start;
+}
+.upcoming .when { flex: 1; min-width: 0; }
+.upcoming .when b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.upcoming .when span { color: var(--muted); font-size: .9rem; }
+.upcoming .soon { color: var(--green); font-weight: 700; }
+.upcoming .btn { padding: 6px 14px; font-size: .92rem; }
+
+.modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; }
+.modal-backdrop { position: absolute; inset: 0; background: rgba(32, 33, 36, .6); }
+.modal-card {
+  position: relative; background: #fff; border-radius: 16px; padding: 28px;
+  width: min(520px, 100%); max-height: 92vh; overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0,0,0,.3);
+}
+.modal-card form { display: grid; gap: 8px; }
+.modal-card label { font-weight: 700; font-size: .95rem; }
+.modal-close { position: absolute; top: 12px; left: 12px; }
+select {
+  font: inherit; color: var(--text); width: 100%;
+  border: 1px solid var(--border); border-radius: 8px; padding: 11px 14px; background: #fff;
+}
+.row-2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 12px; }
+.link-box { background: #f1f3f4; border-radius: 8px; padding: 10px 14px; margin: 12px 0; overflow-wrap: anywhere; }
+.result-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.result-actions .btn { flex: 1; padding: 9px 12px; font-size: .92rem; }
+
+/* Recording */
+.rec-banner {
+  align-self: center; margin-top: 10px; background: rgba(234, 67, 53, .18);
+  color: #f6aea9; padding: 4px 16px; border-radius: 20px; font-size: .92rem; font-weight: 700;
+}
+.ctrl.recording { background: var(--danger); animation: pulse 1.6s infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 6px rgba(234, 67, 53, .3); } }
+
+@media (max-width: 560px) {
+  .row-2 { grid-template-columns: 1fr; }
+  .modal-card { padding: 22px 18px; }
+  .bar-controls { gap: 6px; }
+}
+</style>
+</head>
+<body>
+  <!-- الصفحة الرئيسية -->
+  <section id="home" class="view">
+    <header class="home-top">
+      <div class="brand"><span class="brand-mark"></span>حلقتي</div>
+      <div class="clock" id="homeClock"></div>
+    </header>
+    <div class="home-main">
+      <div class="home-text">
+        <h1>اجتماعات فيديو للجميع، <em>بلا تعقيد</em></h1>
+        <p class="muted">أنشئ اجتماعاً في ثانية وشارك الرابط مع فريقك. صوت وصورة ومشاركة شاشة ودردشة — من المتصفح مباشرة دون تثبيت أي شيء.</p>
+        <div class="home-actions">
+          <button class="btn btn-primary" id="newMeetingBtn">🎥 اجتماع جديد</button>
+          <button class="btn" id="scheduleBtn">📅 جدولة اجتماع</button>
+          <form class="join-form" id="joinForm">
+            <input id="joinCode" placeholder="أدخل رمز الاجتماع أو الرابط" autocomplete="off">
+            <button class="btn btn-text" type="submit">انضمام</button>
+          </form>
+        </div>
+        <p class="error" id="homeError" role="alert"></p>
+        <div class="upcoming" id="upcoming" hidden>
+          <h3>اجتماعاتك القادمة</h3>
+          <ul id="upcomingList"></ul>
+        </div>
+      </div>
+      <div class="home-art" aria-hidden="true">
+        <div class="ring"><span></span><span></span><span></span><span></span><span></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- شاشة ما قبل الدخول -->
+  <section id="lobby" class="view" hidden>
+    <div class="lobby">
+      <div class="preview">
+        <video id="previewVideo" autoplay playsinline muted></video>
+        <div class="preview-off" id="previewOff">الكاميرا متوقفة</div>
+        <div class="preview-controls">
+          <button class="ctrl" id="lobbyMic" aria-label="الميكروفون">🎙️</button>
+          <button class="ctrl" id="lobbyCam" aria-label="الكاميرا">📷</button>
+        </div>
+      </div>
+      <div class="lobby-side">
+        <h2>جاهز للانضمام؟</h2>
+        <p class="muted">رمز الاجتماع: <b id="lobbyCode" dir="ltr"></b></p>
+        <input id="nameInput" placeholder="ما اسمك؟" maxlength="40" autocomplete="name">
+        <button class="btn btn-primary btn-block" id="joinNowBtn">انضم الآن</button>
+        <button class="btn btn-text" id="backHomeBtn">العودة للرئيسية</button>
+        <p class="error" id="lobbyError" role="alert"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- غرفة الاجتماع -->
+  <section id="room" class="view room" hidden>
+    <div class="rec-banner" id="recBanner" hidden>🔴 <span id="recText">يتم تسجيل هذا الاجتماع</span></div>
+    <div class="stage">
+      <div class="grid" id="grid"></div>
+      <aside class="panel" id="panel" hidden>
+        <div class="panel-head">
+          <div class="panel-tabs">
+            <button class="panel-tab active" data-tab="chat">الدردشة</button>
+            <button class="panel-tab" data-tab="people">المشاركون (<span id="peopleCount">1</span>)</button>
+          </div>
+          <button class="icon-btn" id="closePanel" aria-label="إغلاق">✕</button>
+        </div>
+        <div class="panel-body" data-pane="chat">
+          <div class="messages" id="messages">
+            <p class="muted small center">الرسائل تظهر فقط للموجودين في الاجتماع</p>
+          </div>
+          <form class="chat-form" id="chatForm">
+            <input id="chatInput" placeholder="اكتب رسالة..." autocomplete="off" maxlength="500">
+            <button class="icon-btn" type="submit" aria-label="إرسال">➤</button>
+          </form>
+        </div>
+        <div class="panel-body" data-pane="people" hidden>
+          <ul class="people" id="people"></ul>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="bar">
+      <div class="bar-info">
+        <span id="roomClock"></span>
+        <span class="sep">|</span>
+        <span id="roomCode" dir="ltr"></span>
+      </div>
+      <div class="bar-controls">
+        <button class="ctrl" id="micBtn" title="الميكروفون (Ctrl+D)">🎙️</button>
+        <button class="ctrl" id="camBtn" title="الكاميرا (Ctrl+E)">📷</button>
+        <button class="ctrl" id="shareBtn" title="مشاركة الشاشة">🖥️</button>
+        <button class="ctrl" id="handBtn" title="رفع اليد">✋</button>
+        <button class="ctrl" id="recBtn" title="تسجيل الاجتماع">⏺️</button>
+        <div class="reactions-wrap">
+          <button class="ctrl" id="reactBtn" title="تفاعل">😊</button>
+          <div class="reactions" id="reactions" hidden>
+            <button>👍</button><button>👏</button><button>😂</button><button>❤️</button><button>🎉</button><button>😮</button>
+          </div>
+        </div>
+        <button class="ctrl ctrl-danger" id="leaveBtn" title="مغادرة الاجتماع">📞</button>
+      </div>
+      <div class="bar-side">
+        <button class="ctrl ctrl-flat" id="copyBtn" title="نسخ رابط الاجتماع">🔗</button>
+        <button class="ctrl ctrl-flat" id="peopleBtn" title="المشاركون">👥</button>
+        <button class="ctrl ctrl-flat" id="chatBtn" title="الدردشة">💬<span class="dot" id="chatDot" hidden></span></button>
+      </div>
+    </footer>
+  </section>
+
+  <!-- بعد المغادرة -->
+  <section id="left" class="view" hidden>
+    <div class="left-box">
+      <h2>غادرت الاجتماع</h2>
+      <div class="home-actions center">
+        <button class="btn" id="rejoinBtn">إعادة الانضمام</button>
+        <button class="btn btn-primary" id="goHomeBtn">العودة للرئيسية</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- نافذة جدولة الاجتماع -->
+  <div class="modal" id="scheduleModal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="scheduleTitle">
+      <button class="icon-btn modal-close" data-close aria-label="إغلاق">✕</button>
+      <form id="scheduleForm">
+        <h2 id="scheduleTitle">جدولة اجتماع</h2>
+        <label for="sTitle">عنوان الاجتماع</label>
+        <input id="sTitle" required maxlength="80" placeholder="مثال: اجتماع الفريق الأسبوعي">
+        <div class="row-2">
+          <div>
+            <label for="sStart">الموعد</label>
+            <input id="sStart" type="datetime-local" required>
+          </div>
+          <div>
+            <label for="sDuration">المدة</label>
+            <select id="sDuration">
+              <option value="15">15 دقيقة</option>
+              <option value="30" selected>30 دقيقة</option>
+              <option value="45">45 دقيقة</option>
+              <option value="60">ساعة</option>
+              <option value="90">ساعة ونصف</option>
+              <option value="120">ساعتان</option>
+            </select>
+          </div>
+        </div>
+        <p class="error" id="scheduleError" role="alert"></p>
+        <button class="btn btn-primary btn-block" type="submit">إنشاء الاجتماع</button>
+      </form>
+      <div id="scheduleResult" hidden>
+        <h2>✅ تمت جدولة الاجتماع</h2>
+        <p class="muted" id="sSummary"></p>
+        <div class="link-box"><code id="sLink" dir="ltr"></code></div>
+        <div class="result-actions">
+          <button class="btn" id="sCopy">📋 نسخ الدعوة</button>
+          <a class="btn" id="sGoogle" target="_blank" rel="noopener">📅 تقويم Google</a>
+          <button class="btn" id="sIcs">⬇️ ملف تقويم (ics)</button>
+        </div>
+        <button class="btn btn-primary btn-block" data-close>تم</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script>window.HALAQATI_DEMO = true;</script>
+  <script>
+// حلقتي — منطق الواجهة واتصالات WebRTC (شبكة نظير-لنظير بين كل المشاركين)
+"use strict";
+
+const ICE_CONFIG = {
+  iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }],
+};
+const CODE_RE = /[a-z]{3}-[a-z]{4}-[a-z]{3}/;
+const COLORS = ["#1a73e8", "#34a853", "#e37400", "#d93025", "#a142f4", "#12a4af", "#c5221f", "#188038"];
+
+const $ = (id) => document.getElementById(id);
+
+// وضع العرض: ملف HTML واحد يعمل بدون خادم (لا يمكن للآخرين الانضمام)
+const DEMO = !!window.HALAQATI_DEMO;
+
+const state = {
+  code: null,
+  name: "",
+  myId: null,
+  stream: null, // الكاميرا والميكروفون
+  screenStream: null,
+  micOn: true,
+  camOn: true,
+  hand: false,
+  es: null,
+  peers: new Map(), // id -> { id, name, pc, stream, pendingIce, mic, cam, hand, screen, tile }
+  localTile: null,
+  joinedAt: 0,
+  audioCtx: null,
+  meters: new Map(), // tile -> analyser
+  recorder: null,
+  recDest: null, // مزج كل الأصوات للتسجيل
+};
+
+/* ---------- أدوات عامة ---------- */
+
+function toast(text) {
+  const el = $("toast");
+  el.textContent = text;
+  el.classList.add("show");
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => el.classList.remove("show"), 2600);
+}
+
+function colorFor(text) {
+  let h = 0;
+  for (const ch of text) h = (h * 31 + ch.codePointAt(0)) >>> 0;
+  return COLORS[h % COLORS.length];
+}
+
+function initial(name) {
+  return [...(name.trim() || "؟")][0].toUpperCase();
+}
+
+function genCode() {
+  const letters = "abcdefghijkmnopqrstuvwxyz";
+  const part = (n) => Array.from(crypto.getRandomValues(new Uint8Array(n)), (b) => letters[b % letters.length]).join("");
+  return `${part(3)}-${part(4)}-${part(3)}`;
+}
+
+function parseCode(input) {
+  const s = String(input).trim().toLowerCase();
+  const m = s.match(CODE_RE);
+  if (m) return m[0];
+  const plain = s.replace(/[^a-z]/g, "");
+  if (plain.length === 10) return `${plain.slice(0, 3)}-${plain.slice(3, 7)}-${plain.slice(7)}`;
+  return null;
+}
+
+function timeNow() {
+  return new Date().toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit" });
+}
+
+function show(viewId) {
+  for (const v of document.querySelectorAll(".view")) v.hidden = v.id !== viewId;
+}
+
+function linkFor(code) {
+  return DEMO ? code : `${location.origin}/${code}`;
+}
+
+function meetingLink() {
+  return linkFor(state.code);
+}
+
+/* ---------- التنقل ---------- */
+
+function route() {
+  const path = DEMO ? state.code || "" : location.pathname.slice(1);
+  const code = parseCode(path);
+  if (code && path === code) {
+    state.code = code;
+    openLobby();
+  } else {
+    stopMedia();
+    show("home");
+    renderUpcoming();
+  }
+}
+
+function goTo(code) {
+  if (DEMO) state.code = code;
+  else history.pushState({}, "", code ? `/${code}` : "/");
+  route();
+}
+
+window.addEventListener("popstate", () => {
+  if (state.es) leave(false);
+  route();
+});
+
+/* ---------- الصفحة الرئيسية ---------- */
+
+$("newMeetingBtn").addEventListener("click", () => goTo(genCode()));
+
+$("joinForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const code = parseCode($("joinCode").value);
+  if (!code) {
+    $("homeError").textContent = "رمز غير صالح. الشكل الصحيح مثل: abc-defg-hij";
+    return;
+  }
+  $("homeError").textContent = "";
+  goTo(code);
+});
+
+setInterval(() => {
+  $("homeClock").textContent = timeNow();
+  $("roomClock").textContent = timeNow();
+}, 1000);
+$("homeClock").textContent = $("roomClock").textContent = timeNow();
+
+/* ---------- الوسائط ---------- */
+
+async function getMedia() {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    throw new Error("المتصفح لا يدعم الكاميرا هنا. افتح الموقع عبر HTTPS أو localhost.");
+  }
+  const attempts = [{ video: { width: 1280, height: 720 }, audio: true }, { audio: true }, { video: true }];
+  for (const constraints of attempts) {
+    try {
+      return await navigator.mediaDevices.getUserMedia(constraints);
+    } catch (err) {
+      if (err.name === "NotAllowedError") break;
+    }
+  }
+  return new MediaStream(); // بدون كاميرا أو ميكروفون — يمكنه المشاهدة فقط
+}
+
+function stopMedia() {
+  state.stream?.getTracks().forEach((t) => t.stop());
+  state.screenStream?.getTracks().forEach((t) => t.stop());
+  state.stream = null;
+  state.screenStream = null;
+}
+
+const camTrack = () => state.stream?.getVideoTracks()[0] || null;
+const micTrack = () => state.stream?.getAudioTracks()[0] || null;
+
+function outgoingTrack(kind) {
+  if (kind === "video") return state.screenStream?.getVideoTracks()[0] || camTrack();
+  return micTrack();
+}
+
+function syncToggleButtons() {
+  for (const id of ["lobbyMic", "micBtn"]) {
+    $(id).classList.toggle("off", !state.micOn);
+    $(id).title = state.micOn ? "كتم الميكروفون" : "تشغيل الميكروفون";
+  }
+  for (const id of ["lobbyCam", "camBtn"]) {
+    $(id).classList.toggle("off", !state.camOn);
+    $(id).title = state.camOn ? "إيقاف الكاميرا" : "تشغيل الكاميرا";
+  }
+  $("previewOff").hidden = state.camOn && !!camTrack();
+  $("shareBtn").classList.toggle("on", !!state.screenStream);
+  $("handBtn").classList.toggle("on", state.hand);
+}
+
+function setMic(on) {
+  if (on && !micTrack()) return toast("لا يوجد ميكروفون متاح");
+  state.micOn = on;
+  if (micTrack()) micTrack().enabled = on;
+  syncToggleButtons();
+  updateLocalTile();
+  broadcastState();
+}
+
+function setCam(on) {
+  if (on && !camTrack()) return toast("لا توجد كاميرا متاحة");
+  state.camOn = on;
+  if (camTrack()) camTrack().enabled = on;
+  syncToggleButtons();
+  updateLocalTile();
+  broadcastState();
+}
+
+/* ---------- شاشة ما قبل الدخول ---------- */
+
+async function openLobby() {
+  show("lobby");
+  $("lobbyCode").textContent = state.code;
+  $("lobbyError").textContent = "";
+  $("nameInput").value = localStorage.getItem("halaqati:name") || "";
+  if (!state.stream) {
+    try {
+      state.stream = await getMedia();
+    } catch (err) {
+      $("lobbyError").textContent = err.message;
+      state.stream = new MediaStream();
+    }
+  }
+  state.micOn = !!micTrack() && state.micOn;
+  state.camOn = !!camTrack() && state.camOn;
+  $("previewVideo").srcObject = state.stream;
+  syncToggleButtons();
+  if (!micTrack() && !camTrack()) {
+    $("lobbyError").textContent = "لم نتمكن من الوصول للكاميرا أو الميكروفون. يمكنك الانضمام للمشاهدة فقط.";
+  }
+  $("nameInput").focus();
+}
+
+$("lobbyMic").addEventListener("click", () => setMic(!state.micOn));
+$("lobbyCam").addEventListener("click", () => setCam(!state.camOn));
+$("backHomeBtn").addEventListener("click", () => goTo(null));
+$("nameInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") join();
+});
+$("joinNowBtn").addEventListener("click", join);
+
+/* ---------- الإشارة (Signaling) ---------- */
+
+function signal(type, data, to) {
+  if (!state.myId || DEMO) return;
+  fetch(`/api/rooms/${state.code}/signal`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ from: state.myId, to, type, data }),
+  }).catch(() => {});
+}
+
+function myStatus() {
+  return {
+    name: state.name,
+    mic: state.micOn,
+    cam: state.camOn && !!camTrack(),
+    hand: state.hand,
+    screen: !!state.screenStream,
+    recording: !!state.recorder,
+  };
+}
+
+function broadcastState(to) {
+  signal("state", myStatus(), to);
+}
+
+function join() {
+  const name = $("nameInput").value.trim();
+  if (!name) {
+    $("lobbyError").textContent = "اكتب اسمك أولاً";
+    $("nameInput").focus();
+    return;
+  }
+  state.name = name.slice(0, 40);
+  localStorage.setItem("halaqati:name", state.name);
+
+  try {
+    state.audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+    state.audioCtx.resume();
+  } catch {
+    state.audioCtx = null;
+  }
+
+  if (DEMO) {
+    state.myId = "demo";
+    enterRoom();
+    toast("وضع العرض: شغّل الخادم أو انشر الموقع حتى ينضم الآخرون");
+    return;
+  }
+
+  $("joinNowBtn").disabled = true;
+  const es = new EventSource(`/api/rooms/${state.code}/events?name=${encodeURIComponent(state.name)}`);
+  state.es = es;
+
+  es.addEventListener("welcome", (e) => {
+    const { id, peers } = JSON.parse(e.data);
+    // عند إعادة الاتصال التلقائي نبدأ من جديد
+    for (const p of [...state.peers.values()]) removePeer(p.id, true);
+    state.myId = id;
+    if (!state.joinedAt) enterRoom();
+    for (const p of peers) createPeer(p.id, p.name, true);
+    broadcastState();
+  });
+
+  es.addEventListener("peer-joined", (e) => {
+    const { id, name } = JSON.parse(e.data);
+    createPeer(id, name, false);
+    broadcastState(id);
+    toast(`انضم ${name}`);
+  });
+
+  es.addEventListener("peer-left", (e) => {
+    const { id } = JSON.parse(e.data);
+    const p = state.peers.get(id);
+    if (p) toast(`غادر ${p.name}`);
+    removePeer(id);
+  });
+
+  es.addEventListener("signal", (e) => handleSignal(JSON.parse(e.data)));
+
+  es.onerror = () => {
+    if (!state.joinedAt) {
+      es.close();
+      state.es = null;
+      $("joinNowBtn").disabled = false;
+      $("lobbyError").textContent = "تعذر الاتصال بالخادم، أو أن الاجتماع ممتلئ.";
+    } else {
+      toast("انقطع الاتصال… جارٍ إعادة المحاولة");
+    }
+  };
+}
+
+async function handleSignal({ from, type, data }) {
+  let peer = state.peers.get(from);
+  switch (type) {
+    case "offer":
+      peer ||= createPeer(from, "ضيف", false);
+      await onOffer(peer, data);
+      break;
+    case "answer":
+      if (peer) {
+        await peer.pc.setRemoteDescription(data);
+        flushIce(peer);
+      }
+      break;
+    case "ice":
+      if (!peer) return;
+      if (peer.pc.remoteDescription) peer.pc.addIceCandidate(data).catch(() => {});
+      else peer.pendingIce.push(data);
+      break;
+    case "state":
+      if (!peer) return;
+      if (data.hand && !peer.hand) toast(`✋ ${data.name} رفع يده`);
+      Object.assign(peer, {
+        name: String(data.name || peer.name).slice(0, 40),
+        mic: !!data.mic,
+        cam: !!data.cam,
+        hand: !!data.hand,
+        screen: !!data.screen,
+        recording: !!data.recording,
+      });
+      updatePeerTile(peer);
+      updateRecBanner();
+      renderPeople();
+      break;
+    case "chat":
+      if (peer) addMessage(peer.name, String(data.text || "").slice(0, 500));
+      break;
+    case "reaction":
+      if (peer) floatReaction(peer.tile, data.emoji);
+      break;
+  }
+}
+
+/* ---------- اتصالات WebRTC ---------- */
+
+function createPeer(id, name, initiator) {
+  if (state.peers.has(id)) return state.peers.get(id);
+  const pc = new RTCPeerConnection(ICE_CONFIG);
+  const peer = {
+    id, name, pc, initiator,
+    stream: new MediaStream(),
+    pendingIce: [],
+    mic: true, cam: false, hand: false, screen: false,
+    tile: null,
+  };
+  state.peers.set(id, peer);
+  peer.tile = createTile(peer.name, false);
+  updatePeerTile(peer);
+
+  pc.ontrack = (e) => {
+    peer.stream = new MediaStream([...peer.stream.getTracks().filter((t) => t.kind !== e.track.kind), e.track]);
+    const video = peer.tile.querySelector("video");
+    video.srcObject = peer.stream;
+    video.play().catch(() => {});
+    if (e.track.kind === "audio") {
+      watchLevel(peer.stream, peer.tile);
+      addToRecording(peer.stream);
+    }
+  };
+  pc.onicecandidate = (e) => {
+    if (e.candidate) signal("ice", e.candidate, id);
+  };
+  pc.onconnectionstatechange = () => {
+    if (pc.connectionState === "failed" && peer.initiator) makeOffer(peer, true);
+  };
+
+  if (initiator) {
+    for (const kind of ["audio", "video"]) {
+      pc.addTransceiver(outgoingTrack(kind) || kind, { direction: "sendrecv" });
+    }
+    makeOffer(peer);
+  }
+  renderPeople();
+  layoutGrid();
+  return peer;
+}
+
+async function makeOffer(peer, iceRestart = false) {
+  try {
+    const offer = await peer.pc.createOffer({ iceRestart });
+    await peer.pc.setLocalDescription(offer);
+    signal("offer", peer.pc.localDescription, peer.id);
+  } catch (err) {
+    console.error("offer failed", err);
+  }
+}
+
+async function onOffer(peer, sdp) {
+  const { pc } = peer;
+  await pc.setRemoteDescription(sdp);
+  for (const t of pc.getTransceivers()) {
+    const kind = t.receiver.track.kind;
+    t.direction = "sendrecv";
+    await t.sender.replaceTrack(outgoingTrack(kind));
+  }
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+  signal("answer", pc.localDescription, peer.id);
+  flushIce(peer);
+}
+
+function flushIce(peer) {
+  for (const c of peer.pendingIce.splice(0)) peer.pc.addIceCandidate(c).catch(() => {});
+}
+
+function removePeer(id, silent) {
+  const peer = state.peers.get(id);
+  if (!peer) return;
+  peer.pc.close();
+  state.meters.delete(peer.tile);
+  peer.tile.remove();
+  state.peers.delete(id);
+  if (!silent) {
+    renderPeople();
+    layoutGrid();
+    updateRecBanner();
+  }
+}
+
+function replaceOutgoingVideo() {
+  const track = outgoingTrack("video");
+  for (const { pc } of state.peers.values()) {
+    const t = pc.getTransceivers().find((x) => x.receiver.track.kind === "video");
+    t?.sender.replaceTrack(track).catch(() => {});
+  }
+}
+
+/* ---------- البلاطات (عرض المشاركين) ---------- */
+
+function createTile(name, isLocal) {
+  const tile = document.createElement("div");
+  tile.className = "tile" + (isLocal ? " local" : "");
+  tile.innerHTML = `
+    <video autoplay playsinline ${isLocal ? "muted" : ""}></video>
+    <div class="avatar"></div>
+    <div class="badges"></div>
+    <div class="name"></div>`;
+  $("grid").appendChild(tile);
+  return tile;
+}
+
+function paintTile(tile, { name, mic, cam, hand, screen }) {
+  tile.querySelector(".name").textContent = name;
+  const avatar = tile.querySelector(".avatar");
+  avatar.textContent = initial(name);
+  avatar.style.background = colorFor(name.replace(" (أنت)", ""));
+  tile.classList.toggle("cam-off", !cam && !screen);
+  tile.classList.toggle("screen", screen);
+  const badges = [];
+  if (hand) badges.push("✋");
+  if (!mic) badges.push("🔇");
+  tile.querySelector(".badges").innerHTML = badges.map((b) => `<span>${b}</span>`).join("");
+}
+
+function updatePeerTile(peer) {
+  paintTile(peer.tile, peer);
+}
+
+function updateLocalTile() {
+  if (!state.localTile) return;
+  const s = myStatus();
+  paintTile(state.localTile, { ...s, name: `${state.name} (أنت)` });
+  const video = state.localTile.querySelector("video");
+  video.srcObject = state.screenStream || state.stream;
+  video.classList.toggle("mirror", !state.screenStream);
+}
+
+function layoutGrid() {
+  const n = $("grid").children.length;
+  const narrow = window.innerWidth < 640;
+  const cols = narrow ? (n <= 2 ? 1 : 2) : n <= 1 ? 1 : n <= 4 ? 2 : n <= 9 ? 3 : 4;
+  $("grid").style.setProperty("--cols", cols);
+  $("peopleCount").textContent = state.peers.size + 1;
+}
+window.addEventListener("resize", layoutGrid);
+
+function floatReaction(tile, emoji) {
+  if (!tile || !["👍", "👏", "😂", "❤️", "🎉", "😮"].includes(emoji)) return;
+  const el = document.createElement("div");
+  el.className = "float-reaction";
+  el.textContent = emoji;
+  tile.appendChild(el);
+  setTimeout(() => el.remove(), 2300);
+}
+
+// إبراز من يتحدث
+function watchLevel(stream, tile) {
+  if (!state.audioCtx || !stream.getAudioTracks().length) return;
+  try {
+    const src = state.audioCtx.createMediaStreamSource(stream);
+    const analyser = state.audioCtx.createAnalyser();
+    analyser.fftSize = 512;
+    src.connect(analyser);
+    state.meters.set(tile, analyser);
+  } catch {}
+}
+
+const levelBuf = new Uint8Array(512);
+setInterval(() => {
+  for (const [tile, analyser] of state.meters) {
+    analyser.getByteTimeDomainData(levelBuf);
+    let sum = 0;
+    for (const v of levelBuf) sum += (v - 128) ** 2;
+    const muted = tile === state.localTile ? !state.micOn : tile.querySelector(".badges").textContent.includes("🔇");
+    tile.classList.toggle("speaking", !muted && Math.sqrt(sum / levelBuf.length) > 6);
+  }
+}, 200);
+
+/* ---------- غرفة الاجتماع ---------- */
+
+function enterRoom() {
+  state.joinedAt = Date.now();
+  $("joinNowBtn").disabled = false;
+  show("room");
+  $("roomCode").textContent = state.code;
+  $("grid").innerHTML = "";
+  $("messages").innerHTML = '<p class="muted small center">الرسائل تظهر فقط للموجودين في الاجتماع</p>';
+  state.localTile = createTile(state.name, true);
+  watchLevel(state.stream, state.localTile);
+  updateLocalTile();
+  syncToggleButtons();
+  layoutGrid();
+  renderPeople();
+  if (state.peers.size === 0) toast("أنت أول الحاضرين — شارك الرابط لدعوة الآخرين");
+}
+
+function leave(navigate = true) {
+  stopRecording();
+  state.es?.close();
+  state.es = null;
+  for (const id of [...state.peers.keys()]) removePeer(id, true);
+  state.meters.clear();
+  stopMedia();
+  state.myId = null;
+  state.joinedAt = 0;
+  state.hand = false;
+  state.localTile = null;
+  $("panel").hidden = true;
+  $("recBanner").hidden = true;
+  if (navigate) show("left");
+}
+
+$("micBtn").addEventListener("click", () => setMic(!state.micOn));
+$("camBtn").addEventListener("click", () => setCam(!state.camOn));
+$("leaveBtn").addEventListener("click", () => leave());
+$("rejoinBtn").addEventListener("click", () => openLobby());
+$("goHomeBtn").addEventListener("click", () => goTo(null));
+
+$("handBtn").addEventListener("click", () => {
+  state.hand = !state.hand;
+  syncToggleButtons();
+  updateLocalTile();
+  broadcastState();
+  renderPeople();
+});
+
+$("shareBtn").addEventListener("click", async () => {
+  if (state.screenStream) return stopShare();
+  if (!navigator.mediaDevices?.getDisplayMedia) return toast("مشاركة الشاشة غير مدعومة على هذا الجهاز");
+  try {
+    state.screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+  } catch {
+    return;
+  }
+  state.screenStream.getVideoTracks()[0].onended = stopShare;
+  replaceOutgoingVideo();
+  syncToggleButtons();
+  updateLocalTile();
+  broadcastState();
+  toast("أنت تشارك شاشتك الآن");
+});
+
+function stopShare() {
+  if (!state.screenStream) return;
+  state.screenStream.getTracks().forEach((t) => t.stop());
+  state.screenStream = null;
+  replaceOutgoingVideo();
+  syncToggleButtons();
+  updateLocalTile();
+  broadcastState();
+}
+
+$("reactBtn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  $("reactions").hidden = !$("reactions").hidden;
+});
+$("reactions").addEventListener("click", (e) => {
+  const emoji = e.target.closest("button")?.textContent;
+  if (!emoji) return;
+  floatReaction(state.localTile, emoji);
+  signal("reaction", { emoji });
+  $("reactions").hidden = true;
+});
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".reactions-wrap")) $("reactions").hidden = true;
+});
+
+$("copyBtn").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(meetingLink());
+    toast("تم نسخ رابط الاجتماع");
+  } catch {
+    prompt("انسخ رابط الاجتماع:", meetingLink());
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (!state.joinedAt || !(e.ctrlKey || e.metaKey)) return;
+  const key = e.key.toLowerCase();
+  if (key === "d") {
+    e.preventDefault();
+    setMic(!state.micOn);
+  } else if (key === "e") {
+    e.preventDefault();
+    setCam(!state.camOn);
+  }
+});
+
+/* ---------- اللوحة الجانبية: الدردشة والمشاركون ---------- */
+
+function openPanel(tab) {
+  const panel = $("panel");
+  const current = panel.querySelector(".panel-tab.active").dataset.tab;
+  if (!panel.hidden && current === tab) {
+    panel.hidden = true;
+    return;
+  }
+  panel.hidden = false;
+  for (const t of panel.querySelectorAll(".panel-tab")) t.classList.toggle("active", t.dataset.tab === tab);
+  for (const p of panel.querySelectorAll(".panel-body")) p.hidden = p.dataset.pane !== tab;
+  if (tab === "chat") {
+    $("chatDot").hidden = true;
+    $("chatInput").focus();
+    $("messages").scrollTop = $("messages").scrollHeight;
+  }
+}
+
+$("chatBtn").addEventListener("click", () => openPanel("chat"));
+$("peopleBtn").addEventListener("click", () => openPanel("people"));
+$("closePanel").addEventListener("click", () => ($("panel").hidden = true));
+for (const t of document.querySelectorAll(".panel-tab")) {
+  t.addEventListener("click", () => openPanel(t.dataset.tab));
+}
+
+function addMessage(author, text) {
+  if (!text.trim()) return;
+  const box = $("messages");
+  const msg = document.createElement("div");
+  msg.className = "msg";
+  msg.innerHTML = "<div><b></b><time></time></div><p></p>";
+  msg.querySelector("b").textContent = author;
+  msg.querySelector("time").textContent = timeNow();
+  msg.querySelector("p").textContent = text;
+  box.appendChild(msg);
+  box.scrollTop = box.scrollHeight;
+  const chatVisible = !$("panel").hidden && !document.querySelector('[data-pane="chat"]').hidden;
+  if (!chatVisible && author !== "أنت") {
+    $("chatDot").hidden = false;
+    toast(`💬 ${author}: ${text.slice(0, 60)}`);
+  }
+}
+
+$("chatForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const text = $("chatInput").value.trim();
+  if (!text) return;
+  addMessage("أنت", text);
+  signal("chat", { text });
+  $("chatInput").value = "";
+});
+
+function renderPeople() {
+  const list = $("people");
+  list.innerHTML = "";
+  const everyone = [{ ...myStatus(), name: `${state.name} (أنت)` }, ...state.peers.values()];
+  for (const p of everyone) {
+    const li = document.createElement("li");
+    li.innerHTML = '<span class="mini"></span><span class="pname"></span><span class="icons"></span>';
+    li.querySelector(".mini").textContent = initial(p.name);
+    li.querySelector(".mini").style.background = colorFor(p.name.replace(" (أنت)", ""));
+    li.querySelector(".pname").textContent = p.name;
+    li.querySelector(".icons").textContent = `${p.hand ? "✋ " : ""}${p.mic ? "🎙️" : "🔇"}`;
+    list.appendChild(li);
+  }
+  $("peopleCount").textContent = everyone.length;
+}
+
+/* ---------- تسجيل الاجتماع ---------- */
+
+function updateRecBanner() {
+  const others = [...state.peers.values()].filter((p) => p.recording).map((p) => p.name);
+  const me = !!state.recorder;
+  $("recBanner").hidden = !me && others.length === 0;
+  $("recText").textContent = me
+    ? "أنت تسجّل هذا الاجتماع"
+    : `يتم تسجيل هذا الاجتماع بواسطة ${others.join("، ")}`;
+  $("recBtn").classList.toggle("recording", me);
+  $("recBtn").title = me ? "إيقاف التسجيل" : "تسجيل الاجتماع";
+}
+
+function addToRecording(stream) {
+  if (!state.recDest || !stream.getAudioTracks().length) return;
+  try {
+    state.audioCtx.createMediaStreamSource(stream).connect(state.recDest);
+  } catch {}
+}
+
+function pickMimeType() {
+  const types = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm", "video/mp4"];
+  return types.find((t) => MediaRecorder.isTypeSupported(t)) || "";
+}
+
+async function startRecording() {
+  if (!window.MediaRecorder || !navigator.mediaDevices?.getDisplayMedia || !state.audioCtx) {
+    return toast("التسجيل غير مدعوم في هذا المتصفح. جرّب Chrome أو Edge على الكمبيوتر");
+  }
+  let display;
+  try {
+    // نلتقط تبويب الاجتماع نفسه (الصورة) ونمزج كل الأصوات بأنفسنا
+    display = await navigator.mediaDevices.getDisplayMedia({
+      video: { displaySurface: "browser", frameRate: 30 },
+      audio: false,
+      preferCurrentTab: true,
+      selfBrowserSurface: "include",
+    });
+  } catch {
+    return;
+  }
+  state.recDest = state.audioCtx.createMediaStreamDestination();
+  addToRecording(state.stream);
+  for (const p of state.peers.values()) addToRecording(p.stream);
+
+  const mixed = new MediaStream([...display.getVideoTracks(), ...state.recDest.stream.getAudioTracks()]);
+  const mimeType = pickMimeType();
+  const recorder = new MediaRecorder(mixed, mimeType ? { mimeType } : undefined);
+  const chunks = [];
+  const startedAt = new Date();
+  recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+  recorder.onstop = () => {
+    display.getTracks().forEach((t) => t.stop());
+    const type = recorder.mimeType || "video/webm";
+    const blob = new Blob(chunks, { type });
+    const ext = type.includes("mp4") ? "mp4" : "webm";
+    const stamp = startedAt.toISOString().slice(0, 16).replace(/[:T]/g, "-");
+    downloadBlob(blob, `halaqati-${state.code || "meeting"}-${stamp}.${ext}`);
+    toast("تم حفظ التسجيل على جهازك");
+  };
+  display.getVideoTracks()[0].onended = stopRecording;
+  recorder.start(1000);
+  state.recorder = recorder;
+  updateRecBanner();
+  broadcastState();
+  toast("بدأ التسجيل — سيتم حفظه على جهازك عند الإيقاف");
+}
+
+function stopRecording() {
+  const recorder = state.recorder;
+  if (!recorder) return;
+  state.recorder = null;
+  state.recDest = null;
+  if (recorder.state !== "inactive") recorder.stop();
+  updateRecBanner();
+  broadcastState();
+}
+
+function downloadBlob(blob, filename) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+}
+
+$("recBtn").addEventListener("click", () => (state.recorder ? stopRecording() : startRecording()));
+
+/* ---------- جدولة الاجتماعات ---------- */
+
+const SCHEDULE_KEY = "halaqati:scheduled";
+
+function loadScheduled() {
+  try {
+    const list = JSON.parse(localStorage.getItem(SCHEDULE_KEY)) || [];
+    // نحذف الاجتماعات التي انتهت
+    return list.filter((m) => m.start + m.duration * 60000 > Date.now()).sort((a, b) => a.start - b.start);
+  } catch {
+    return [];
+  }
+}
+
+function saveScheduled(list) {
+  try {
+    localStorage.setItem(SCHEDULE_KEY, JSON.stringify(list));
+  } catch {}
+}
+
+function formatWhen(ts) {
+  return new Date(ts).toLocaleString("ar", {
+    weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit",
+  });
+}
+
+function renderUpcoming() {
+  const list = loadScheduled();
+  saveScheduled(list);
+  $("upcoming").hidden = list.length === 0;
+  const ul = $("upcomingList");
+  ul.innerHTML = "";
+  for (const m of list) {
+    const li = document.createElement("li");
+    const live = m.start - Date.now() < 10 * 60000;
+    li.innerHTML = `
+      <div class="when"><b></b><span></span></div>
+      <button class="btn btn-primary" data-join>انضمام</button>
+      <button class="icon-btn" data-del aria-label="حذف">🗑️</button>`;
+    li.querySelector("b").textContent = m.title;
+    li.querySelector("span").textContent = live ? "يبدأ الآن" : formatWhen(m.start);
+    li.querySelector("span").classList.toggle("soon", live);
+    li.querySelector("[data-join]").addEventListener("click", () => goTo(m.code));
+    li.querySelector("[data-del]").addEventListener("click", () => {
+      saveScheduled(loadScheduled().filter((x) => x.code !== m.code));
+      renderUpcoming();
+    });
+    ul.appendChild(li);
+  }
+}
+
+function toCalDate(ts) {
+  return new Date(ts).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+}
+
+function inviteText(m) {
+  return `أنت مدعو لاجتماع على حلقتي\n\n${m.title}\n${formatWhen(m.start)} (${m.duration} دقيقة)\n\nرابط الانضمام:\n${linkFor(m.code)}`;
+}
+
+function icsFile(m) {
+  const esc = (t) => t.replace(/[\\;,]/g, (c) => "\\" + c).replace(/\n/g, "\\n");
+  const link = `${linkFor(m.code)}`;
+  return [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Halaqati//AR", "CALSCALE:GREGORIAN", "BEGIN:VEVENT",
+    `UID:${m.code}@halaqati`,
+    `DTSTAMP:${toCalDate(Date.now())}`,
+    `DTSTART:${toCalDate(m.start)}`,
+    `DTEND:${toCalDate(m.start + m.duration * 60000)}`,
+    `SUMMARY:${esc(m.title)}`,
+    `DESCRIPTION:${esc("رابط الانضمام: " + link)}`,
+    `URL:${link}`,
+    `LOCATION:${esc(link)}`,
+    "BEGIN:VALARM", "TRIGGER:-PT10M", "ACTION:DISPLAY", `DESCRIPTION:${esc(m.title)}`, "END:VALARM",
+    "END:VEVENT", "END:VCALENDAR",
+  ].join("\r\n");
+}
+
+let lastScheduled = null;
+
+function openSchedule() {
+  const start = new Date(Date.now() + 60 * 60000);
+  start.setMinutes(start.getMinutes() < 30 ? 30 : 60, 0, 0);
+  const local = new Date(start.getTime() - start.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  $("sStart").value = local;
+  $("sTitle").value = "";
+  $("scheduleError").textContent = "";
+  $("scheduleForm").hidden = false;
+  $("scheduleResult").hidden = true;
+  $("scheduleModal").hidden = false;
+  $("sTitle").focus();
+}
+
+function closeSchedule() {
+  $("scheduleModal").hidden = true;
+  renderUpcoming();
+}
+
+$("scheduleBtn").addEventListener("click", openSchedule);
+for (const el of document.querySelectorAll("#scheduleModal [data-close]")) el.addEventListener("click", closeSchedule);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("scheduleModal").hidden) closeSchedule();
+});
+
+$("scheduleForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const start = new Date($("sStart").value).getTime();
+  if (!start || start < Date.now() - 60000) {
+    $("scheduleError").textContent = "اختر موعداً في المستقبل";
+    return;
+  }
+  const m = {
+    code: genCode(),
+    title: $("sTitle").value.trim() || "اجتماع",
+    start,
+    duration: Number($("sDuration").value),
+  };
+  saveScheduled([...loadScheduled(), m]);
+  lastScheduled = m;
+  const link = `${linkFor(m.code)}`;
+  $("sSummary").textContent = `${m.title} — ${formatWhen(m.start)}`;
+  $("sLink").textContent = link;
+  const g = new URL("https://calendar.google.com/calendar/render");
+  g.searchParams.set("action", "TEMPLATE");
+  g.searchParams.set("text", m.title);
+  g.searchParams.set("dates", `${toCalDate(m.start)}/${toCalDate(m.start + m.duration * 60000)}`);
+  g.searchParams.set("details", `رابط الانضمام: ${link}`);
+  g.searchParams.set("location", link);
+  $("sGoogle").href = g.toString();
+  $("scheduleForm").hidden = true;
+  $("scheduleResult").hidden = false;
+});
+
+$("sCopy").addEventListener("click", async () => {
+  if (!lastScheduled) return;
+  try {
+    await navigator.clipboard.writeText(inviteText(lastScheduled));
+    toast("تم نسخ الدعوة — أرسلها لمن تريد");
+  } catch {
+    prompt("انسخ الدعوة:", inviteText(lastScheduled));
+  }
+});
+
+$("sIcs").addEventListener("click", () => {
+  if (!lastScheduled) return;
+  downloadBlob(new Blob([icsFile(lastScheduled)], { type: "text/calendar;charset=utf-8" }), `halaqati-${lastScheduled.code}.ics`);
+});
+
+setInterval(() => {
+  if (!$("home").hidden) renderUpcoming();
+}, 60000);
+
+window.addEventListener("beforeunload", () => state.es?.close());
+
+route();
+</script>
+</body>
+</html>

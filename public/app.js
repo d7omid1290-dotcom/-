@@ -9,6 +9,9 @@ const COLORS = ["#1a73e8", "#34a853", "#e37400", "#d93025", "#a142f4", "#12a4af"
 
 const $ = (id) => document.getElementById(id);
 
+// وضع العرض: ملف HTML واحد يعمل بدون خادم (لا يمكن للآخرين الانضمام)
+const DEMO = !!window.HALAQATI_DEMO;
+
 const state = {
   code: null,
   name: "",
@@ -71,15 +74,20 @@ function show(viewId) {
   for (const v of document.querySelectorAll(".view")) v.hidden = v.id !== viewId;
 }
 
+function linkFor(code) {
+  return DEMO ? code : `${location.origin}/${code}`;
+}
+
 function meetingLink() {
-  return `${location.origin}/${state.code}`;
+  return linkFor(state.code);
 }
 
 /* ---------- التنقل ---------- */
 
 function route() {
-  const code = parseCode(location.pathname.slice(1));
-  if (code && location.pathname.slice(1) === code) {
+  const path = DEMO ? state.code || "" : location.pathname.slice(1);
+  const code = parseCode(path);
+  if (code && path === code) {
     state.code = code;
     openLobby();
   } else {
@@ -90,7 +98,8 @@ function route() {
 }
 
 function goTo(code) {
-  history.pushState({}, "", code ? `/${code}` : "/");
+  if (DEMO) state.code = code;
+  else history.pushState({}, "", code ? `/${code}` : "/");
   route();
 }
 
@@ -220,7 +229,7 @@ $("joinNowBtn").addEventListener("click", join);
 /* ---------- الإشارة (Signaling) ---------- */
 
 function signal(type, data, to) {
-  if (!state.myId) return;
+  if (!state.myId || DEMO) return;
   fetch(`/api/rooms/${state.code}/signal`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -258,6 +267,13 @@ function join() {
     state.audioCtx.resume();
   } catch {
     state.audioCtx = null;
+  }
+
+  if (DEMO) {
+    state.myId = "demo";
+    enterRoom();
+    toast("وضع العرض: شغّل الخادم أو انشر الموقع حتى ينضم الآخرون");
+    return;
   }
 
   $("joinNowBtn").disabled = true;
@@ -844,12 +860,12 @@ function toCalDate(ts) {
 }
 
 function inviteText(m) {
-  return `أنت مدعو لاجتماع على حلقتي\n\n${m.title}\n${formatWhen(m.start)} (${m.duration} دقيقة)\n\nرابط الانضمام:\n${location.origin}/${m.code}`;
+  return `أنت مدعو لاجتماع على حلقتي\n\n${m.title}\n${formatWhen(m.start)} (${m.duration} دقيقة)\n\nرابط الانضمام:\n${linkFor(m.code)}`;
 }
 
 function icsFile(m) {
   const esc = (t) => t.replace(/[\\;,]/g, (c) => "\\" + c).replace(/\n/g, "\\n");
-  const link = `${location.origin}/${m.code}`;
+  const link = `${linkFor(m.code)}`;
   return [
     "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Halaqati//AR", "CALSCALE:GREGORIAN", "BEGIN:VEVENT",
     `UID:${m.code}@halaqati`,
@@ -906,7 +922,7 @@ $("scheduleForm").addEventListener("submit", (e) => {
   };
   saveScheduled([...loadScheduled(), m]);
   lastScheduled = m;
-  const link = `${location.origin}/${m.code}`;
+  const link = `${linkFor(m.code)}`;
   $("sSummary").textContent = `${m.title} — ${formatWhen(m.start)}`;
   $("sLink").textContent = link;
   const g = new URL("https://calendar.google.com/calendar/render");
