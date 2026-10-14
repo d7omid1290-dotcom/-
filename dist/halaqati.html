@@ -9,7 +9,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%229%22%20fill%3D%22%231a73e8%22%2F%3E%3Cg%20fill%3D%22%23fff%22%3E%3Ccircle%20cx%3D%2224%22%20cy%3D%2216%22%20r%3D%222.6%22%2F%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%2222.9%22%20r%3D%222.6%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2222.9%22%20r%3D%222.6%22%2F%3E%3Ccircle%20cx%3D%228%22%20cy%3D%2216%22%20r%3D%222.6%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%229.1%22%20r%3D%222.6%22%2F%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%229.1%22%20r%3D%222.6%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
 :root {
   --bg: #ffffff;
@@ -32,7 +32,7 @@
   --room-muted: #bdc1c6;
   --accent: #8ab4f8;
 
-  --font: "Tajawal", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font: "IBM Plex Sans Arabic", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -117,25 +117,29 @@ input:focus, select:focus { outline: none; border-color: var(--primary); box-sha
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 64px; align-items: center;
   max-width: 1200px; margin: 0 auto; padding: 48px 32px 64px; min-height: calc(100vh - 64px);
 }
-.home-text h1 { font-size: clamp(2rem, 3.6vw, 2.75rem); font-weight: 500; letter-spacing: -.01em; }
-.lead { font-size: 1.15rem; color: var(--muted); max-width: 520px; margin: 0 0 32px; }
+.home-text h1 { font-size: clamp(2.1rem, 4vw, 3.2rem); font-weight: 600; line-height: 1.25; letter-spacing: -.01em; margin-bottom: 18px; }
+.lead { font-size: 1.15rem; color: var(--muted); max-width: 500px; margin: 0 0 32px; line-height: 1.8; }
 .home-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 .join-form { display: flex; gap: 4px; align-items: center; flex: 1; min-width: 260px; max-width: 360px; }
 .join-field { position: relative; flex: 1; }
 .join-field .i { position: absolute; inset-inline-start: 12px; top: 13px; color: var(--muted); }
 .join-field input { padding-inline-start: 44px; }
 
-.home-art { display: grid; justify-items: center; gap: 18px; }
-.art-caption { color: var(--muted); text-align: center; max-width: 340px; margin: 0; }
+.home-art { position: relative; display: grid; justify-items: center; padding: 28px 0; }
 .mock {
-  width: min(460px, 100%); background: var(--room-bg); border-radius: 16px; padding: 10px;
-  box-shadow: 0 1px 3px rgba(60, 64, 67, .3), 0 12px 32px rgba(60, 64, 67, .18);
+  width: min(480px, 100%); background: var(--room-bg); border-radius: 18px; padding: 10px 10px 8px;
+  box-shadow: 0 2px 6px rgba(60, 64, 67, .15), 0 24px 60px rgba(26, 115, 232, .18);
+  transform: perspective(1400px) rotateY(4deg);
 }
 .mock-grid { display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: repeat(3, 1fr); gap: 6px; aspect-ratio: 16 / 10; }
 .mock-tile {
-  position: relative; background: var(--tile-bg); border-radius: 8px;
-  display: grid; place-items: center; min-height: 0;
+  position: relative; background: var(--tile-bg); border-radius: 10px;
+  display: grid; place-items: center; min-height: 0; overflow: hidden;
 }
+.mock-tile.g1 { background: radial-gradient(120% 90% at 50% 20%, #4b5d73, #2b3440); }
+.mock-tile.g2 { background: radial-gradient(120% 90% at 50% 20%, #6b5a4a, #3a3029); }
+.mock-tile.g3 { background: radial-gradient(120% 90% at 50% 20%, #4f6b58, #2c3a31); }
+.mock-tile.g4 { background: radial-gradient(120% 90% at 50% 20%, #5e5470, #332d3e); }
 .mock-tile.big { grid-row: 1 / -1; box-shadow: inset 0 0 0 2px var(--accent); }
 .mock-av {
   width: 28%; max-width: 72px; aspect-ratio: 1; border-radius: 50%;
@@ -150,6 +154,7 @@ input:focus, select:focus { outline: none; border-color: var(--primary); box-sha
 .mock-hand { position: absolute; top: 4px; inset-inline-end: 6px; font-size: .8rem; }
 .mock-bar { display: flex; justify-content: center; gap: 8px; padding: 10px 0 4px; }
 .mock-bar span { width: 26px; height: 26px; border-radius: 50%; background: var(--ctrl-bg); }
+.mock-bar .on { background: var(--accent); }
 .mock-bar .end { width: 38px; border-radius: 13px; background: var(--danger); }
 
 /* Upcoming */
@@ -446,6 +451,139 @@ input:focus, select:focus { outline: none; border-color: var(--primary); box-sha
 
 /* في البلاطات الصغيرة تكفي أيقونة اليد */
 .grid.spotlight .tile:not(.pinned) .hand-badge { font-size: 0; padding: 5px; gap: 0; }
+
+/* ===== لمسات التصميم ===== */
+.btn, .ctrl, .icon-btn, .link-btn, .panel-tab, .send-btn { -webkit-tap-highlight-color: transparent; }
+.btn:active:not(:disabled) { transform: scale(.98); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn-text:disabled:hover { background: transparent; }
+.ctrl:active { transform: scale(.94); }
+.join-field input { border-radius: 8px; }
+.join-field input:hover { border-color: #bdc1c6; }
+
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 8px; margin-bottom: 18px;
+  background: var(--primary-soft); color: #174ea6; font-size: .88rem; font-weight: 500;
+  padding: 5px 14px 5px 12px; border-radius: 999px;
+}
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: #34a853; box-shadow: 0 0 0 3px rgba(52, 168, 83, .2); }
+.perks {
+  list-style: none; padding: 0; margin: 28px 0 0; display: flex; flex-wrap: wrap; gap: 10px 22px;
+  color: var(--muted); font-size: .92rem;
+}
+.perks li { display: flex; align-items: center; gap: 6px; }
+.perks .i { width: 18px; height: 18px; color: #188038; }
+.home-text .link-btn { margin-top: 10px; }
+
+.mock-top { display: flex; align-items: center; gap: 10px; color: var(--room-muted); font-size: .72rem; padding: 2px 4px 9px; }
+.mock-live { background: var(--danger); color: #fff; font-weight: 600; border-radius: 4px; padding: 0 6px; }
+.mock-time { margin-inline-start: auto; font-variant-numeric: tabular-nums; }
+.float-card {
+  position: absolute; display: flex; align-items: center; gap: 10px;
+  background: #fff; border-radius: 14px; padding: 10px 14px 10px 16px;
+  box-shadow: 0 2px 6px rgba(60, 64, 67, .12), 0 12px 32px rgba(60, 64, 67, .16);
+  font-size: .85rem; line-height: 1.35; animation: bob 6s ease-in-out infinite;
+}
+.float-card b { display: block; font-weight: 600; }
+.float-card small { color: var(--muted); }
+.fc-icon { width: 34px; height: 34px; border-radius: 50%; background: #fef7e0; display: grid; place-items: center; font-size: 1.05rem; }
+.fc-av { width: 34px; height: 34px; border-radius: 50%; color: #fff; display: grid; place-items: center; font-weight: 600; }
+.fc-hand { top: 0; inset-inline-end: -12px; }
+.fc-chat { bottom: 0; inset-inline-start: -18px; animation-delay: -3s; }
+@keyframes bob { 50% { transform: translateY(-8px); } }
+
+/* Lobby */
+.in-room { display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--muted); margin: 6px 0 2px; min-height: 30px; }
+.avatars { display: flex; }
+.avatars:empty { display: none; }
+.avatars span {
+  width: 28px; height: 28px; border-radius: 50%; color: #fff; font-size: .8rem; font-weight: 600;
+  display: grid; place-items: center; border: 2px solid #fff; margin-inline-start: -8px;
+}
+.avatars span:first-child { margin-inline-start: 0; }
+.preview { border-radius: 12px; box-shadow: 0 1px 3px rgba(60, 64, 67, .2); }
+.preview::after {
+  content: ""; position: absolute; inset: auto 0 0 0; height: 40%; pointer-events: none;
+  background: linear-gradient(transparent, rgba(0, 0, 0, .45));
+}
+.preview-name {
+  position: absolute; top: 14px; inset-inline-start: 16px; z-index: 2; color: #fff; font-weight: 500;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .6);
+}
+.preview-controls, .mic-meter { z-index: 2; }
+.lobby-side h2 { font-weight: 600; }
+
+/* Room */
+.tile.cam-off { background: radial-gradient(120% 100% at 50% 30%, #4a4d51, #303134); }
+.tile .avatar { box-shadow: 0 4px 16px rgba(0, 0, 0, .25); }
+.tile.speaking .avatar { box-shadow: 0 0 0 4px rgba(138, 180, 248, .45), 0 4px 16px rgba(0, 0, 0, .25); }
+.stage { position: relative; }
+.invite-card {
+  position: absolute; bottom: 16px; inset-inline-start: 32px; z-index: 5; width: min(360px, calc(100% - 48px));
+  background: #fff; color: var(--text); border-radius: 12px; padding: 20px 20px 18px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, .35); animation: pop .25s ease-out;
+}
+.invite-card h3 { font-size: 1.15rem; font-weight: 600; margin: 0 0 4px; }
+.invite-card p { margin: 0 0 14px; color: var(--muted); font-size: .92rem; }
+.invite-close { position: absolute; top: 10px; left: 10px; }
+.invite-link {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  background: var(--subtle); border-radius: 8px; padding: 4px 14px 4px 4px; font-size: .9rem;
+}
+.invite-link span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.elapsed { font-variant-numeric: tabular-nums; color: var(--room-muted); }
+.elapsed:empty { display: none; }
+.elapsed::before { content: "·"; margin-inline-end: 12px; }
+
+/* تلميحات أزرار التحكم */
+.bar .ctrl[data-tip]:hover::before, .bar .ctrl[data-tip]:focus-visible::before {
+  content: attr(data-tip); position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
+  background: #e8eaed; color: var(--room-bg); font-size: .8rem; font-weight: 500; white-space: nowrap;
+  padding: 4px 10px; border-radius: 4px; pointer-events: none; z-index: 20;
+}
+.bar .ctrl .dot { z-index: 1; }
+
+/* Left */
+.left-icon {
+  width: 64px; height: 64px; border-radius: 50%; background: #e6f4ea; color: #188038;
+  display: grid; place-items: center; margin-bottom: 18px;
+}
+.left-icon .i { width: 30px; height: 30px; stroke-width: 2.2; }
+.left-box h2 { font-weight: 600; }
+
+/* حركة النوافذ */
+.modal:not([hidden]) .modal-backdrop { animation: fade .2s ease-out; }
+.modal:not([hidden]) .modal-card { animation: pop .22s ease-out; }
+.panel:not([hidden]) { animation: slide .2s ease-out; }
+.reactions:not([hidden]) { animation: pop .15s ease-out; }
+@keyframes fade { from { opacity: 0; } }
+@keyframes pop { from { opacity: 0; transform: scale(.96) translateY(6px); } }
+@keyframes slide { from { opacity: 0; transform: translateX(-12px); } }
+.reactions:not([hidden]) { animation-name: popc; }
+@keyframes popc { from { opacity: 0; transform: translateX(-50%) scale(.9); } }
+.view:not([hidden]) { animation: fade .25s ease-out; }
+
+@media (max-width: 960px) {
+  .perks { justify-content: center; }
+  .in-room { justify-content: center; }
+  .mock { transform: none; }
+  .fc-hand { inset-inline-end: 0; }
+  .fc-chat { inset-inline-start: 0; }
+}
+@media (max-width: 640px) {
+  .home-text h1 br { display: none; }
+  .float-card { display: none; }
+  .home-art { padding: 0; }
+  .perks { flex-direction: column; align-items: center; gap: 8px; }
+  .invite-card { inset-inline: 8px; bottom: 8px; width: auto; }
+  .bar .ctrl[data-tip]:hover::before { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* لا معنى للتثبيت عندما تكون وحدك */
+.grid > .tile:only-child .pin-btn { display: none; }
 </style>
 </head>
 <body>
@@ -498,18 +636,25 @@ input:focus, select:focus { outline: none; border-color: var(--primary); box-sha
 
     <main class="home-main">
       <div class="home-text">
-        <h1>حلقات القرآن الكريم، من أي مكان</h1>
-        <p class="lead">اتصال بالصوت والصورة بين المعلّم وطلابه للتسميع والمراجعة. يعمل من المتصفح على الجوال والكمبيوتر.</p>
+        <span class="eyebrow"><span class="live-dot"></span>منصة الحلقات عن بُعد</span>
+        <h1>حلقات القرآن الكريم، <br>من أي مكان</h1>
+        <p class="lead">اتصال بالصوت والصورة يجمع المعلّم بطلابه للتسميع والمراجعة، من المتصفح مباشرة.</p>
         <div class="home-actions">
-          <button class="btn btn-primary" id="newMeetingBtn"><svg class="i"><use href="#i-plus"/></svg>حلقة جديدة</button>
+          <button class="btn btn-primary btn-lg" id="newMeetingBtn"><svg class="i"><use href="#i-plus"/></svg>حلقة جديدة</button>
           <form class="join-form" id="joinForm">
             <label for="joinCode" class="sr-only">رمز الحلقة</label>
             <span class="join-field"><svg class="i"><use href="#i-link"/></svg><input id="joinCode" placeholder="أدخل رمز الحلقة" autocomplete="off" dir="auto"></span>
-            <button class="btn btn-text" type="submit">دخول</button>
+            <button class="btn btn-text" type="submit" id="joinBtn" disabled>دخول</button>
           </form>
         </div>
-        <button class="link-btn" id="scheduleBtn"><svg class="i"><use href="#i-calendar"/></svg>جدولة حلقة لوقت لاحق</button>
         <p class="error" id="homeError" role="alert"></p>
+        <button class="link-btn" id="scheduleBtn"><svg class="i"><use href="#i-calendar"/></svg>جدولة حلقة لوقت لاحق</button>
+
+        <ul class="perks">
+          <li><svg class="i"><use href="#i-check"/></svg>بدون تثبيت أي برنامج</li>
+          <li><svg class="i"><use href="#i-check"/></svg>يعمل على الجوال والكمبيوتر</li>
+          <li><svg class="i"><use href="#i-check"/></svg>حتى 12 مشاركاً في الحلقة</li>
+        </ul>
 
         <div class="upcoming" id="upcoming" hidden>
           <h3>الحلقات القادمة</h3>
@@ -519,15 +664,17 @@ input:focus, select:focus { outline: none; border-color: var(--primary); box-sha
 
       <div class="home-art" aria-hidden="true">
         <div class="mock">
+          <div class="mock-top"><span class="mock-live">مباشر</span><span>حلقة جزء عمّ</span><span class="mock-time">12:48</span></div>
           <div class="mock-grid">
-            <div class="mock-tile big"><span class="mock-av" style="background:#1a73e8">ع</span><span class="mock-name">عبدالرحمن <em>المعلّم</em></span></div>
-            <div class="mock-tile"><span class="mock-av" style="background:#e37400">أ</span><span class="mock-name">أحمد</span></div>
-            <div class="mock-tile"><span class="mock-hand">✋</span><span class="mock-av" style="background:#188038">ي</span><span class="mock-name">يوسف</span></div>
-            <div class="mock-tile"><span class="mock-av" style="background:#a142f4">ع</span><span class="mock-name">عمر</span></div>
+            <div class="mock-tile big g1"><span class="mock-av" style="background:#1a73e8">ع</span><span class="mock-name">عبدالرحمن <em>المعلّم</em></span></div>
+            <div class="mock-tile g2"><span class="mock-av" style="background:#e37400">أ</span><span class="mock-name">أحمد</span></div>
+            <div class="mock-tile g3"><span class="mock-hand">✋</span><span class="mock-av" style="background:#188038">ي</span><span class="mock-name">يوسف</span></div>
+            <div class="mock-tile g4"><span class="mock-av" style="background:#a142f4">ع</span><span class="mock-name">عمر</span></div>
           </div>
-          <div class="mock-bar"><span></span><span></span><span></span><span class="end"></span></div>
+          <div class="mock-bar"><span></span><span></span><span class="on"></span><span></span><span class="end"></span></div>
         </div>
-        <p class="art-caption">ثبّت المعلّم في الوسط، وارفع يدك عندما يحين دورك في التسميع</p>
+        <div class="float-card fc-hand"><span class="fc-icon">✋</span><div><b>يوسف يرفع يده</b><small>جاهز للتسميع</small></div></div>
+        <div class="float-card fc-chat"><span class="fc-av" style="background:#e37400">أ</span><div><b>أحمد</b><small>السلام عليكم يا شيخ</small></div></div>
       </div>
     </main>
   </section>
@@ -545,6 +692,7 @@ input:focus, select:focus { outline: none; border-color: var(--primary); box-sha
       <div class="preview-wrap">
         <div class="preview">
           <video id="previewVideo" autoplay playsinline muted></video>
+          <span class="preview-name" id="previewName"></span>
           <div class="preview-off" id="previewOff"><svg class="i"><use href="#i-cam-off"/></svg><span>الكاميرا متوقفة</span></div>
           <div class="mic-meter" aria-hidden="true"><span id="micLevel"></span></div>
           <div class="preview-controls">
@@ -559,6 +707,7 @@ input:focus, select:focus { outline: none; border-color: var(--primary); box-sha
       </div>
       <div class="lobby-side">
         <h2>جاهز لدخول الحلقة؟</h2>
+        <div class="in-room" id="inRoom"><span class="avatars" id="inRoomAvatars"></span><span id="inRoomText">لا يوجد أحد في الحلقة بعد</span></div>
         <button class="code-chip" id="lobbyCopy" title="نسخ رابط الحلقة"><span id="lobbyCode" dir="ltr"></span><svg class="i"><use href="#i-copy"/></svg></button>
         <label for="nameInput" class="field-label">اسمك</label>
         <input id="nameInput" placeholder="اكتب اسمك كما يعرفك المعلّم" maxlength="40" autocomplete="name">
@@ -578,6 +727,12 @@ input:focus, select:focus { outline: none; border-color: var(--primary); box-sha
     <div class="rec-banner" id="recBanner" hidden><span class="rec-dot"></span><span id="recText">يتم تسجيل هذه الحلقة</span></div>
     <div class="stage">
       <div class="grid" id="grid"></div>
+      <div class="invite-card" id="inviteCard" hidden>
+        <button class="icon-btn invite-close" id="inviteClose" aria-label="إغلاق"><svg class="i"><use href="#i-close"/></svg></button>
+        <h3>حلقتك جاهزة</h3>
+        <p>شارك هذا الرابط مع الطلاب ليدخلوا الحلقة</p>
+        <div class="invite-link"><span id="inviteLink" dir="ltr"></span><button class="icon-btn" id="inviteCopy" aria-label="نسخ الرابط"><svg class="i"><use href="#i-copy"/></svg></button></div>
+      </div>
       <aside class="panel" id="panel" hidden>
         <div class="panel-head">
           <div class="panel-tabs" role="tablist">
@@ -604,6 +759,7 @@ input:focus, select:focus { outline: none; border-color: var(--primary); box-sha
         <span id="roomClock"></span>
         <span class="sep"></span>
         <span id="roomCode" dir="ltr"></span>
+        <span class="elapsed" id="roomElapsed"></span>
       </div>
       <div class="bar-controls">
         <button class="ctrl" id="micBtn" title="الميكروفون (Ctrl+D)"><svg class="i on-i"><use href="#i-mic"/></svg><svg class="i off-i"><use href="#i-mic-off"/></svg></button>
@@ -631,6 +787,7 @@ input:focus, select:focus { outline: none; border-color: var(--primary); box-sha
   <!-- بعد المغادرة -->
   <section id="left" class="view" hidden>
     <div class="left-box">
+      <span class="left-icon"><svg class="i"><use href="#i-check"/></svg></span>
       <h2>غادرت الحلقة</h2>
       <p class="lead" id="leftSummary"></p>
       <div class="home-actions center">
@@ -751,6 +908,13 @@ function icon(name, cls = "") {
   return `<svg class="i ${cls}"><use href="#i-${name}"/></svg>`;
 }
 
+// تلميح يظهر فوق أزرار التحكم بدل تلميح المتصفح
+function setTip(el, text) {
+  el.dataset.tip = text;
+  el.setAttribute("aria-label", text);
+  el.removeAttribute("title");
+}
+
 function formatDuration(ms) {
   const mins = Math.max(1, Math.round(ms / 60000));
   if (mins < 60) return `${mins} دقيقة`;
@@ -774,8 +938,14 @@ function colorFor(text) {
   return COLORS[h % COLORS.length];
 }
 
+// الحرف الأول من الاسم، بعد تجاوز الألقاب و«ال» التعريف: «الشيخ عبدالرحمن» ← ع
 function initial(name) {
-  return [...(name.trim() || "؟")][0].toUpperCase();
+  const words = name.replace(" (أنت)", "").trim().split(/\s+/).filter(Boolean);
+  const titles = ["الشيخ", "شيخ", "الأستاذ", "الاستاذ", "أستاذ", "استاذ", "المعلم", "المعلّم", "د.", "أ."];
+  const word = words.find((w) => !titles.includes(w)) || words[0] || "؟";
+  const chars = [...word];
+  const start = chars.length > 3 && chars[0] === "ا" && chars[1] === "ل" ? 2 : 0;
+  return chars[start].toUpperCase();
 }
 
 function genCode() {
@@ -850,10 +1020,23 @@ $("joinForm").addEventListener("submit", (e) => {
   goTo(code);
 });
 
+function elapsed(ms) {
+  const sec = Math.floor(ms / 1000);
+  const h = Math.floor(sec / 3600);
+  const mm = String(Math.floor((sec % 3600) / 60)).padStart(2, "0");
+  const ss = String(sec % 60).padStart(2, "0");
+  return h ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
 setInterval(() => {
   $("homeClock").textContent = timeNow();
   $("roomClock").textContent = timeNow();
+  if (state.joinedAt) $("roomElapsed").textContent = elapsed(Date.now() - state.joinedAt);
 }, 1000);
+
+$("joinCode").addEventListener("input", () => {
+  $("joinBtn").disabled = !$("joinCode").value.trim();
+});
 $("homeClock").textContent = $("roomClock").textContent = timeNow();
 
 /* ---------- الوسائط ---------- */
@@ -891,11 +1074,11 @@ function outgoingTrack(kind) {
 function syncToggleButtons() {
   for (const id of ["lobbyMic", "micBtn"]) {
     $(id).classList.toggle("off", !state.micOn);
-    $(id).title = state.micOn ? "كتم الميكروفون" : "تشغيل الميكروفون";
+    setTip($(id), state.micOn ? "كتم الميكروفون" : "تشغيل الميكروفون");
   }
   for (const id of ["lobbyCam", "camBtn"]) {
     $(id).classList.toggle("off", !state.camOn);
-    $(id).title = state.camOn ? "إيقاف الكاميرا" : "تشغيل الكاميرا";
+    setTip($(id), state.camOn ? "إيقاف الكاميرا" : "تشغيل الكاميرا");
   }
   $("previewOff").hidden = state.camOn && !!camTrack();
   $("shareBtn").classList.toggle("on", !!state.screenStream);
@@ -946,8 +1129,37 @@ async function openLobby() {
   }
   populateDevices();
   startLobbyMeter();
+  $("previewName").textContent = $("nameInput").value;
+  refreshLobbyPeers();
   $("nameInput").focus();
 }
+
+$("nameInput").addEventListener("input", () => {
+  $("previewName").textContent = $("nameInput").value;
+});
+
+// من في الحلقة الآن؟ يُعرض قبل الدخول
+async function refreshLobbyPeers() {
+  if (DEMO || $("lobby").hidden || !state.code) return;
+  let info = { count: 0, names: [] };
+  try {
+    info = await (await fetch(`/api/rooms/${state.code}/peers`)).json();
+  } catch {}
+  const { count, names } = info;
+  $("inRoomAvatars").innerHTML = "";
+  for (const n of names.slice(0, 4)) {
+    const a = document.createElement("span");
+    a.textContent = initial(n);
+    a.style.background = colorFor(n);
+    $("inRoomAvatars").appendChild(a);
+  }
+  $("inRoomText").textContent =
+    count === 0 ? "لا يوجد أحد في الحلقة بعد"
+    : count === 1 ? `${names[0]} في الحلقة الآن`
+    : count === 2 ? `${names[0]} و${names[1]} في الحلقة الآن`
+    : `${names[0]} و${count - 1} آخرون في الحلقة الآن`;
+}
+setInterval(refreshLobbyPeers, 4000);
 
 let lobbyAnalyser = null;
 
@@ -1362,8 +1574,15 @@ function layoutGrid() {
     grid.style.setProperty("--cols", cols);
   }
   $("peopleCount").textContent = state.peers.size + 1;
+  $("inviteCard").hidden = !state.joinedAt || state.peers.size > 0 || state.inviteDismissed;
 }
 window.addEventListener("resize", layoutGrid);
+
+$("inviteClose").addEventListener("click", () => {
+  state.inviteDismissed = true;
+  layoutGrid();
+});
+$("inviteCopy").addEventListener("click", () => copyText(meetingLink(), "تم نسخ رابط الحلقة"));
 
 function floatReaction(tile, emoji) {
   if (!tile || !REACTIONS.includes(emoji)) return;
@@ -1415,13 +1634,16 @@ function enterRoom() {
   $("grid").innerHTML = "";
   $("messages").innerHTML = '<p class="hint">الرسائل تظهر فقط للحاضرين في الحلقة الآن</p>';
   state.pinned = null;
+  state.inviteDismissed = false;
+  $("inviteLink").textContent = meetingLink().replace(/^https?:\/\//, "");
+  $("roomElapsed").textContent = "00:00";
   state.localTile = createTile("local", true);
   watchLevel(state.stream, state.localTile);
   updateLocalTile();
   syncToggleButtons();
   layoutGrid();
   renderPeople();
-  if (state.peers.size === 0) toast("أنت أول الحاضرين — شارك رابط الحلقة لدعوة الطلاب");
+
 }
 
 function leave(navigate = true) {
@@ -1438,6 +1660,7 @@ function leave(navigate = true) {
   state.localTile = null;
   $("panel").hidden = true;
   $("recBanner").hidden = true;
+  $("inviteCard").hidden = true;
   if (navigate) show("left");
 }
 
@@ -1604,7 +1827,7 @@ function updateRecBanner() {
     ? "أنت تسجّل هذه الحلقة"
     : `يتم تسجيل هذه الحلقة بواسطة ${others.join("، ")}`;
   $("recBtn").classList.toggle("recording", me);
-  $("recBtn").title = me ? "إيقاف التسجيل" : "تسجيل الحلقة";
+  setTip($("recBtn"), me ? "إيقاف التسجيل" : "تسجيل الحلقة");
 }
 
 function addToRecording(stream) {
@@ -1838,6 +2061,8 @@ setInterval(() => {
 }, 60000);
 
 window.addEventListener("beforeunload", () => state.es?.close());
+
+for (const el of document.querySelectorAll(".bar .ctrl[title]")) setTip(el, el.title);
 
 // شعار المدرسة اختياري: يظهر فقط إذا وُجد الملف public/logo.png
 for (const img of document.querySelectorAll(".logo-img")) {

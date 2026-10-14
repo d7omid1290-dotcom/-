@@ -9,7 +9,7 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -62,18 +62,25 @@
 
     <main class="home-main">
       <div class="home-text">
-        <h1>حلقات القرآن الكريم، من أي مكان</h1>
-        <p class="lead">اتصال بالصوت والصورة بين المعلّم وطلابه للتسميع والمراجعة. يعمل من المتصفح على الجوال والكمبيوتر.</p>
+        <span class="eyebrow"><span class="live-dot"></span>منصة الحلقات عن بُعد</span>
+        <h1>حلقات القرآن الكريم، <br>من أي مكان</h1>
+        <p class="lead">اتصال بالصوت والصورة يجمع المعلّم بطلابه للتسميع والمراجعة، من المتصفح مباشرة.</p>
         <div class="home-actions">
-          <button class="btn btn-primary" id="newMeetingBtn"><svg class="i"><use href="#i-plus"/></svg>حلقة جديدة</button>
+          <button class="btn btn-primary btn-lg" id="newMeetingBtn"><svg class="i"><use href="#i-plus"/></svg>حلقة جديدة</button>
           <form class="join-form" id="joinForm">
             <label for="joinCode" class="sr-only">رمز الحلقة</label>
             <span class="join-field"><svg class="i"><use href="#i-link"/></svg><input id="joinCode" placeholder="أدخل رمز الحلقة" autocomplete="off" dir="auto"></span>
-            <button class="btn btn-text" type="submit">دخول</button>
+            <button class="btn btn-text" type="submit" id="joinBtn" disabled>دخول</button>
           </form>
         </div>
-        <button class="link-btn" id="scheduleBtn"><svg class="i"><use href="#i-calendar"/></svg>جدولة حلقة لوقت لاحق</button>
         <p class="error" id="homeError" role="alert"></p>
+        <button class="link-btn" id="scheduleBtn"><svg class="i"><use href="#i-calendar"/></svg>جدولة حلقة لوقت لاحق</button>
+
+        <ul class="perks">
+          <li><svg class="i"><use href="#i-check"/></svg>بدون تثبيت أي برنامج</li>
+          <li><svg class="i"><use href="#i-check"/></svg>يعمل على الجوال والكمبيوتر</li>
+          <li><svg class="i"><use href="#i-check"/></svg>حتى 12 مشاركاً في الحلقة</li>
+        </ul>
 
         <div class="upcoming" id="upcoming" hidden>
           <h3>الحلقات القادمة</h3>
@@ -83,15 +90,17 @@
 
       <div class="home-art" aria-hidden="true">
         <div class="mock">
+          <div class="mock-top"><span class="mock-live">مباشر</span><span>حلقة جزء عمّ</span><span class="mock-time">12:48</span></div>
           <div class="mock-grid">
-            <div class="mock-tile big"><span class="mock-av" style="background:#1a73e8">ع</span><span class="mock-name">عبدالرحمن <em>المعلّم</em></span></div>
-            <div class="mock-tile"><span class="mock-av" style="background:#e37400">أ</span><span class="mock-name">أحمد</span></div>
-            <div class="mock-tile"><span class="mock-hand">✋</span><span class="mock-av" style="background:#188038">ي</span><span class="mock-name">يوسف</span></div>
-            <div class="mock-tile"><span class="mock-av" style="background:#a142f4">ع</span><span class="mock-name">عمر</span></div>
+            <div class="mock-tile big g1"><span class="mock-av" style="background:#1a73e8">ع</span><span class="mock-name">عبدالرحمن <em>المعلّم</em></span></div>
+            <div class="mock-tile g2"><span class="mock-av" style="background:#e37400">أ</span><span class="mock-name">أحمد</span></div>
+            <div class="mock-tile g3"><span class="mock-hand">✋</span><span class="mock-av" style="background:#188038">ي</span><span class="mock-name">يوسف</span></div>
+            <div class="mock-tile g4"><span class="mock-av" style="background:#a142f4">ع</span><span class="mock-name">عمر</span></div>
           </div>
-          <div class="mock-bar"><span></span><span></span><span></span><span class="end"></span></div>
+          <div class="mock-bar"><span></span><span></span><span class="on"></span><span></span><span class="end"></span></div>
         </div>
-        <p class="art-caption">ثبّت المعلّم في الوسط، وارفع يدك عندما يحين دورك في التسميع</p>
+        <div class="float-card fc-hand"><span class="fc-icon">✋</span><div><b>يوسف يرفع يده</b><small>جاهز للتسميع</small></div></div>
+        <div class="float-card fc-chat"><span class="fc-av" style="background:#e37400">أ</span><div><b>أحمد</b><small>السلام عليكم يا شيخ</small></div></div>
       </div>
     </main>
   </section>
@@ -109,6 +118,7 @@
       <div class="preview-wrap">
         <div class="preview">
           <video id="previewVideo" autoplay playsinline muted></video>
+          <span class="preview-name" id="previewName"></span>
           <div class="preview-off" id="previewOff"><svg class="i"><use href="#i-cam-off"/></svg><span>الكاميرا متوقفة</span></div>
           <div class="mic-meter" aria-hidden="true"><span id="micLevel"></span></div>
           <div class="preview-controls">
@@ -123,6 +133,7 @@
       </div>
       <div class="lobby-side">
         <h2>جاهز لدخول الحلقة؟</h2>
+        <div class="in-room" id="inRoom"><span class="avatars" id="inRoomAvatars"></span><span id="inRoomText">لا يوجد أحد في الحلقة بعد</span></div>
         <button class="code-chip" id="lobbyCopy" title="نسخ رابط الحلقة"><span id="lobbyCode" dir="ltr"></span><svg class="i"><use href="#i-copy"/></svg></button>
         <label for="nameInput" class="field-label">اسمك</label>
         <input id="nameInput" placeholder="اكتب اسمك كما يعرفك المعلّم" maxlength="40" autocomplete="name">
@@ -142,6 +153,12 @@
     <div class="rec-banner" id="recBanner" hidden><span class="rec-dot"></span><span id="recText">يتم تسجيل هذه الحلقة</span></div>
     <div class="stage">
       <div class="grid" id="grid"></div>
+      <div class="invite-card" id="inviteCard" hidden>
+        <button class="icon-btn invite-close" id="inviteClose" aria-label="إغلاق"><svg class="i"><use href="#i-close"/></svg></button>
+        <h3>حلقتك جاهزة</h3>
+        <p>شارك هذا الرابط مع الطلاب ليدخلوا الحلقة</p>
+        <div class="invite-link"><span id="inviteLink" dir="ltr"></span><button class="icon-btn" id="inviteCopy" aria-label="نسخ الرابط"><svg class="i"><use href="#i-copy"/></svg></button></div>
+      </div>
       <aside class="panel" id="panel" hidden>
         <div class="panel-head">
           <div class="panel-tabs" role="tablist">
@@ -168,6 +185,7 @@
         <span id="roomClock"></span>
         <span class="sep"></span>
         <span id="roomCode" dir="ltr"></span>
+        <span class="elapsed" id="roomElapsed"></span>
       </div>
       <div class="bar-controls">
         <button class="ctrl" id="micBtn" title="الميكروفون (Ctrl+D)"><svg class="i on-i"><use href="#i-mic"/></svg><svg class="i off-i"><use href="#i-mic-off"/></svg></button>
@@ -195,6 +213,7 @@
   <!-- بعد المغادرة -->
   <section id="left" class="view" hidden>
     <div class="left-box">
+      <span class="left-icon"><svg class="i"><use href="#i-check"/></svg></span>
       <h2>غادرت الحلقة</h2>
       <p class="lead" id="leftSummary"></p>
       <div class="home-actions center">

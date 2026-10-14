@@ -131,12 +131,18 @@ const server = http.createServer((req, res) => {
     for (const room of rooms.values()) peers += room.size;
     return json(res, 200, { ok: true, rooms: rooms.size, peers });
   }
-  const m = url.pathname.match(/^\/api\/rooms\/([^/]+)\/(events|signal)$/);
+  const m = url.pathname.match(/^\/api\/rooms\/([^/]+)\/(events|signal|peers)$/);
   if (m) {
     const [, roomId, action] = m;
     if (!ROOM_RE.test(roomId)) return json(res, 400, { error: "bad_room" });
     if (action === "events" && req.method === "GET") return handleEvents(req, res, roomId, url);
     if (action === "signal" && req.method === "POST") return handleSignal(req, res, roomId);
+    if (action === "peers" && req.method === "GET") {
+      // من في الحلقة الآن — لعرضه في شاشة ما قبل الدخول
+      const room = rooms.get(roomId);
+      const names = room ? [...room.values()].map((p) => p.name) : [];
+      return json(res, 200, { count: names.length, names: names.slice(0, 8) });
+    }
     return json(res, 405, { error: "method_not_allowed" });
   }
   if (req.method !== "GET") return json(res, 405, { error: "method_not_allowed" });

@@ -48,6 +48,13 @@ function icon(name, cls = "") {
   return `<svg class="i ${cls}"><use href="#i-${name}"/></svg>`;
 }
 
+// تلميح يظهر فوق أزرار التحكم بدل تلميح المتصفح
+function setTip(el, text) {
+  el.dataset.tip = text;
+  el.setAttribute("aria-label", text);
+  el.removeAttribute("title");
+}
+
 function formatDuration(ms) {
   const mins = Math.max(1, Math.round(ms / 60000));
   if (mins < 60) return `${mins} دقيقة`;
@@ -71,8 +78,14 @@ function colorFor(text) {
   return COLORS[h % COLORS.length];
 }
 
+// الحرف الأول من الاسم، بعد تجاوز الألقاب و«ال» التعريف: «الشيخ عبدالرحمن» ← ع
 function initial(name) {
-  return [...(name.trim() || "؟")][0].toUpperCase();
+  const words = name.replace(" (أنت)", "").trim().split(/\s+/).filter(Boolean);
+  const titles = ["الشيخ", "شيخ", "الأستاذ", "الاستاذ", "أستاذ", "استاذ", "المعلم", "المعلّم", "د.", "أ."];
+  const word = words.find((w) => !titles.includes(w)) || words[0] || "؟";
+  const chars = [...word];
+  const start = chars.length > 3 && chars[0] === "ا" && chars[1] === "ل" ? 2 : 0;
+  return chars[start].toUpperCase();
 }
 
 function genCode() {
@@ -147,10 +160,23 @@ $("joinForm").addEventListener("submit", (e) => {
   goTo(code);
 });
 
+function elapsed(ms) {
+  const sec = Math.floor(ms / 1000);
+  const h = Math.floor(sec / 3600);
+  const mm = String(Math.floor((sec % 3600) / 60)).padStart(2, "0");
+  const ss = String(sec % 60).padStart(2, "0");
+  return h ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
 setInterval(() => {
   $("homeClock").textContent = timeNow();
   $("roomClock").textContent = timeNow();
+  if (state.joinedAt) $("roomElapsed").textContent = elapsed(Date.now() - state.joinedAt);
 }, 1000);
+
+$("joinCode").addEventListener("input", () => {
+  $("joinBtn").disabled = !$("joinCode").value.trim();
+});
 $("homeClock").textContent = $("roomClock").textContent = timeNow();
 
 /* ---------- الوسائط ---------- */
@@ -188,11 +214,11 @@ function outgoingTrack(kind) {
 function syncToggleButtons() {
   for (const id of ["lobbyMic", "micBtn"]) {
     $(id).classList.toggle("off", !state.micOn);
-    $(id).title = state.micOn ? "كتم الميكروفون" : "تشغيل الميكروفون";
+    setTip($(id), state.micOn ? "كتم الميكروفون" : "تشغيل الميكروفون");
   }
   for (const id of ["lobbyCam", "camBtn"]) {
     $(id).classList.toggle("off", !state.camOn);
-    $(id).title = state.camOn ? "إيقاف الكاميرا" : "تشغيل الكاميرا";
+    setTip($(id), state.camOn ? "إيقاف الكاميرا" : "تشغيل الكاميرا");
   }
   $("previewOff").hidden = state.camOn && !!camTrack();
   $("shareBtn").classList.toggle("on", !!state.screenStream);
@@ -243,8 +269,37 @@ async function openLobby() {
   }
   populateDevices();
   startLobbyMeter();
+  $("previewName").textContent = $("nameInput").value;
+  refreshLobbyPeers();
   $("nameInput").focus();
 }
+
+$("nameInput").addEventListener("input", () => {
+  $("previewName").textContent = $("nameInput").value;
+});
+
+// من في الحلقة الآن؟ يُعرض قبل الدخول
+async function refreshLobbyPeers() {
+  if (DEMO || $("lobby").hidden || !state.code) return;
+  let info = { count: 0, names: [] };
+  try {
+    info = await (await fetch(`/api/rooms/${state.code}/peers`)).json();
+  } catch {}
+  const { count, names } = info;
+  $("inRoomAvatars").innerHTML = "";
+  for (const n of names.slice(0, 4)) {
+    const a = document.createElement("span");
+    a.textContent = initial(n);
+    a.style.background = colorFor(n);
+    $("inRoomAvatars").appendChild(a);
+  }
+  $("inRoomText").textContent =
+    count === 0 ? "لا يوجد أحد في الحلقة بعد"
+    : count === 1 ? `${names[0]} في الحلقة الآن`
+    : count === 2 ? `${names[0]} و${names[1]} في الحلقة الآن`
+    : `${names[0]} و${count - 1} آخرون في الحلقة الآن`;
+}
+setInterval(refreshLobbyPeers, 4000);
 
 let lobbyAnalyser = null;
 
@@ -659,8 +714,15 @@ function layoutGrid() {
     grid.style.setProperty("--cols", cols);
   }
   $("peopleCount").textContent = state.peers.size + 1;
+  $("inviteCard").hidden = !state.joinedAt || state.peers.size > 0 || state.inviteDismissed;
 }
 window.addEventListener("resize", layoutGrid);
+
+$("inviteClose").addEventListener("click", () => {
+  state.inviteDismissed = true;
+  layoutGrid();
+});
+$("inviteCopy").addEventListener("click", () => copyText(meetingLink(), "تم نسخ رابط الحلقة"));
 
 function floatReaction(tile, emoji) {
   if (!tile || !REACTIONS.includes(emoji)) return;
@@ -712,13 +774,16 @@ function enterRoom() {
   $("grid").innerHTML = "";
   $("messages").innerHTML = '<p class="hint">الرسائل تظهر فقط للحاضرين في الحلقة الآن</p>';
   state.pinned = null;
+  state.inviteDismissed = false;
+  $("inviteLink").textContent = meetingLink().replace(/^https?:\/\//, "");
+  $("roomElapsed").textContent = "00:00";
   state.localTile = createTile("local", true);
   watchLevel(state.stream, state.localTile);
   updateLocalTile();
   syncToggleButtons();
   layoutGrid();
   renderPeople();
-  if (state.peers.size === 0) toast("أنت أول الحاضرين — شارك رابط الحلقة لدعوة الطلاب");
+
 }
 
 function leave(navigate = true) {
@@ -735,6 +800,7 @@ function leave(navigate = true) {
   state.localTile = null;
   $("panel").hidden = true;
   $("recBanner").hidden = true;
+  $("inviteCard").hidden = true;
   if (navigate) show("left");
 }
 
@@ -901,7 +967,7 @@ function updateRecBanner() {
     ? "أنت تسجّل هذه الحلقة"
     : `يتم تسجيل هذه الحلقة بواسطة ${others.join("، ")}`;
   $("recBtn").classList.toggle("recording", me);
-  $("recBtn").title = me ? "إيقاف التسجيل" : "تسجيل الحلقة";
+  setTip($("recBtn"), me ? "إيقاف التسجيل" : "تسجيل الحلقة");
 }
 
 function addToRecording(stream) {
@@ -1135,6 +1201,8 @@ setInterval(() => {
 }, 60000);
 
 window.addEventListener("beforeunload", () => state.es?.close());
+
+for (const el of document.querySelectorAll(".bar .ctrl[title]")) setTip(el, el.title);
 
 // شعار المدرسة اختياري: يظهر فقط إذا وُجد الملف public/logo.png
 for (const img of document.querySelectorAll(".logo-img")) {
