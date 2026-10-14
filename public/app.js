@@ -5,7 +5,8 @@ const ICE_CONFIG = {
   iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }],
 };
 const CODE_RE = /[a-z]{3}-[a-z]{4}-[a-z]{3}/;
-const COLORS = ["#1a73e8", "#34a853", "#e37400", "#d93025", "#a142f4", "#12a4af", "#c5221f", "#188038"];
+const COLORS = ["#0d4f3c", "#146a51", "#b8892b", "#8a5a2b", "#2f6f8f", "#6b4c9a", "#a8473d", "#3d7a5c"];
+const REACTIONS = ["👍", "👏", "🤲", "❤️", "🌟", "✅"];
 
 const $ = (id) => document.getElementById(id);
 
@@ -21,6 +22,8 @@ const state = {
   micOn: true,
   camOn: true,
   hand: false,
+  role: "student", // student | teacher
+  pinned: null, // معرّف البلاطة المثبتة، أو "none" لإلغاء التثبيت التلقائي
   es: null,
   peers: new Map(), // id -> { id, name, pc, stream, pendingIce, mic, cam, hand, screen, tile }
   localTile: null,
@@ -39,6 +42,27 @@ function toast(text) {
   el.classList.add("show");
   clearTimeout(toast.t);
   toast.t = setTimeout(() => el.classList.remove("show"), 2600);
+}
+
+function icon(name, cls = "") {
+  return `<svg class="i ${cls}"><use href="#i-${name}"/></svg>`;
+}
+
+function formatDuration(ms) {
+  const mins = Math.max(1, Math.round(ms / 60000));
+  if (mins < 60) return `${mins} دقيقة`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m ? `${h} ساعة و${m} دقيقة` : `${h} ساعة`;
+}
+
+function ensureAudio() {
+  try {
+    state.audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+    state.audioCtx.resume();
+  } catch {
+    state.audioCtx = null;
+  }
 }
 
 function colorFor(text) {
@@ -200,6 +224,8 @@ async function openLobby() {
   $("lobbyCode").textContent = state.code;
   $("lobbyError").textContent = "";
   $("nameInput").value = localStorage.getItem("halaqati:name") || "";
+  const role = localStorage.getItem("halaqati:role") === "teacher" ? "teacher" : "student";
+  document.querySelector(`input[name="role"][value="${role}"]`).checked = true;
   if (!state.stream) {
     try {
       state.stream = await getMedia();
@@ -213,9 +239,107 @@ async function openLobby() {
   $("previewVideo").srcObject = state.stream;
   syncToggleButtons();
   if (!micTrack() && !camTrack()) {
-    $("lobbyError").textContent = "لم نتمكن من الوصول للكاميرا أو الميكروفون. يمكنك الانضمام للمشاهدة فقط.";
+    $("lobbyError").textContent = "لم نتمكن من الوصول للكاميرا أو الميكروفون. يمكنك الدخول للاستماع فقط.";
   }
+  populateDevices();
+  startLobbyMeter();
   $("nameInput").focus();
+}
+
+let lobbyAnalyser = null;
+
+function startLobbyMeter() {
+  ensureAudio();
+  lobbyAnalyser = null;
+  if (!state.audioCtx || !micTrack()) return;
+  try {
+    const src = state.audioCtx.createMediaStreamSource(new MediaStream([micTrack()]));
+    lobbyAnalyser = state.audioCtx.createAnalyser();
+    lobbyAnalyser.fftSize = 512;
+    src.connect(lobbyAnalyser);
+  } catch {}
+}
+
+/* ---------- اختيار الكاميرا والميكروفون ---------- */
+
+async function populateDevices() {
+  if (!navigator.mediaDevices?.enumerateDevices) return;
+  let devices = [];
+  try {
+    devices = await navigator.mediaDevices.enumerateDevices();
+  } catch {}
+  for (const sel of document.querySelectorAll(".dev-select")) {
+    const kind = sel.dataset.kind;
+    const isAudio = kind === "audioinput";
+    const list = devices.filter((d) => d.kind === kind && d.deviceId);
+    sel.innerHTML = "";
+    if (!list.length) {
+      sel.add(new Option(isAudio ? "لا يوجد ميكروفون" : "لا توجد كاميرا", ""));
+      sel.disabled = true;
+      continue;
+    }
+    sel.disabled = false;
+    list.forEach((d, i) => sel.add(new Option(d.label || `${isAudio ? "ميكروفون" : "كاميرا"} ${i + 1}`, d.deviceId)));
+    const current = (isAudio ? micTrack() : camTrack())?.getSettings?.().deviceId;
+    if (current && list.some((d) => d.deviceId === current)) sel.value = current;
+  }
+}
+
+async function switchDevice(kind, deviceId) {
+  const isAudio = kind === "audioinput";
+  let fresh;
+  try {
+    fresh = await navigator.mediaDevices.getUserMedia(
+      isAudio ? { audio: { deviceId: { exact: deviceId } } } : { video: { deviceId: { exact: deviceId }, width: 1280, height: 720 } }
+    );
+  } catch {
+    return toast("تعذر تشغيل هذا الجهاز");
+  }
+  const track = isAudio ? fresh.getAudioTracks()[0] : fresh.getVideoTracks()[0];
+  const old = isAudio ? micTrack() : camTrack();
+  state.stream ||= new MediaStream();
+  if (old) {
+    state.stream.removeTrack(old);
+    old.stop();
+  } else if (isAudio) {
+    state.micOn = true;
+  } else {
+    state.camOn = true;
+  }
+  track.enabled = isAudio ? state.micOn : state.camOn;
+  state.stream.addTrack(track);
+  $("previewVideo").srcObject = state.stream;
+  if (isAudio || !state.screenStream) {
+    for (const { pc } of state.peers.values()) {
+      const t = pc.getTransceivers().find((x) => x.receiver.track.kind === (isAudio ? "audio" : "video"));
+      t?.sender.replaceTrack(track).catch(() => {});
+    }
+  }
+  if (isAudio) {
+    startLobbyMeter();
+    if (state.localTile) watchLevel(new MediaStream([track]), state.localTile);
+    addToRecording(new MediaStream([track]));
+  }
+  syncToggleButtons();
+  updateLocalTile();
+  broadcastState();
+  populateDevices();
+}
+
+document.addEventListener("change", (e) => {
+  const sel = e.target.closest?.(".dev-select");
+  if (sel?.value) switchDevice(sel.dataset.kind, sel.value);
+});
+
+$("lobbyCopy").addEventListener("click", () => copyText(meetingLink(), "تم نسخ رابط الحلقة"));
+
+async function copyText(text, done) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast(done);
+  } catch {
+    prompt("انسخ النص:", text);
+  }
 }
 
 $("lobbyMic").addEventListener("click", () => setMic(!state.micOn));
@@ -245,6 +369,7 @@ function myStatus() {
     hand: state.hand,
     screen: !!state.screenStream,
     recording: !!state.recorder,
+    role: state.role,
   };
 }
 
@@ -260,19 +385,17 @@ function join() {
     return;
   }
   state.name = name.slice(0, 40);
-  localStorage.setItem("halaqati:name", state.name);
-
+  state.role = document.querySelector('input[name="role"]:checked')?.value === "teacher" ? "teacher" : "student";
   try {
-    state.audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
-    state.audioCtx.resume();
-  } catch {
-    state.audioCtx = null;
-  }
+    localStorage.setItem("halaqati:name", state.name);
+    localStorage.setItem("halaqati:role", state.role);
+  } catch {}
+  ensureAudio();
 
   if (DEMO) {
     state.myId = "demo";
     enterRoom();
-    toast("وضع العرض: شغّل الخادم أو انشر الموقع حتى ينضم الآخرون");
+    toast("وضع العرض: انشر الموقع حتى ينضم الطلاب");
     return;
   }
 
@@ -311,7 +434,7 @@ function join() {
       es.close();
       state.es = null;
       $("joinNowBtn").disabled = false;
-      $("lobbyError").textContent = "تعذر الاتصال بالخادم، أو أن الاجتماع ممتلئ.";
+      $("lobbyError").textContent = "تعذر الاتصال بالخادم، أو أن الحلقة ممتلئة.";
     } else {
       toast("انقطع الاتصال… جارٍ إعادة المحاولة");
     }
@@ -338,7 +461,7 @@ async function handleSignal({ from, type, data }) {
       break;
     case "state":
       if (!peer) return;
-      if (data.hand && !peer.hand) toast(`✋ ${data.name} رفع يده`);
+      if (data.hand && !peer.hand) toast(`✋ ${data.name} يرفع يده`);
       Object.assign(peer, {
         name: String(data.name || peer.name).slice(0, 40),
         mic: !!data.mic,
@@ -346,8 +469,10 @@ async function handleSignal({ from, type, data }) {
         hand: !!data.hand,
         screen: !!data.screen,
         recording: !!data.recording,
+        role: data.role === "teacher" ? "teacher" : "student",
       });
       updatePeerTile(peer);
+      layoutGrid();
       updateRecBanner();
       renderPeople();
       break;
@@ -369,11 +494,11 @@ function createPeer(id, name, initiator) {
     id, name, pc, initiator,
     stream: new MediaStream(),
     pendingIce: [],
-    mic: true, cam: false, hand: false, screen: false,
+    mic: true, cam: false, hand: false, screen: false, role: "student",
     tile: null,
   };
   state.peers.set(id, peer);
-  peer.tile = createTile(peer.name, false);
+  peer.tile = createTile(id, false);
   updatePeerTile(peer);
 
   pc.ontrack = (e) => {
@@ -456,29 +581,51 @@ function replaceOutgoingVideo() {
 
 /* ---------- البلاطات (عرض المشاركين) ---------- */
 
-function createTile(name, isLocal) {
+function createTile(id, isLocal) {
   const tile = document.createElement("div");
   tile.className = "tile" + (isLocal ? " local" : "");
+  tile.dataset.id = id;
   tile.innerHTML = `
     <video autoplay playsinline ${isLocal ? "muted" : ""}></video>
     <div class="avatar"></div>
-    <div class="badges"></div>
-    <div class="name"></div>`;
+    <span class="hand-badge">${icon("hand")}يرفع يده</span>
+    <button class="pin-btn" type="button" title="تثبيت في الوسط">${icon("pin")}</button>
+    <div class="label">${icon("mic-off", "mic-off")}<span class="name"></span><span class="role-tag" hidden>المعلّم</span></div>`;
+  tile.querySelector(".pin-btn").addEventListener("click", () => togglePin(id));
   $("grid").appendChild(tile);
   return tile;
 }
 
-function paintTile(tile, { name, mic, cam, hand, screen }) {
+function paintTile(tile, { name, mic, cam, hand, screen, role }) {
   tile.querySelector(".name").textContent = name;
   const avatar = tile.querySelector(".avatar");
   avatar.textContent = initial(name);
   avatar.style.background = colorFor(name.replace(" (أنت)", ""));
   tile.classList.toggle("cam-off", !cam && !screen);
   tile.classList.toggle("screen", screen);
-  const badges = [];
-  if (hand) badges.push("✋");
-  if (!mic) badges.push("🔇");
-  tile.querySelector(".badges").innerHTML = badges.map((b) => `<span>${b}</span>`).join("");
+  tile.classList.toggle("muted", !mic);
+  tile.classList.toggle("hand", hand);
+  tile.querySelector(".role-tag").hidden = role !== "teacher";
+}
+
+function togglePin(id) {
+  state.pinned = effectivePin() === id ? "none" : id;
+  layoutGrid();
+  renderPeople();
+}
+
+// من يظهر كبيراً في الوسط: المثبّت يدوياً، ثم من يشارك شاشته، ثم المعلّم
+function effectivePin() {
+  if (state.pinned === "none") return null;
+  if (state.pinned && (state.pinned === "local" || state.peers.has(state.pinned))) return state.pinned;
+  state.pinned = null;
+  const sharer = [...state.peers.values()].find((p) => p.screen);
+  if (sharer) return sharer.id;
+  if (state.role !== "teacher" && state.peers.size >= 2) {
+    const teacher = [...state.peers.values()].find((p) => p.role === "teacher");
+    if (teacher) return teacher.id;
+  }
+  return null;
 }
 
 function updatePeerTile(peer) {
@@ -495,16 +642,28 @@ function updateLocalTile() {
 }
 
 function layoutGrid() {
-  const n = $("grid").children.length;
-  const narrow = window.innerWidth < 640;
-  const cols = narrow ? (n <= 2 ? 1 : 2) : n <= 1 ? 1 : n <= 4 ? 2 : n <= 9 ? 3 : 4;
-  $("grid").style.setProperty("--cols", cols);
+  const grid = $("grid");
+  const tiles = [...grid.children];
+  const n = tiles.length;
+  const pin = n > 1 ? effectivePin() : null;
+  for (const t of tiles) {
+    t.classList.toggle("pinned", t.dataset.id === pin);
+    t.querySelector(".pin-btn").title = t.dataset.id === pin ? "إلغاء التثبيت" : "تثبيت في الوسط";
+  }
+  grid.classList.toggle("spotlight", !!pin);
+  if (pin) {
+    grid.style.setProperty("--rows", Math.min(Math.max(n - 1, 1), 4));
+  } else {
+    const narrow = window.innerWidth < 640;
+    const cols = narrow ? (n <= 2 ? 1 : 2) : n <= 1 ? 1 : n <= 4 ? 2 : n <= 9 ? 3 : 4;
+    grid.style.setProperty("--cols", cols);
+  }
   $("peopleCount").textContent = state.peers.size + 1;
 }
 window.addEventListener("resize", layoutGrid);
 
 function floatReaction(tile, emoji) {
-  if (!tile || !["👍", "👏", "😂", "❤️", "🎉", "😮"].includes(emoji)) return;
+  if (!tile || !REACTIONS.includes(emoji)) return;
   const el = document.createElement("div");
   el.className = "float-reaction";
   el.textContent = emoji;
@@ -525,15 +684,23 @@ function watchLevel(stream, tile) {
 }
 
 const levelBuf = new Uint8Array(512);
+function levelOf(analyser) {
+  analyser.getByteTimeDomainData(levelBuf);
+  let sum = 0;
+  for (const v of levelBuf) sum += (v - 128) ** 2;
+  return Math.sqrt(sum / levelBuf.length);
+}
+
 setInterval(() => {
   for (const [tile, analyser] of state.meters) {
-    analyser.getByteTimeDomainData(levelBuf);
-    let sum = 0;
-    for (const v of levelBuf) sum += (v - 128) ** 2;
-    const muted = tile === state.localTile ? !state.micOn : tile.querySelector(".badges").textContent.includes("🔇");
-    tile.classList.toggle("speaking", !muted && Math.sqrt(sum / levelBuf.length) > 6);
+    const muted = tile === state.localTile ? !state.micOn : tile.classList.contains("muted");
+    tile.classList.toggle("speaking", !muted && levelOf(analyser) > 6);
   }
-}, 200);
+  if (lobbyAnalyser && !$("lobby").hidden) {
+    const level = state.micOn ? Math.min(100, levelOf(lobbyAnalyser) * 5) : 0;
+    $("micLevel").style.height = `${level}%`;
+  }
+}, 120);
 
 /* ---------- غرفة الاجتماع ---------- */
 
@@ -543,17 +710,19 @@ function enterRoom() {
   show("room");
   $("roomCode").textContent = state.code;
   $("grid").innerHTML = "";
-  $("messages").innerHTML = '<p class="muted small center">الرسائل تظهر فقط للموجودين في الاجتماع</p>';
-  state.localTile = createTile(state.name, true);
+  $("messages").innerHTML = '<p class="hint">الرسائل تظهر فقط للحاضرين في الحلقة الآن</p>';
+  state.pinned = null;
+  state.localTile = createTile("local", true);
   watchLevel(state.stream, state.localTile);
   updateLocalTile();
   syncToggleButtons();
   layoutGrid();
   renderPeople();
-  if (state.peers.size === 0) toast("أنت أول الحاضرين — شارك الرابط لدعوة الآخرين");
+  if (state.peers.size === 0) toast("أنت أول الحاضرين — شارك رابط الحلقة لدعوة الطلاب");
 }
 
 function leave(navigate = true) {
+  if (state.joinedAt) $("leftSummary").textContent = `مدة حضورك: ${formatDuration(Date.now() - state.joinedAt)}`;
   stopRecording();
   state.es?.close();
   state.es = null;
@@ -624,14 +793,15 @@ document.addEventListener("click", (e) => {
   if (!e.target.closest(".reactions-wrap")) $("reactions").hidden = true;
 });
 
-$("copyBtn").addEventListener("click", async () => {
-  try {
-    await navigator.clipboard.writeText(meetingLink());
-    toast("تم نسخ رابط الاجتماع");
-  } catch {
-    prompt("انسخ رابط الاجتماع:", meetingLink());
-  }
+$("copyBtn").addEventListener("click", () => copyText(meetingLink(), "تم نسخ رابط الحلقة"));
+
+$("settingsBtn").addEventListener("click", () => {
+  populateDevices();
+  $("settingsModal").hidden = false;
 });
+for (const el of document.querySelectorAll("#settingsModal [data-close]")) {
+  el.addEventListener("click", () => ($("settingsModal").hidden = true));
+}
 
 document.addEventListener("keydown", (e) => {
   if (!state.joinedAt || !(e.ctrlKey || e.metaKey)) return;
@@ -671,19 +841,19 @@ for (const t of document.querySelectorAll(".panel-tab")) {
   t.addEventListener("click", () => openPanel(t.dataset.tab));
 }
 
-function addMessage(author, text) {
+function addMessage(author, text, mine = false) {
   if (!text.trim()) return;
   const box = $("messages");
   const msg = document.createElement("div");
-  msg.className = "msg";
-  msg.innerHTML = "<div><b></b><time></time></div><p></p>";
+  msg.className = "msg" + (mine ? " mine" : "");
+  msg.innerHTML = '<div class="meta"><b></b><time></time></div><p></p>';
   msg.querySelector("b").textContent = author;
   msg.querySelector("time").textContent = timeNow();
   msg.querySelector("p").textContent = text;
   box.appendChild(msg);
   box.scrollTop = box.scrollHeight;
   const chatVisible = !$("panel").hidden && !document.querySelector('[data-pane="chat"]').hidden;
-  if (!chatVisible && author !== "أنت") {
+  if (!chatVisible && !mine) {
     $("chatDot").hidden = false;
     toast(`💬 ${author}: ${text.slice(0, 60)}`);
   }
@@ -693,7 +863,7 @@ $("chatForm").addEventListener("submit", (e) => {
   e.preventDefault();
   const text = $("chatInput").value.trim();
   if (!text) return;
-  addMessage("أنت", text);
+  addMessage("أنت", text, true);
   signal("chat", { text });
   $("chatInput").value = "";
 });
@@ -701,14 +871,21 @@ $("chatForm").addEventListener("submit", (e) => {
 function renderPeople() {
   const list = $("people");
   list.innerHTML = "";
-  const everyone = [{ ...myStatus(), name: `${state.name} (أنت)` }, ...state.peers.values()];
+  const everyone = [{ ...myStatus(), id: "local", name: `${state.name} (أنت)` }, ...state.peers.values()];
+  // المعلّم أولاً، ثم من رفع يده
+  everyone.sort((a, b) => (b.role === "teacher") - (a.role === "teacher") || b.hand - a.hand);
+  const pin = effectivePin();
   for (const p of everyone) {
     const li = document.createElement("li");
-    li.innerHTML = '<span class="mini"></span><span class="pname"></span><span class="icons"></span>';
+    li.innerHTML = `
+      <span class="mini"></span>
+      <span class="pname"><span class="pn"></span><small${p.role === "teacher" ? "" : " hidden"}>المعلّم</small></span>
+      <span class="icons">${p.hand ? icon("hand", "hand") : ""}${p.mic ? icon("mic") : icon("mic-off", "muted-i")}</span>
+      <button class="icon-btn${pin === p.id ? " active" : ""}" type="button" title="${pin === p.id ? "إلغاء التثبيت" : "تثبيت في الوسط"}">${icon("pin")}</button>`;
     li.querySelector(".mini").textContent = initial(p.name);
     li.querySelector(".mini").style.background = colorFor(p.name.replace(" (أنت)", ""));
-    li.querySelector(".pname").textContent = p.name;
-    li.querySelector(".icons").textContent = `${p.hand ? "✋ " : ""}${p.mic ? "🎙️" : "🔇"}`;
+    li.querySelector(".pn").textContent = p.name;
+    li.querySelector("button").addEventListener("click", () => togglePin(p.id));
     list.appendChild(li);
   }
   $("peopleCount").textContent = everyone.length;
@@ -721,10 +898,10 @@ function updateRecBanner() {
   const me = !!state.recorder;
   $("recBanner").hidden = !me && others.length === 0;
   $("recText").textContent = me
-    ? "أنت تسجّل هذا الاجتماع"
-    : `يتم تسجيل هذا الاجتماع بواسطة ${others.join("، ")}`;
+    ? "أنت تسجّل هذه الحلقة"
+    : `يتم تسجيل هذه الحلقة بواسطة ${others.join("، ")}`;
   $("recBtn").classList.toggle("recording", me);
-  $("recBtn").title = me ? "إيقاف التسجيل" : "تسجيل الاجتماع";
+  $("recBtn").title = me ? "إيقاف التسجيل" : "تسجيل الحلقة";
 }
 
 function addToRecording(stream) {
@@ -841,7 +1018,7 @@ function renderUpcoming() {
     const live = m.start - Date.now() < 10 * 60000;
     li.innerHTML = `
       <div class="when"><b></b><span></span></div>
-      <button class="btn btn-primary" data-join>انضمام</button>
+      <button class="btn btn-primary" data-join>دخول</button>
       <button class="icon-btn" data-del aria-label="حذف">🗑️</button>`;
     li.querySelector("b").textContent = m.title;
     li.querySelector("span").textContent = live ? "يبدأ الآن" : formatWhen(m.start);
@@ -860,7 +1037,7 @@ function toCalDate(ts) {
 }
 
 function inviteText(m) {
-  return `أنت مدعو لاجتماع على حلقتي\n\n${m.title}\n${formatWhen(m.start)} (${m.duration} دقيقة)\n\nرابط الانضمام:\n${linkFor(m.code)}`;
+  return `أنت مدعو لحضور حلقة تحفيظ عبر منصة حلقتي — مدرسة جامع الصحابة\n\n${m.title}\n${formatWhen(m.start)} (${m.duration} دقيقة)\n\nرابط الانضمام:\n${linkFor(m.code)}`;
 }
 
 function icsFile(m) {
@@ -904,7 +1081,9 @@ function closeSchedule() {
 $("scheduleBtn").addEventListener("click", openSchedule);
 for (const el of document.querySelectorAll("#scheduleModal [data-close]")) el.addEventListener("click", closeSchedule);
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !$("scheduleModal").hidden) closeSchedule();
+  if (e.key !== "Escape") return;
+  if (!$("scheduleModal").hidden) closeSchedule();
+  $("settingsModal").hidden = true;
 });
 
 $("scheduleForm").addEventListener("submit", (e) => {
@@ -916,7 +1095,7 @@ $("scheduleForm").addEventListener("submit", (e) => {
   }
   const m = {
     code: genCode(),
-    title: $("sTitle").value.trim() || "اجتماع",
+    title: $("sTitle").value.trim() || "حلقة",
     start,
     duration: Number($("sDuration").value),
   };
@@ -956,5 +1135,12 @@ setInterval(() => {
 }, 60000);
 
 window.addEventListener("beforeunload", () => state.es?.close());
+
+// إن لم يوجد ملف الشعار logo.png نعرض الشعار المرسوم
+for (const img of document.querySelectorAll(".logo-img")) {
+  const fail = () => img.parentElement.classList.add("no-img");
+  if (img.complete && !img.naturalWidth) fail();
+  else img.addEventListener("error", fail);
+}
 
 route();

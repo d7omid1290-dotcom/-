@@ -3,181 +3,336 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>حلقتي — اجتماعات الفيديو</title>
-  <meta name="description" content="حلقتي: اجتماعات فيديو مجانية وآمنة من المتصفح مباشرة.">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Ccircle%20cx%3D%2216%22%20cy%3D%2216%22%20r%3D%2211%22%20fill%3D%22none%22%20stroke%3D%22%231a73e8%22%20stroke-width%3D%225%22%2F%3E%3Ccircle%20cx%3D%2216%22%20cy%3D%225%22%20r%3D%223.5%22%20fill%3D%22%2334a853%22%2F%3E%3C%2Fsvg%3E" type="image/svg+xml">
+  <title>حلقتي — مدرسة جامع الصحابة</title>
+  <meta name="description" content="حلقتي: حلقات تحفيظ القرآن الكريم عن بُعد — مدرسة جامع الصحابة لتحفيظ القرآن الكريم بحي غبيراء.">
+  <meta name="theme-color" content="#0d4f3c">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%227%22%20fill%3D%22%230d4f3c%22%2F%3E%3Cpath%20d%3D%22M8%2027V14a8%208%200%200%201%2016%200v13z%22%20fill%3D%22none%22%20stroke%3D%22%23f5ecd8%22%20stroke-width%3D%222.2%22%2F%3E%3Cpath%20d%3D%22M16%209c-1%204-3%208-6%2010%203-1%204.5%200%206%200s3-1%206%200c-3-2-5-6-6-10z%22%20fill%3D%22%23b8892b%22%2F%3E%3C%2Fsvg%3E" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
   <style>
 :root {
-  --bg: #ffffff;
-  --text: #1f1f1f;
-  --muted: #5f6368;
-  --border: #dadce0;
-  --primary: #1a73e8;
-  --primary-hover: #1765cc;
-  --green: #34a853;
-  --danger: #ea4335;
-  --room-bg: #202124;
-  --tile-bg: #3c4043;
-  --ctrl-bg: #3c4043;
-  --ctrl-hover: #4a4e51;
-  --panel-bg: #ffffff;
+  --green-900: #072c22;
+  --green-800: #0a3d2f;
+  --green-700: #0d4f3c;
+  --green-600: #146a51;
+  --green-100: #e3efe9;
+  --green-50: #f1f7f3;
+  --gold: #b8892b;
+  --gold-soft: #f5ecd8;
+  --cream: #faf7f0;
+  --surface: #ffffff;
+  --text: #1c2924;
+  --muted: #5c6b64;
+  --border: #e1ddd2;
+  --danger: #d0453b;
+  --danger-soft: #fbe9e7;
+
+  --room-bg: #0d1714;
+  --room-surface: #17241f;
+  --tile-bg: #1f2f29;
+  --ctrl-bg: #263a33;
+  --ctrl-hover: #30483f;
+  --room-text: #e6eeea;
+  --room-muted: #9fb2aa;
+  --accent: #7fd1ae;
+
+  --radius: 14px;
+  --shadow: 0 1px 2px rgba(7, 44, 34, .06), 0 8px 24px rgba(7, 44, 34, .08);
+  --font: "Tajawal", system-ui, sans-serif;
+  --font-display: "Amiri", "Tajawal", serif;
 }
 
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body {
   margin: 0;
-  font-family: "Tajawal", system-ui, sans-serif;
+  font-family: var(--font);
   color: var(--text);
-  background: var(--bg);
-  line-height: 1.6;
+  background: var(--cream);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
 }
 [hidden] { display: none !important; }
+h1, h2, h3 { line-height: 1.3; margin: 0 0 .5em; }
 .muted { color: var(--muted); }
-.small { font-size: .85rem; }
 .center { text-align: center; justify-content: center; }
-.error { color: var(--danger); min-height: 1.5em; margin: 8px 0 0; }
-h1, h2 { line-height: 1.3; margin: 0 0 .5em; }
-
+.error { color: var(--danger); min-height: 1.4em; margin: 6px 0 0; font-size: .95rem; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .view { min-height: 100%; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+/* Icons */
+.i {
+  width: 1.25em; height: 1.25em; flex-shrink: 0;
+  fill: none; stroke: currentColor; stroke-width: 1.8;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.i.flip { transform: scaleX(-1); }
+
+/* Logo */
+.logo { display: inline-grid; place-items: center; width: 40px; height: 48px; color: var(--green-700); flex-shrink: 0; }
+.logo .logo-img { width: 100%; height: 100%; object-fit: contain; }
+.logo .logo-svg { width: 100%; height: 100%; display: none; }
+.logo.no-img .logo-img { display: none; }
+.logo.no-img .logo-svg { display: block; }
+.logo-sm { width: 26px; height: 32px; color: var(--accent); }
+.logo-lg { width: 84px; height: 104px; }
+.logo-xl { width: min(220px, 50vw); height: auto; aspect-ratio: 100 / 124; }
 
 /* Buttons */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  font: inherit; font-weight: 700; font-size: 1rem;
-  padding: 11px 22px; border-radius: 8px; cursor: pointer;
-  border: 1px solid var(--border); background: #fff; color: var(--primary);
-  transition: background .15s, box-shadow .15s; text-decoration: none;
+  font: inherit; font-weight: 700; font-size: 1rem; text-decoration: none;
+  padding: 10px 20px; border-radius: 12px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--surface); color: var(--green-700);
+  transition: background .15s, border-color .15s, box-shadow .15s, transform .1s;
 }
-.btn:hover { background: #f6fafe; }
-.btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
-.btn-primary:hover { background: var(--primary-hover); box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.btn:hover { border-color: var(--green-600); background: var(--green-50); }
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--green-700); border-color: var(--green-700); color: #fff; }
+.btn-primary:hover { background: var(--green-600); border-color: var(--green-600); box-shadow: 0 4px 14px rgba(13, 79, 60, .28); }
 .btn-primary:disabled { opacity: .6; cursor: progress; }
-.btn-text { border-color: transparent; background: transparent; }
+.btn-ghost { border-color: transparent; background: transparent; }
+.btn-ghost:hover { background: var(--green-100); border-color: transparent; }
+.btn-lg { padding: 13px 24px; font-size: 1.05rem; }
 .btn-block { width: 100%; }
 .icon-btn {
-  background: none; border: 0; width: 40px; height: 40px; border-radius: 50%;
-  cursor: pointer; font-size: 1.1rem; color: inherit;
+  display: inline-grid; place-items: center; background: none; border: 0;
+  width: 40px; height: 40px; border-radius: 50%; cursor: pointer; color: inherit;
 }
-.icon-btn:hover { background: rgba(0,0,0,.06); }
-input {
+.icon-btn:hover { background: rgba(0, 0, 0, .06); }
+
+input, select {
   font: inherit; color: var(--text); width: 100%;
-  border: 1px solid var(--border); border-radius: 8px; padding: 11px 14px; background: #fff;
+  border: 1px solid var(--border); border-radius: 12px; padding: 11px 14px; background: var(--surface);
+  transition: border-color .15s, box-shadow .15s;
 }
-input:focus { outline: 2px solid var(--primary); outline-offset: -1px; border-color: transparent; }
+input:focus, select:focus { outline: none; border-color: var(--green-600); box-shadow: 0 0 0 3px rgba(20, 106, 81, .15); }
+.field-label { display: block; font-weight: 700; font-size: .92rem; margin: 4px 0 6px; color: var(--text); }
+
+/* Top bar */
+.topbar {
+  display: flex; justify-content: space-between; align-items: center;
+  max-width: 1200px; margin: 0 auto; padding: 14px 24px;
+}
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-text { display: flex; flex-direction: column; line-height: 1.2; }
+.brand-text b { font-family: var(--font-display); font-size: 1.6rem; color: var(--green-800); }
+.brand-text small { color: var(--muted); font-size: .85rem; }
+.brand-sm .brand-text b { font-size: 1.35rem; }
+.clock { color: var(--muted); font-weight: 500; }
 
 /* Home */
-.home-top { display: flex; justify-content: space-between; align-items: center; padding: 14px 24px; }
-.brand { display: flex; align-items: center; gap: 10px; font-size: 1.45rem; font-weight: 800; color: var(--muted); }
-.brand-mark {
-  width: 30px; height: 30px; border-radius: 50%;
-  border: 6px solid var(--primary); position: relative;
-}
-.brand-mark::after {
-  content: ""; position: absolute; width: 9px; height: 9px; border-radius: 50%;
-  background: var(--green); top: -9px; left: 4px;
-}
-.clock { color: var(--muted); }
+.home-main > *, .features > * { min-width: 0; }
 .home-main {
-  display: grid; grid-template-columns: 1.1fr 1fr; gap: 40px; align-items: center;
-  max-width: 1200px; margin: 0 auto; padding: 40px 24px 60px; min-height: calc(100vh - 80px);
+  display: grid; grid-template-columns: 1.15fr 1fr; gap: 48px; align-items: center;
+  max-width: 1200px; margin: 0 auto; padding: 32px 24px 56px;
 }
-.home-text h1 { font-size: clamp(2rem, 4.2vw, 2.9rem); font-weight: 700; }
-.home-text h1 em { font-style: normal; color: var(--primary); }
-.home-text p { font-size: 1.15rem; max-width: 540px; }
-.home-actions { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-top: 26px; }
-.join-form { display: flex; gap: 6px; flex: 1; min-width: 260px; }
+.ayah {
+  font-family: var(--font-display); color: var(--gold); font-size: 1.5rem; margin: 0 0 8px;
+}
+.home-text h1 { font-size: clamp(2rem, 4.4vw, 3.1rem); font-weight: 800; color: var(--green-900); }
+.home-text h1 em { font-style: normal; color: var(--green-600); position: relative; white-space: nowrap; }
+.home-text h1 em::after {
+  content: ""; position: absolute; inset-inline: 0; bottom: .05em; height: .22em;
+  background: var(--gold-soft); z-index: -1; border-radius: 4px;
+}
+.lead { font-size: 1.15rem; color: var(--muted); max-width: 560px; margin: 0 0 26px; }
+.home-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.join-form {
+  display: flex; gap: 6px; margin-top: 18px; max-width: 470px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 5px;
+}
+.join-form input { border: 0; padding: 8px 10px; }
+.join-form input:focus { box-shadow: none; }
+.join-form:focus-within { border-color: var(--green-600); box-shadow: 0 0 0 3px rgba(20, 106, 81, .15); }
+
 .home-art { display: grid; place-items: center; }
-.ring {
-  position: relative; width: min(360px, 80vw); aspect-ratio: 1;
-  border-radius: 50%; border: 2px dashed var(--border);
-  animation: spin 40s linear infinite;
+.emblem-card {
+  margin: 0; text-align: center; padding: 40px 36px 30px; border-radius: 28px;
+  background:
+    radial-gradient(circle at 50% 0%, var(--gold-soft), transparent 60%),
+    var(--surface);
+  border: 1px solid var(--border); box-shadow: var(--shadow);
+  position: relative; overflow: hidden; width: min(400px, 100%);
 }
-.ring span {
-  position: absolute; width: 26%; aspect-ratio: 1; border-radius: 50%;
-  top: 50%; left: 50%; margin: -13%;
-  transform: rotate(calc(var(--i) * 72deg)) translate(0, -190%) rotate(calc(var(--i) * -72deg));
-  box-shadow: 0 6px 18px rgba(0,0,0,.12);
+.emblem-card::before {
+  content: ""; position: absolute; inset: 10px; border-radius: 20px;
+  border: 1px dashed rgba(184, 137, 43, .35); pointer-events: none;
 }
-.ring span:nth-child(1) { --i: 0; background: #1a73e8; }
-.ring span:nth-child(2) { --i: 1; background: #34a853; }
-.ring span:nth-child(3) { --i: 2; background: #fbbc04; }
-.ring span:nth-child(4) { --i: 3; background: #ea4335; }
-.ring span:nth-child(5) { --i: 4; background: #a142f4; }
-@keyframes spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .ring { animation: none; } }
+.emblem-card figcaption { display: grid; gap: 2px; margin-top: 18px; }
+.emblem-card b { font-family: var(--font-display); font-size: 1.6rem; color: var(--green-800); }
+.emblem-card span { color: var(--muted); }
+.emblem-card small { color: var(--gold); font-weight: 700; }
+
+.features {
+  max-width: 1200px; margin: 0 auto; padding: 0 24px 56px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+}
+.feature {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px;
+}
+.feature h3 { font-size: 1.08rem; margin: 12px 0 4px; color: var(--green-800); }
+.feature p { margin: 0; color: var(--muted); font-size: .95rem; }
+.f-icon {
+  display: inline-grid; place-items: center; width: 46px; height: 46px; border-radius: 12px;
+  background: var(--green-100); color: var(--green-700); font-size: 1.15rem;
+}
+.site-footer {
+  border-top: 1px solid var(--border); padding: 18px 24px; color: var(--muted); font-size: .9rem;
+  display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  max-width: 1200px; margin: 0 auto;
+}
+
+/* Upcoming */
+.upcoming { margin-top: 28px; max-width: 560px; }
+.upcoming h3 { display: flex; align-items: center; gap: 8px; font-size: 1.05rem; color: var(--green-800); }
+.upcoming ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.upcoming li {
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 10px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  border-inline-start: 4px solid var(--gold);
+}
+.upcoming .when { flex: 1; min-width: 0; }
+.upcoming .when b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.upcoming .when span { color: var(--muted); font-size: .9rem; }
+.upcoming .soon { color: var(--green-600) !important; font-weight: 700; }
+.upcoming .btn { padding: 6px 14px; font-size: .92rem; }
 
 /* Lobby */
 .lobby {
-  display: grid; grid-template-columns: 1.4fr 1fr; gap: 40px; align-items: center;
-  max-width: 1100px; margin: 0 auto; padding: 40px 24px; min-height: 100vh;
+  display: grid; grid-template-columns: 1.45fr 1fr; gap: 48px; align-items: center;
+  max-width: 1150px; margin: 0 auto; padding: 24px 24px 48px; min-height: calc(100vh - 80px);
 }
 .preview {
   position: relative; aspect-ratio: 16 / 9; background: var(--room-bg);
-  border-radius: 12px; overflow: hidden;
+  border-radius: 20px; overflow: hidden; box-shadow: var(--shadow);
 }
-.preview video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-.preview-off { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-size: 1.2rem; }
+.preview video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: block; }
+.preview-off {
+  position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 8px;
+  color: var(--room-muted); font-size: 1.1rem;
+}
+.preview-off .i { width: 2.2em; height: 2.2em; }
 .preview-controls { position: absolute; bottom: 16px; left: 0; right: 0; display: flex; justify-content: center; gap: 14px; }
-.lobby-side { text-align: center; display: grid; gap: 12px; }
+.mic-meter {
+  position: absolute; top: 14px; inset-inline-start: 14px; width: 6px; height: 56px;
+  background: rgba(255, 255, 255, .18); border-radius: 4px; overflow: hidden; display: flex; align-items: flex-end;
+}
+.mic-meter span { display: block; width: 100%; height: 0%; background: var(--accent); transition: height .08s; }
+.devices { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; margin-top: 12px; }
+.devices label { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.devices select { padding: 8px 10px; font-size: .92rem; min-width: 0; }
+.devices-stack { grid-template-columns: 1fr; margin: 8px 0 20px; }
+.devices-stack label { display: block; }
+.lobby > * { min-width: 0; }
+.lobby-side { display: grid; gap: 8px; }
+.lobby-side h2 { font-size: 1.8rem; color: var(--green-900); margin-bottom: 4px; }
+.code-chip {
+  justify-self: start; display: inline-flex; align-items: center; gap: 8px;
+  background: var(--green-100); color: var(--green-800); border: 0; border-radius: 999px;
+  padding: 6px 14px; font: inherit; font-weight: 700; cursor: pointer; margin-bottom: 10px;
+}
+.code-chip:hover { background: #d4e7dd; }
+.roles { border: 0; padding: 0; margin: 4px 0 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+.roles legend { padding: 0; float: right; width: 100%; }
+.role { flex: 1; cursor: pointer; position: relative; }
+.role input { position: absolute; inset: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.role span {
+  display: block; text-align: center; padding: 10px; border-radius: 12px; font-weight: 700;
+  border: 1.5px solid var(--border); background: var(--surface); color: var(--muted); transition: .15s;
+}
+.role input:checked + span { border-color: var(--green-700); background: var(--green-50); color: var(--green-800); }
+.role input:focus-visible + span { outline: 2px solid var(--gold); outline-offset: 2px; }
 
 /* Controls */
 .ctrl {
   position: relative; width: 48px; height: 48px; border-radius: 50%; border: 0;
-  background: var(--ctrl-bg); color: #fff; font-size: 1.25rem; cursor: pointer;
-  display: inline-grid; place-items: center; transition: background .15s;
+  background: var(--ctrl-bg); color: #fff; cursor: pointer; font-size: 1.05rem;
+  display: inline-grid; place-items: center; transition: background .15s, transform .1s;
 }
 .ctrl:hover { background: var(--ctrl-hover); }
+.ctrl:active { transform: scale(.95); }
+.ctrl .off-i { display: none; }
 .ctrl.off { background: var(--danger); }
-.ctrl.on { background: #8ab4f8; }
+.ctrl.off .on-i { display: none; }
+.ctrl.off .off-i { display: block; }
+.ctrl.on { background: var(--accent); color: var(--green-900); }
 .ctrl-danger { background: var(--danger); width: 64px; border-radius: 24px; }
-.ctrl-danger:hover { background: #d33426; }
+.ctrl-danger:hover { background: #b93a31; }
 .ctrl-flat { background: transparent; }
 .ctrl .dot {
-  position: absolute; top: 8px; right: 8px; width: 9px; height: 9px;
-  background: #8ab4f8; border-radius: 50%;
+  position: absolute; top: 9px; right: 9px; width: 9px; height: 9px;
+  background: var(--gold); border-radius: 50%; box-shadow: 0 0 0 2px var(--room-bg);
 }
-.ctrl.off::after {
-  content: ""; position: absolute; width: 60%; height: 2px; background: #fff;
-  transform: rotate(-45deg); border-radius: 2px;
-}
+.preview .ctrl { background: rgba(255, 255, 255, .16); backdrop-filter: blur(6px); }
+.preview .ctrl.off { background: var(--danger); }
 
 /* Room */
-.room { height: 100vh; background: var(--room-bg); color: #e8eaed; display: flex; flex-direction: column; }
-.stage { flex: 1; display: flex; gap: 16px; padding: 16px 16px 0; min-height: 0; }
+.room { height: 100vh; height: 100dvh; background: var(--room-bg); color: var(--room-text); display: flex; flex-direction: column; }
+.stage { flex: 1; display: flex; gap: 14px; padding: 14px 14px 0; min-height: 0; }
 .grid {
-  flex: 1; display: grid; gap: 10px; min-height: 0;
+  flex: 1; display: grid; gap: 10px; min-height: 0; min-width: 0;
   grid-template-columns: repeat(var(--cols, 1), 1fr);
   grid-auto-rows: 1fr;
-  align-content: center;
 }
+.grid.spotlight {
+  grid-template-columns: 1fr minmax(170px, 22%);
+  grid-template-rows: repeat(var(--rows, 1), 1fr);
+  grid-auto-rows: 0;
+  overflow: hidden;
+}
+.grid.spotlight .tile.pinned { grid-column: 1; grid-row: 1 / -1; }
+.grid.spotlight.solo { grid-template-columns: 1fr; }
+
 .tile {
-  position: relative; background: var(--tile-bg); border-radius: 10px; overflow: hidden;
+  position: relative; background: var(--tile-bg); border-radius: 14px; overflow: hidden;
   min-height: 0; display: grid; place-items: center;
-  outline: 3px solid transparent; transition: outline-color .15s;
+  box-shadow: inset 0 0 0 0 transparent; transition: box-shadow .15s;
 }
-.tile.speaking { outline-color: #8ab4f8; }
+.tile.speaking { box-shadow: inset 0 0 0 3px var(--accent); }
 .tile video { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
-.tile.local video.mirror { transform: scaleX(-1); }
+.tile video.mirror { transform: scaleX(-1); }
 .tile.screen video { object-fit: contain; background: #000; }
 .tile.cam-off video { visibility: hidden; }
 .tile .avatar {
-  display: none; width: clamp(56px, 22%, 120px); aspect-ratio: 1; border-radius: 50%;
-  place-items: center; font-size: clamp(1.4rem, 4vw, 2.8rem); font-weight: 700; color: #fff; z-index: 1;
+  display: none; width: clamp(52px, 24%, 128px); aspect-ratio: 1; border-radius: 50%;
+  place-items: center; font-size: clamp(1.3rem, 4vw, 2.8rem); font-weight: 700; color: #fff; z-index: 1;
 }
 .tile.cam-off .avatar { display: grid; }
-.tile .name {
-  position: absolute; bottom: 8px; right: 10px; z-index: 2;
-  background: rgba(0,0,0,.5); padding: 2px 10px; border-radius: 6px; font-size: .9rem;
-  max-width: calc(100% - 60px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+.tile .label {
+  position: absolute; bottom: 8px; inset-inline-start: 8px; z-index: 2; max-width: calc(100% - 16px);
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(7, 20, 16, .62); backdrop-filter: blur(6px);
+  padding: 3px 10px; border-radius: 8px; font-size: .88rem;
 }
-.tile .badges { position: absolute; top: 8px; left: 8px; z-index: 2; display: flex; gap: 6px; }
-.tile .badges span { background: rgba(0,0,0,.55); border-radius: 50%; width: 30px; height: 30px; display: grid; place-items: center; font-size: .9rem; }
+.tile .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile .role-tag {
+  background: var(--gold); color: #1d1503; font-size: .72rem; font-weight: 800;
+  padding: 0 7px; border-radius: 6px; flex-shrink: 0;
+}
+.tile .mic-off { color: #ff9b93; display: none; }
+.tile.muted .mic-off { display: block; }
+.tile .hand-badge {
+  position: absolute; top: 10px; inset-inline-start: 10px; z-index: 2; display: none;
+  background: var(--gold); color: #1d1503; border-radius: 999px; padding: 4px 10px;
+  font-weight: 800; font-size: .85rem; align-items: center; gap: 5px;
+  animation: wave 1.2s ease-in-out infinite;
+}
+.tile.hand .hand-badge { display: inline-flex; }
+@keyframes wave { 50% { transform: translateY(-3px); } }
+.tile .pin-btn {
+  position: absolute; top: 10px; inset-inline-end: 10px; z-index: 3;
+  width: 36px; height: 36px; border-radius: 50%; border: 0; cursor: pointer;
+  background: rgba(7, 20, 16, .62); color: #fff; display: grid; place-items: center;
+  opacity: 0; transition: opacity .15s;
+}
+.tile:hover .pin-btn, .tile .pin-btn:focus-visible, .tile.pinned .pin-btn { opacity: 1; }
+.tile.pinned .pin-btn { background: var(--accent); color: var(--green-900); }
+@media (hover: none) { .tile .pin-btn { opacity: .85; } }
 .tile .float-reaction {
-  position: absolute; bottom: 20%; left: 50%; font-size: 2.6rem; z-index: 3;
+  position: absolute; bottom: 22%; left: 50%; font-size: 2.6rem; z-index: 4;
   animation: floatUp 2.2s ease-out forwards; pointer-events: none;
 }
 @keyframes floatUp {
@@ -188,199 +343,319 @@ input:focus { outline: 2px solid var(--primary); outline-offset: -1px; border-co
 
 /* Side panel */
 .panel {
-  width: 340px; background: var(--panel-bg); color: var(--text); border-radius: 10px;
+  width: 340px; background: var(--surface); color: var(--text); border-radius: 16px;
   display: flex; flex-direction: column; min-height: 0;
 }
-.panel-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px 0; }
+.panel-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 10px 0 12px; }
 .panel-tabs { display: flex; gap: 4px; }
 .panel-tab {
   background: none; border: 0; font: inherit; font-weight: 700; color: var(--muted);
-  padding: 8px 12px; border-radius: 20px; cursor: pointer;
+  padding: 7px 14px; border-radius: 999px; cursor: pointer;
 }
-.panel-tab.active { background: #e8f0fe; color: var(--primary); }
+.panel-tab.active { background: var(--green-100); color: var(--green-800); }
 .panel-body { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 12px; }
-.messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-.msg b { font-size: .9rem; }
-.msg time { color: var(--muted); font-size: .8rem; margin-inline-start: 6px; }
-.msg p { margin: 2px 0 0; overflow-wrap: anywhere; white-space: pre-wrap; }
-.chat-form { display: flex; gap: 4px; margin-top: 10px; background: #f1f3f4; border-radius: 24px; padding: 4px 4px 4px 4px; }
-.chat-form input { border: 0; background: transparent; }
-.chat-form input:focus { outline: none; }
+.messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 2px; }
+.messages .hint { color: var(--muted); font-size: .85rem; text-align: center; background: var(--cream); border-radius: 10px; padding: 8px; }
+.msg { max-width: 88%; align-self: flex-end; }
+.msg.mine { align-self: flex-start; }
+.msg .meta { font-size: .8rem; color: var(--muted); margin-bottom: 2px; display: flex; gap: 6px; }
+.msg .meta b { color: var(--green-800); }
+.msg p {
+  margin: 0; overflow-wrap: anywhere; white-space: pre-wrap;
+  background: var(--cream); border: 1px solid var(--border); padding: 7px 12px; border-radius: 14px 14px 14px 4px;
+}
+.msg.mine p { background: var(--green-700); border-color: var(--green-700); color: #fff; border-radius: 14px 14px 4px 14px; }
+.msg.mine .meta { justify-content: flex-start; }
+.chat-form { display: flex; gap: 6px; margin-top: 10px; background: var(--cream); border: 1px solid var(--border); border-radius: 999px; padding: 4px; }
+.chat-form input { border: 0; background: transparent; padding: 7px 12px; }
+.chat-form input:focus { box-shadow: none; }
+.send-btn {
+  width: 38px; height: 38px; border-radius: 50%; border: 0; cursor: pointer; flex-shrink: 0;
+  background: var(--green-700); color: #fff; display: grid; place-items: center;
+}
 .people { list-style: none; margin: 0; padding: 0; overflow-y: auto; }
-.people li { display: flex; align-items: center; gap: 10px; padding: 8px 4px; }
-.people .mini { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 700; flex-shrink: 0; }
-.people .pname { flex: 1; }
-.people .icons { color: var(--muted); }
+.people li { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-bottom: 1px solid var(--border); }
+.people li:last-child { border-bottom: 0; }
+.people .mini { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 700; flex-shrink: 0; }
+.people .pname { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.3; }
+.people .pname small { color: var(--gold); font-weight: 700; }
+.people .icons { display: flex; gap: 6px; color: var(--muted); align-items: center; }
+.people .icons .hand { color: var(--gold); }
+.people .icons .muted-i { color: var(--danger); }
+.people .icon-btn { width: 32px; height: 32px; color: var(--muted); }
+.people .icon-btn.active { color: var(--green-700); background: var(--green-100); }
 
 /* Bottom bar */
-.bar {
-  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
-  padding: 12px 20px; gap: 12px;
-}
-.bar-info { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bar-info .sep { margin: 0 8px; opacity: .5; }
+.bar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 12px 18px; gap: 12px; }
+.bar-info { display: flex; align-items: center; gap: 10px; font-weight: 500; white-space: nowrap; overflow: hidden; color: var(--room-muted); }
+.bar-info .sep { width: 1px; height: 16px; background: var(--ctrl-hover); }
 .bar-controls { display: flex; gap: 10px; }
-.bar-side { display: flex; gap: 4px; justify-content: flex-end; }
+.bar-side { display: flex; gap: 2px; justify-content: flex-end; }
 .reactions-wrap { position: relative; }
 .reactions {
   position: absolute; bottom: 58px; left: 50%; transform: translateX(-50%);
-  background: var(--ctrl-bg); border-radius: 30px; padding: 6px; display: flex; gap: 2px;
-  box-shadow: 0 4px 14px rgba(0,0,0,.4);
+  background: var(--room-surface); border: 1px solid var(--ctrl-bg); border-radius: 30px; padding: 6px; display: flex; gap: 2px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .4);
 }
 .reactions button { background: none; border: 0; font-size: 1.5rem; cursor: pointer; border-radius: 50%; width: 44px; height: 44px; }
 .reactions button:hover { background: var(--ctrl-hover); }
+.rec-banner {
+  align-self: center; margin-top: 10px; display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(208, 69, 59, .16); color: #ffb3ac; padding: 4px 16px; border-radius: 999px;
+  font-size: .9rem; font-weight: 700;
+}
+.rec-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--danger); animation: blink 1.4s infinite; }
+@keyframes blink { 50% { opacity: .3; } }
+.ctrl.recording { background: var(--danger); animation: pulse 1.6s infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 6px rgba(208, 69, 59, .3); } }
 
 /* Left */
-.left-box { min-height: 100vh; display: grid; place-content: center; text-align: center; padding: 24px; }
+.left-box { min-height: 100vh; display: grid; place-content: center; justify-items: center; text-align: center; padding: 24px; gap: 4px; }
+.left-box h2 { font-size: 1.8rem; color: var(--green-900); margin-top: 14px; }
+.left-box .lead { margin-bottom: 4px; }
+.dua { font-family: var(--font-display); color: var(--gold); font-size: 1.35rem; margin: 0 0 22px; }
 
-.toast {
-  position: fixed; bottom: 96px; left: 50%; transform: translate(-50%, 30px);
-  background: #323232; color: #fff; padding: 12px 22px; border-radius: 8px;
-  opacity: 0; transition: .25s; z-index: 100; pointer-events: none; max-width: 90vw;
-}
-.toast.show { opacity: 1; transform: translate(-50%, 0); }
-
-@media (max-width: 900px) {
-  .home-main, .lobby { grid-template-columns: 1fr; text-align: center; min-height: auto; }
-  .home-text p { margin-inline: auto; }
-  .home-actions { justify-content: center; }
-  .upcoming { margin-inline: auto; }
-  .home-art { order: -1; }
-  .ring { width: 220px; }
-  .panel { position: fixed; inset: 0 0 76px 0; width: auto; border-radius: 0; z-index: 10; }
-}
-@media (max-width: 640px) {
-  .bar { grid-template-columns: 1fr; padding: 10px; }
-  .bar-info { display: none; }
-  .bar-controls, .bar-side { justify-content: center; }
-  .bar-side { order: -1; }
-  .ctrl { width: 44px; height: 44px; font-size: 1.1rem; }
-  .ctrl-danger { width: 56px; }
-  .stage { padding: 8px 8px 0; }
-  .panel { inset: 0 0 116px 0; }
-}
-
-/* Scheduling */
-.upcoming { margin-top: 28px; max-width: 560px; }
-.upcoming h3 { font-size: 1.05rem; margin: 0 0 8px; }
-.upcoming ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.upcoming li {
-  display: flex; align-items: center; gap: 12px; padding: 10px 14px;
-  border: 1px solid var(--border); border-radius: 10px; text-align: start;
-}
-.upcoming .when { flex: 1; min-width: 0; }
-.upcoming .when b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.upcoming .when span { color: var(--muted); font-size: .9rem; }
-.upcoming .soon { color: var(--green); font-weight: 700; }
-.upcoming .btn { padding: 6px 14px; font-size: .92rem; }
-
+/* Modal */
 .modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; }
-.modal-backdrop { position: absolute; inset: 0; background: rgba(32, 33, 36, .6); }
+.modal-backdrop { position: absolute; inset: 0; background: rgba(7, 28, 22, .55); backdrop-filter: blur(2px); }
 .modal-card {
-  position: relative; background: #fff; border-radius: 16px; padding: 28px;
+  position: relative; background: var(--surface); color: var(--text); border-radius: 20px; padding: 28px;
   width: min(520px, 100%); max-height: 92vh; overflow-y: auto;
-  box-shadow: 0 10px 40px rgba(0,0,0,.3);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .3);
 }
-.modal-card form { display: grid; gap: 8px; }
-.modal-card label { font-weight: 700; font-size: .95rem; }
-.modal-close { position: absolute; top: 12px; left: 12px; }
-select {
-  font: inherit; color: var(--text); width: 100%;
-  border: 1px solid var(--border); border-radius: 8px; padding: 11px 14px; background: #fff;
-}
+.modal-card h2 { color: var(--green-900); }
+.modal-card form { display: grid; gap: 6px; }
+.modal-close { position: absolute; top: 14px; left: 14px; }
 .row-2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 12px; }
-.link-box { background: #f1f3f4; border-radius: 8px; padding: 10px 14px; margin: 12px 0; overflow-wrap: anywhere; }
+.success-mark {
+  width: 56px; height: 56px; margin: 0 auto 10px; border-radius: 50%;
+  background: var(--green-100); color: var(--green-700); display: grid; place-items: center; font-size: 1.5rem;
+}
+.link-box { background: var(--cream); border: 1px dashed var(--border); border-radius: 12px; padding: 10px 14px; margin: 14px 0; overflow-wrap: anywhere; text-align: center; }
 .result-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
 .result-actions .btn { flex: 1; padding: 9px 12px; font-size: .92rem; }
 
-/* Recording */
-.rec-banner {
-  align-self: center; margin-top: 10px; background: rgba(234, 67, 53, .18);
-  color: #f6aea9; padding: 4px 16px; border-radius: 20px; font-size: .92rem; font-weight: 700;
+.toast {
+  position: fixed; bottom: 96px; left: 50%; transform: translate(-50%, 30px);
+  background: var(--green-900); color: #fff; padding: 11px 20px; border-radius: 12px;
+  opacity: 0; transition: .25s; z-index: 100; pointer-events: none; max-width: 90vw;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .25);
 }
-.ctrl.recording { background: var(--danger); animation: pulse 1.6s infinite; }
-@keyframes pulse { 50% { box-shadow: 0 0 0 6px rgba(234, 67, 53, .3); } }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
 
-@media (max-width: 560px) {
+@media (max-width: 960px) {
+  .home-main, .lobby { grid-template-columns: 1fr; text-align: center; gap: 28px; min-height: auto; }
+  .home-art { order: -1; }
+  .emblem-card { padding: 26px 22px 20px; }
+  .logo-xl { width: 130px; }
+  .lead, .join-form, .upcoming { margin-inline: auto; }
+  .home-actions { justify-content: center; }
+  .features { grid-template-columns: 1fr 1fr; }
+  .lobby-side { text-align: start; }
+  .panel { position: fixed; inset: 0 0 76px 0; width: auto; border-radius: 0; z-index: 10; }
+}
+@media (max-width: 640px) {
+  .topbar { padding: 12px 16px; }
+  .home-main { padding: 12px 16px 40px; }
+  .features { padding: 0 16px 40px; grid-template-columns: 1fr; }
+  .home-actions .btn { flex: 1; }
+  .devices { grid-template-columns: 1fr; }
+  .lobby { padding: 12px 16px 32px; }
+  .bar { grid-template-columns: 1fr; padding: 8px 10px 10px; gap: 8px; }
+  .bar-info { display: none; }
+  .bar-controls, .bar-side { justify-content: center; }
+  .bar-side { order: -1; }
+  .bar-controls { gap: 8px; }
+  .ctrl { width: 44px; height: 44px; }
+  .ctrl-danger { width: 56px; }
+  .hide-sm { display: none; }
+  .stage { padding: 8px 8px 0; }
+  .panel { inset: 0 0 112px 0; }
+  .grid.spotlight { grid-template-columns: repeat(var(--rows, 1), 1fr); grid-template-rows: 1fr 110px; }
+  .grid.spotlight .tile.pinned { grid-column: 1 / -1; grid-row: 1; }
+  .grid.spotlight.solo { grid-template-rows: 1fr; }
   .row-2 { grid-template-columns: 1fr; }
   .modal-card { padding: 22px 18px; }
-  .bar-controls { gap: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 </style>
 </head>
 <body>
+  <!-- مكتبة الأيقونات -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5 10.5v.5a7 7 0 0 0 14 0v-.5M12 18v3.5"/></symbol>
+      <symbol id="i-mic-off" viewBox="0 0 24 24"><path d="M15 9.5V5.5a3 3 0 0 0-5.7-1.3M9 9v2.5a3 3 0 0 0 4.9 2.3M5 10.5v.5a7 7 0 0 0 11.6 5.3M19 10.5v.5a7 7 0 0 1-.4 2.3M12 18v3.5M3 3l18 18"/></symbol>
+      <symbol id="i-cam" viewBox="0 0 24 24"><rect x="2.5" y="6" width="13.5" height="12" rx="2.5"/><path d="M16 10.5l5.5-3.5v10L16 13.5z"/></symbol>
+      <symbol id="i-cam-off" viewBox="0 0 24 24"><path d="M16 12.5V8.5a2.5 2.5 0 0 0-2.5-2.5H9.5M5 6h-.5A2 2 0 0 0 2.5 8v7.5A2.5 2.5 0 0 0 5 18h8.5a2.5 2.5 0 0 0 2-1M16 10.5l5.5-3.5v10L17 14M3 3l18 18"/></symbol>
+      <symbol id="i-screen" viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8 21h8M12 17v4M9 10.5l3-3 3 3M12 7.5v6"/></symbol>
+      <symbol id="i-hand" viewBox="0 0 24 24"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11M11 10.5V4a1.5 1.5 0 0 1 3 0v6.5M14 10.5V5.5a1.5 1.5 0 0 1 3 0V12M17 11.5V9a1.5 1.5 0 0 1 3 0v5a7.5 7.5 0 0 1-7.5 7.5h-.8a6 6 0 0 1-5-2.7L4 15.2a1.6 1.6 0 0 1 2.6-1.8L8 15"/></symbol>
+      <symbol id="i-rec" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/></symbol>
+      <symbol id="i-smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 14.5s1.5 2 4 2 4-2 4-2M9 9.5h.01M15 9.5h.01"/></symbol>
+      <symbol id="i-end" viewBox="0 0 24 24"><path d="M2.5 13.2c5-4.6 14-4.6 19 0 .5.5.5 1.2 0 1.7l-1.8 1.8c-.4.4-1.1.5-1.6.1l-2-1.5a1.2 1.2 0 0 1-.5-1V12.4a14 14 0 0 0-7.2 0v1.9c0 .4-.2.8-.5 1l-2 1.5c-.5.4-1.2.3-1.6-.1l-1.8-1.8a1.2 1.2 0 0 1 0-1.7z" fill="currentColor" stroke="none"/></symbol>
+      <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4.2 4.2 0 0 0 6 0l3-3a4.2 4.2 0 0 0-6-6l-1 1M14 10a4.2 4.2 0 0 0-6 0l-3 3a4.2 4.2 0 0 0 6 6l1-1"/></symbol>
+      <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.2a6.3 6.3 0 0 1 3.5 5.8"/></symbol>
+      <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20 15.5a2 2 0 0 1-2 2H8l-4.5 3.5V6a2 2 0 0 1 2-2H18a2 2 0 0 1 2 2z"/></symbol>
+      <symbol id="i-send" viewBox="0 0 24 24"><path d="M20.5 12L4 4l3 8-3 8zM7 12h7"/></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+      <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 16.5V22M8.5 3h7l-1 6.5 3.5 4.5v2.5H6V14l3.5-4.5z"/></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12.5" height="12.5" rx="2.5"/><path d="M16 8V5.5A2 2 0 0 0 14 3.5H5.5a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2H8"/></symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4M8 14.5h.01M12 14.5h.01M16 14.5h.01M8 17.5h.01M12 17.5h.01"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></symbol>
+      <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6.5C10.5 5 8 4.5 3.5 4.5v14c4.5 0 7 .5 8.5 2 1.5-1.5 4-2 8.5-2v-14c-4.5 0-7 .5-8.5 2zM12 6.5v14"/></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7.5 3v6c0 4.6-3.2 7.8-7.5 9-4.3-1.2-7.5-4.4-7.5-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></symbol>
+      <symbol id="i-google" viewBox="0 0 24 24"><path d="M20.5 12.2c0-.6-.1-1.2-.2-1.7H12v3.3h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.6-3.9 2.6-6.5zM12 21c2.4 0 4.5-.8 5.9-2.2L15 16.5c-.8.5-1.8.9-3 .9-2.3 0-4.3-1.6-5-3.7H4v2.3A9 9 0 0 0 12 21zM7 13.7a5.4 5.4 0 0 1 0-3.4V8H4a9 9 0 0 0 0 8.1zM12 6.6c1.3 0 2.5.5 3.4 1.3L18 5.4A9 9 0 0 0 4 8l3 2.3c.7-2.1 2.7-3.7 5-3.7z" fill="currentColor" stroke="none"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+      <!-- شعار المدرسة: قوس وزخرفة -->
+      <symbol id="emblem" viewBox="0 0 100 124">
+        <path d="M8 118V50a42 42 0 0 1 84 0v68z" fill="none" stroke="currentColor" stroke-width="3.2"/>
+        <path d="M10 104h80M10 107.5h80M10 111h80M10 114.5h80" stroke="currentColor" stroke-width="1.1" opacity=".75"/>
+        <path d="M50 26c-3 14-9 30-17 38-5 5-12 6-12 2s9-4 16-1c5 2 9 4 13 4s8-2 13-4c7-3 16-3 16 1s-7 3-12-2c-8-8-14-24-17-38z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+        <path d="M50 76c-8-7-21-10-26-5-4 4 0 10 8 10 9 0 20-10 30-12 8-2 14 0 14 5s-6 7-12 6c-6-1-10-3-14-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M50 76c8-7 21-10 26-5 4 4 0 10-8 10-9 0-20-10-30-12-8-2-14 0-14 5s6 7 12 6c6-1 10-3 14-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </symbol>
+    </defs>
+  </svg>
+
   <!-- الصفحة الرئيسية -->
   <section id="home" class="view">
-    <header class="home-top">
-      <div class="brand"><span class="brand-mark"></span>حلقتي</div>
-      <div class="clock" id="homeClock"></div>
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo"><img class="logo-img" src="logo.png" alt=""><svg class="logo-svg"><use href="#emblem"/></svg></span>
+        <span class="brand-text"><b>حلقتي</b><small>مدرسة جامع الصحابة</small></span>
+      </div>
+      <div class="topbar-side">
+        <span class="clock" id="homeClock"></span>
+      </div>
     </header>
-    <div class="home-main">
+
+    <main class="home-main">
       <div class="home-text">
-        <h1>اجتماعات فيديو للجميع، <em>بلا تعقيد</em></h1>
-        <p class="muted">أنشئ اجتماعاً في ثانية وشارك الرابط مع فريقك. صوت وصورة ومشاركة شاشة ودردشة — من المتصفح مباشرة دون تثبيت أي شيء.</p>
+        <p class="ayah">﴿ وَرَتِّلِ الْقُرْآنَ تَرْتِيلًا ﴾</p>
+        <h1>حلقات تحفيظ القرآن الكريم <em>عن بُعد</em></h1>
+        <p class="lead">مكان واحد يجمع المعلّم بطلابه بالصوت والصورة: تسميع ومراجعة وتصحيح تلاوة، من الجوال أو الكمبيوتر بدون تثبيت أي برنامج.</p>
         <div class="home-actions">
-          <button class="btn btn-primary" id="newMeetingBtn">🎥 اجتماع جديد</button>
-          <button class="btn" id="scheduleBtn">📅 جدولة اجتماع</button>
-          <form class="join-form" id="joinForm">
-            <input id="joinCode" placeholder="أدخل رمز الاجتماع أو الرابط" autocomplete="off">
-            <button class="btn btn-text" type="submit">انضمام</button>
-          </form>
+          <button class="btn btn-primary btn-lg" id="newMeetingBtn"><svg class="i"><use href="#i-plus"/></svg>حلقة جديدة</button>
+          <button class="btn btn-lg" id="scheduleBtn"><svg class="i"><use href="#i-calendar"/></svg>جدولة حلقة</button>
         </div>
+        <form class="join-form" id="joinForm">
+          <label for="joinCode" class="sr-only">رمز الحلقة</label>
+          <input id="joinCode" placeholder="لديك رمز حلقة؟ اكتبه هنا" autocomplete="off" dir="auto">
+          <button class="btn btn-ghost" type="submit">دخول</button>
+        </form>
         <p class="error" id="homeError" role="alert"></p>
+
         <div class="upcoming" id="upcoming" hidden>
-          <h3>اجتماعاتك القادمة</h3>
+          <h3><svg class="i"><use href="#i-calendar"/></svg>حلقاتك القادمة</h3>
           <ul id="upcomingList"></ul>
         </div>
       </div>
-      <div class="home-art" aria-hidden="true">
-        <div class="ring"><span></span><span></span><span></span><span></span><span></span></div>
+
+      <div class="home-art">
+        <figure class="emblem-card">
+          <span class="logo logo-xl"><img class="logo-img" src="logo.png" alt="شعار مدرسة جامع الصحابة"><svg class="logo-svg"><use href="#emblem"/></svg></span>
+          <figcaption>
+            <b>مدرسة جامع الصحابة</b>
+            <span>لتحفيظ القرآن الكريم بحي غبيراء</span>
+            <small>تأسست عام ١٤٢٦هـ</small>
+          </figcaption>
+        </figure>
       </div>
-    </div>
+    </main>
+
+    <section class="features" aria-label="المزايا">
+      <div class="feature">
+        <span class="f-icon"><svg class="i"><use href="#i-book"/></svg></span>
+        <h3>تسميع مباشر</h3>
+        <p>صوت واضح وصورة، مع تثبيت المعلّم في وسط الشاشة.</p>
+      </div>
+      <div class="feature">
+        <span class="f-icon"><svg class="i"><use href="#i-hand"/></svg></span>
+        <h3>رفع اليد</h3>
+        <p>الطالب يرفع يده عند جاهزيته للتسميع، فيعرف المعلّم الدور.</p>
+      </div>
+      <div class="feature">
+        <span class="f-icon"><svg class="i"><use href="#i-calendar"/></svg></span>
+        <h3>مواعيد الحلقات</h3>
+        <p>جدولة الحلقة وإرسال الدعوة وإضافتها للتقويم بضغطة.</p>
+      </div>
+      <div class="feature">
+        <span class="f-icon"><svg class="i"><use href="#i-rec"/></svg></span>
+        <h3>تسجيل الحلقة</h3>
+        <p>يحفظ التسجيل على جهاز المعلّم للمراجعة لاحقاً.</p>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <span>مدرسة جامع الصحابة لتحفيظ القرآن الكريم — حي غبيراء</span>
+      <span>حلقتي</span>
+    </footer>
   </section>
 
   <!-- شاشة ما قبل الدخول -->
   <section id="lobby" class="view" hidden>
+    <header class="topbar">
+      <button class="btn btn-ghost" id="backHomeBtn"><svg class="i flip"><use href="#i-arrow"/></svg>الرئيسية</button>
+      <div class="brand brand-sm">
+        <span class="logo"><img class="logo-img" src="logo.png" alt=""><svg class="logo-svg"><use href="#emblem"/></svg></span>
+        <span class="brand-text"><b>حلقتي</b></span>
+      </div>
+    </header>
     <div class="lobby">
-      <div class="preview">
-        <video id="previewVideo" autoplay playsinline muted></video>
-        <div class="preview-off" id="previewOff">الكاميرا متوقفة</div>
-        <div class="preview-controls">
-          <button class="ctrl" id="lobbyMic" aria-label="الميكروفون">🎙️</button>
-          <button class="ctrl" id="lobbyCam" aria-label="الكاميرا">📷</button>
+      <div class="preview-wrap">
+        <div class="preview">
+          <video id="previewVideo" autoplay playsinline muted></video>
+          <div class="preview-off" id="previewOff"><svg class="i"><use href="#i-cam-off"/></svg><span>الكاميرا متوقفة</span></div>
+          <div class="mic-meter" aria-hidden="true"><span id="micLevel"></span></div>
+          <div class="preview-controls">
+            <button class="ctrl" id="lobbyMic" aria-label="الميكروفون"><svg class="i on-i"><use href="#i-mic"/></svg><svg class="i off-i"><use href="#i-mic-off"/></svg></button>
+            <button class="ctrl" id="lobbyCam" aria-label="الكاميرا"><svg class="i on-i"><use href="#i-cam"/></svg><svg class="i off-i"><use href="#i-cam-off"/></svg></button>
+          </div>
+        </div>
+        <div class="devices">
+          <label><svg class="i"><use href="#i-mic"/></svg><select class="dev-select" data-kind="audioinput" aria-label="الميكروفون"></select></label>
+          <label><svg class="i"><use href="#i-cam"/></svg><select class="dev-select" data-kind="videoinput" aria-label="الكاميرا"></select></label>
         </div>
       </div>
       <div class="lobby-side">
-        <h2>جاهز للانضمام؟</h2>
-        <p class="muted">رمز الاجتماع: <b id="lobbyCode" dir="ltr"></b></p>
-        <input id="nameInput" placeholder="ما اسمك؟" maxlength="40" autocomplete="name">
-        <button class="btn btn-primary btn-block" id="joinNowBtn">انضم الآن</button>
-        <button class="btn btn-text" id="backHomeBtn">العودة للرئيسية</button>
+        <h2>جاهز لدخول الحلقة؟</h2>
+        <button class="code-chip" id="lobbyCopy" title="نسخ رابط الحلقة"><span id="lobbyCode" dir="ltr"></span><svg class="i"><use href="#i-copy"/></svg></button>
+        <label for="nameInput" class="field-label">اسمك</label>
+        <input id="nameInput" placeholder="اكتب اسمك كما يعرفك المعلّم" maxlength="40" autocomplete="name">
+        <fieldset class="roles">
+          <legend class="field-label">أنا</legend>
+          <label class="role"><input type="radio" name="role" value="student" checked><span>طالب</span></label>
+          <label class="role"><input type="radio" name="role" value="teacher"><span>معلّم</span></label>
+        </fieldset>
+        <button class="btn btn-primary btn-lg btn-block" id="joinNowBtn">دخول الحلقة</button>
         <p class="error" id="lobbyError" role="alert"></p>
       </div>
     </div>
   </section>
 
-  <!-- غرفة الاجتماع -->
+  <!-- غرفة الحلقة -->
   <section id="room" class="view room" hidden>
-    <div class="rec-banner" id="recBanner" hidden>🔴 <span id="recText">يتم تسجيل هذا الاجتماع</span></div>
+    <div class="rec-banner" id="recBanner" hidden><span class="rec-dot"></span><span id="recText">يتم تسجيل هذه الحلقة</span></div>
     <div class="stage">
       <div class="grid" id="grid"></div>
       <aside class="panel" id="panel" hidden>
         <div class="panel-head">
-          <div class="panel-tabs">
-            <button class="panel-tab active" data-tab="chat">الدردشة</button>
-            <button class="panel-tab" data-tab="people">المشاركون (<span id="peopleCount">1</span>)</button>
+          <div class="panel-tabs" role="tablist">
+            <button class="panel-tab active" data-tab="chat" role="tab">الدردشة</button>
+            <button class="panel-tab" data-tab="people" role="tab">الحضور (<span id="peopleCount">1</span>)</button>
           </div>
-          <button class="icon-btn" id="closePanel" aria-label="إغلاق">✕</button>
+          <button class="icon-btn" id="closePanel" aria-label="إغلاق"><svg class="i"><use href="#i-close"/></svg></button>
         </div>
         <div class="panel-body" data-pane="chat">
-          <div class="messages" id="messages">
-            <p class="muted small center">الرسائل تظهر فقط للموجودين في الاجتماع</p>
-          </div>
+          <div class="messages" id="messages"></div>
           <form class="chat-form" id="chatForm">
-            <input id="chatInput" placeholder="اكتب رسالة..." autocomplete="off" maxlength="500">
-            <button class="icon-btn" type="submit" aria-label="إرسال">➤</button>
+            <input id="chatInput" placeholder="اكتب رسالة للحلقة…" autocomplete="off" maxlength="500">
+            <button class="send-btn" type="submit" aria-label="إرسال"><svg class="i flip"><use href="#i-send"/></svg></button>
           </form>
         </div>
         <div class="panel-body" data-pane="people" hidden>
@@ -391,28 +666,30 @@ select {
 
     <footer class="bar">
       <div class="bar-info">
+        <span class="logo logo-sm"><img class="logo-img" src="logo.png" alt=""><svg class="logo-svg"><use href="#emblem"/></svg></span>
         <span id="roomClock"></span>
-        <span class="sep">|</span>
+        <span class="sep"></span>
         <span id="roomCode" dir="ltr"></span>
       </div>
       <div class="bar-controls">
-        <button class="ctrl" id="micBtn" title="الميكروفون (Ctrl+D)">🎙️</button>
-        <button class="ctrl" id="camBtn" title="الكاميرا (Ctrl+E)">📷</button>
-        <button class="ctrl" id="shareBtn" title="مشاركة الشاشة">🖥️</button>
-        <button class="ctrl" id="handBtn" title="رفع اليد">✋</button>
-        <button class="ctrl" id="recBtn" title="تسجيل الاجتماع">⏺️</button>
+        <button class="ctrl" id="micBtn" title="الميكروفون (Ctrl+D)"><svg class="i on-i"><use href="#i-mic"/></svg><svg class="i off-i"><use href="#i-mic-off"/></svg></button>
+        <button class="ctrl" id="camBtn" title="الكاميرا (Ctrl+E)"><svg class="i on-i"><use href="#i-cam"/></svg><svg class="i off-i"><use href="#i-cam-off"/></svg></button>
+        <button class="ctrl" id="handBtn" title="رفع اليد"><svg class="i"><use href="#i-hand"/></svg></button>
+        <button class="ctrl hide-sm" id="shareBtn" title="مشاركة الشاشة"><svg class="i"><use href="#i-screen"/></svg></button>
+        <button class="ctrl hide-sm" id="recBtn" title="تسجيل الحلقة"><svg class="i"><use href="#i-rec"/></svg></button>
         <div class="reactions-wrap">
-          <button class="ctrl" id="reactBtn" title="تفاعل">😊</button>
+          <button class="ctrl" id="reactBtn" title="تفاعل"><svg class="i"><use href="#i-smile"/></svg></button>
           <div class="reactions" id="reactions" hidden>
-            <button>👍</button><button>👏</button><button>😂</button><button>❤️</button><button>🎉</button><button>😮</button>
+            <button>👍</button><button>👏</button><button>🤲</button><button>❤️</button><button>🌟</button><button>✅</button>
           </div>
         </div>
-        <button class="ctrl ctrl-danger" id="leaveBtn" title="مغادرة الاجتماع">📞</button>
+        <button class="ctrl ctrl-danger" id="leaveBtn" title="مغادرة الحلقة"><svg class="i"><use href="#i-end"/></svg></button>
       </div>
       <div class="bar-side">
-        <button class="ctrl ctrl-flat" id="copyBtn" title="نسخ رابط الاجتماع">🔗</button>
-        <button class="ctrl ctrl-flat" id="peopleBtn" title="المشاركون">👥</button>
-        <button class="ctrl ctrl-flat" id="chatBtn" title="الدردشة">💬<span class="dot" id="chatDot" hidden></span></button>
+        <button class="ctrl ctrl-flat" id="settingsBtn" title="الأجهزة"><svg class="i"><use href="#i-sliders"/></svg></button>
+        <button class="ctrl ctrl-flat" id="copyBtn" title="نسخ رابط الحلقة"><svg class="i"><use href="#i-link"/></svg></button>
+        <button class="ctrl ctrl-flat" id="peopleBtn" title="الحضور"><svg class="i"><use href="#i-users"/></svg></button>
+        <button class="ctrl ctrl-flat" id="chatBtn" title="الدردشة"><svg class="i"><use href="#i-chat"/></svg><span class="dot" id="chatDot" hidden></span></button>
       </div>
     </footer>
   </section>
@@ -420,54 +697,72 @@ select {
   <!-- بعد المغادرة -->
   <section id="left" class="view" hidden>
     <div class="left-box">
-      <h2>غادرت الاجتماع</h2>
+      <span class="logo logo-lg"><img class="logo-img" src="logo.png" alt=""><svg class="logo-svg"><use href="#emblem"/></svg></span>
+      <h2>انتهت مشاركتك في الحلقة</h2>
+      <p class="lead" id="leftSummary"></p>
+      <p class="dua">بارك الله فيكم ونفع بكم</p>
       <div class="home-actions center">
-        <button class="btn" id="rejoinBtn">إعادة الانضمام</button>
-        <button class="btn btn-primary" id="goHomeBtn">العودة للرئيسية</button>
+        <button class="btn btn-lg" id="rejoinBtn">العودة للحلقة</button>
+        <button class="btn btn-primary btn-lg" id="goHomeBtn">الصفحة الرئيسية</button>
       </div>
     </div>
   </section>
 
-  <!-- نافذة جدولة الاجتماع -->
+  <!-- نافذة جدولة الحلقة -->
   <div class="modal" id="scheduleModal" hidden>
     <div class="modal-backdrop" data-close></div>
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="scheduleTitle">
-      <button class="icon-btn modal-close" data-close aria-label="إغلاق">✕</button>
+      <button class="icon-btn modal-close" data-close aria-label="إغلاق"><svg class="i"><use href="#i-close"/></svg></button>
       <form id="scheduleForm">
-        <h2 id="scheduleTitle">جدولة اجتماع</h2>
-        <label for="sTitle">عنوان الاجتماع</label>
-        <input id="sTitle" required maxlength="80" placeholder="مثال: اجتماع الفريق الأسبوعي">
+        <h2 id="scheduleTitle">جدولة حلقة</h2>
+        <label for="sTitle" class="field-label">اسم الحلقة</label>
+        <input id="sTitle" required maxlength="80" placeholder="مثال: حلقة جزء عمّ — بعد العصر">
         <div class="row-2">
           <div>
-            <label for="sStart">الموعد</label>
+            <label for="sStart" class="field-label">الموعد</label>
             <input id="sStart" type="datetime-local" required>
           </div>
           <div>
-            <label for="sDuration">المدة</label>
+            <label for="sDuration" class="field-label">المدة</label>
             <select id="sDuration">
               <option value="15">15 دقيقة</option>
-              <option value="30" selected>30 دقيقة</option>
+              <option value="30">30 دقيقة</option>
               <option value="45">45 دقيقة</option>
-              <option value="60">ساعة</option>
+              <option value="60" selected>ساعة</option>
               <option value="90">ساعة ونصف</option>
               <option value="120">ساعتان</option>
             </select>
           </div>
         </div>
         <p class="error" id="scheduleError" role="alert"></p>
-        <button class="btn btn-primary btn-block" type="submit">إنشاء الاجتماع</button>
+        <button class="btn btn-primary btn-lg btn-block" type="submit">إنشاء الحلقة</button>
       </form>
       <div id="scheduleResult" hidden>
-        <h2>✅ تمت جدولة الاجتماع</h2>
-        <p class="muted" id="sSummary"></p>
+        <div class="success-mark"><svg class="i"><use href="#i-check"/></svg></div>
+        <h2 class="center">تمت جدولة الحلقة</h2>
+        <p class="muted center" id="sSummary"></p>
         <div class="link-box"><code id="sLink" dir="ltr"></code></div>
         <div class="result-actions">
-          <button class="btn" id="sCopy">📋 نسخ الدعوة</button>
-          <a class="btn" id="sGoogle" target="_blank" rel="noopener">📅 تقويم Google</a>
-          <button class="btn" id="sIcs">⬇️ ملف تقويم (ics)</button>
+          <button class="btn" id="sCopy"><svg class="i"><use href="#i-copy"/></svg>نسخ الدعوة</button>
+          <a class="btn" id="sGoogle" target="_blank" rel="noopener"><svg class="i"><use href="#i-google"/></svg>تقويم Google</a>
+          <button class="btn" id="sIcs"><svg class="i"><use href="#i-download"/></svg>ملف تقويم</button>
         </div>
-        <button class="btn btn-primary btn-block" data-close>تم</button>
+        <button class="btn btn-primary btn-lg btn-block" data-close>تم</button>
       </div>
+    </div>
+  </div>
+
+  <!-- نافذة اختيار الأجهزة داخل الحلقة -->
+  <div class="modal" id="settingsModal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <button class="icon-btn modal-close" data-close aria-label="إغلاق"><svg class="i"><use href="#i-close"/></svg></button>
+      <h2 id="settingsTitle">الأجهزة</h2>
+      <div class="devices devices-stack">
+        <label><span class="field-label">الميكروفون</span><select class="dev-select" data-kind="audioinput"></select></label>
+        <label><span class="field-label">الكاميرا</span><select class="dev-select" data-kind="videoinput"></select></label>
+      </div>
+      <button class="btn btn-primary btn-lg btn-block" data-close>تم</button>
     </div>
   </div>
 
@@ -481,7 +776,8 @@ const ICE_CONFIG = {
   iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }],
 };
 const CODE_RE = /[a-z]{3}-[a-z]{4}-[a-z]{3}/;
-const COLORS = ["#1a73e8", "#34a853", "#e37400", "#d93025", "#a142f4", "#12a4af", "#c5221f", "#188038"];
+const COLORS = ["#0d4f3c", "#146a51", "#b8892b", "#8a5a2b", "#2f6f8f", "#6b4c9a", "#a8473d", "#3d7a5c"];
+const REACTIONS = ["👍", "👏", "🤲", "❤️", "🌟", "✅"];
 
 const $ = (id) => document.getElementById(id);
 
@@ -497,6 +793,8 @@ const state = {
   micOn: true,
   camOn: true,
   hand: false,
+  role: "student", // student | teacher
+  pinned: null, // معرّف البلاطة المثبتة، أو "none" لإلغاء التثبيت التلقائي
   es: null,
   peers: new Map(), // id -> { id, name, pc, stream, pendingIce, mic, cam, hand, screen, tile }
   localTile: null,
@@ -515,6 +813,27 @@ function toast(text) {
   el.classList.add("show");
   clearTimeout(toast.t);
   toast.t = setTimeout(() => el.classList.remove("show"), 2600);
+}
+
+function icon(name, cls = "") {
+  return `<svg class="i ${cls}"><use href="#i-${name}"/></svg>`;
+}
+
+function formatDuration(ms) {
+  const mins = Math.max(1, Math.round(ms / 60000));
+  if (mins < 60) return `${mins} دقيقة`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m ? `${h} ساعة و${m} دقيقة` : `${h} ساعة`;
+}
+
+function ensureAudio() {
+  try {
+    state.audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+    state.audioCtx.resume();
+  } catch {
+    state.audioCtx = null;
+  }
 }
 
 function colorFor(text) {
@@ -676,6 +995,8 @@ async function openLobby() {
   $("lobbyCode").textContent = state.code;
   $("lobbyError").textContent = "";
   $("nameInput").value = localStorage.getItem("halaqati:name") || "";
+  const role = localStorage.getItem("halaqati:role") === "teacher" ? "teacher" : "student";
+  document.querySelector(`input[name="role"][value="${role}"]`).checked = true;
   if (!state.stream) {
     try {
       state.stream = await getMedia();
@@ -689,9 +1010,107 @@ async function openLobby() {
   $("previewVideo").srcObject = state.stream;
   syncToggleButtons();
   if (!micTrack() && !camTrack()) {
-    $("lobbyError").textContent = "لم نتمكن من الوصول للكاميرا أو الميكروفون. يمكنك الانضمام للمشاهدة فقط.";
+    $("lobbyError").textContent = "لم نتمكن من الوصول للكاميرا أو الميكروفون. يمكنك الدخول للاستماع فقط.";
   }
+  populateDevices();
+  startLobbyMeter();
   $("nameInput").focus();
+}
+
+let lobbyAnalyser = null;
+
+function startLobbyMeter() {
+  ensureAudio();
+  lobbyAnalyser = null;
+  if (!state.audioCtx || !micTrack()) return;
+  try {
+    const src = state.audioCtx.createMediaStreamSource(new MediaStream([micTrack()]));
+    lobbyAnalyser = state.audioCtx.createAnalyser();
+    lobbyAnalyser.fftSize = 512;
+    src.connect(lobbyAnalyser);
+  } catch {}
+}
+
+/* ---------- اختيار الكاميرا والميكروفون ---------- */
+
+async function populateDevices() {
+  if (!navigator.mediaDevices?.enumerateDevices) return;
+  let devices = [];
+  try {
+    devices = await navigator.mediaDevices.enumerateDevices();
+  } catch {}
+  for (const sel of document.querySelectorAll(".dev-select")) {
+    const kind = sel.dataset.kind;
+    const isAudio = kind === "audioinput";
+    const list = devices.filter((d) => d.kind === kind && d.deviceId);
+    sel.innerHTML = "";
+    if (!list.length) {
+      sel.add(new Option(isAudio ? "لا يوجد ميكروفون" : "لا توجد كاميرا", ""));
+      sel.disabled = true;
+      continue;
+    }
+    sel.disabled = false;
+    list.forEach((d, i) => sel.add(new Option(d.label || `${isAudio ? "ميكروفون" : "كاميرا"} ${i + 1}`, d.deviceId)));
+    const current = (isAudio ? micTrack() : camTrack())?.getSettings?.().deviceId;
+    if (current && list.some((d) => d.deviceId === current)) sel.value = current;
+  }
+}
+
+async function switchDevice(kind, deviceId) {
+  const isAudio = kind === "audioinput";
+  let fresh;
+  try {
+    fresh = await navigator.mediaDevices.getUserMedia(
+      isAudio ? { audio: { deviceId: { exact: deviceId } } } : { video: { deviceId: { exact: deviceId }, width: 1280, height: 720 } }
+    );
+  } catch {
+    return toast("تعذر تشغيل هذا الجهاز");
+  }
+  const track = isAudio ? fresh.getAudioTracks()[0] : fresh.getVideoTracks()[0];
+  const old = isAudio ? micTrack() : camTrack();
+  state.stream ||= new MediaStream();
+  if (old) {
+    state.stream.removeTrack(old);
+    old.stop();
+  } else if (isAudio) {
+    state.micOn = true;
+  } else {
+    state.camOn = true;
+  }
+  track.enabled = isAudio ? state.micOn : state.camOn;
+  state.stream.addTrack(track);
+  $("previewVideo").srcObject = state.stream;
+  if (isAudio || !state.screenStream) {
+    for (const { pc } of state.peers.values()) {
+      const t = pc.getTransceivers().find((x) => x.receiver.track.kind === (isAudio ? "audio" : "video"));
+      t?.sender.replaceTrack(track).catch(() => {});
+    }
+  }
+  if (isAudio) {
+    startLobbyMeter();
+    if (state.localTile) watchLevel(new MediaStream([track]), state.localTile);
+    addToRecording(new MediaStream([track]));
+  }
+  syncToggleButtons();
+  updateLocalTile();
+  broadcastState();
+  populateDevices();
+}
+
+document.addEventListener("change", (e) => {
+  const sel = e.target.closest?.(".dev-select");
+  if (sel?.value) switchDevice(sel.dataset.kind, sel.value);
+});
+
+$("lobbyCopy").addEventListener("click", () => copyText(meetingLink(), "تم نسخ رابط الحلقة"));
+
+async function copyText(text, done) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast(done);
+  } catch {
+    prompt("انسخ النص:", text);
+  }
 }
 
 $("lobbyMic").addEventListener("click", () => setMic(!state.micOn));
@@ -721,6 +1140,7 @@ function myStatus() {
     hand: state.hand,
     screen: !!state.screenStream,
     recording: !!state.recorder,
+    role: state.role,
   };
 }
 
@@ -736,19 +1156,17 @@ function join() {
     return;
   }
   state.name = name.slice(0, 40);
-  localStorage.setItem("halaqati:name", state.name);
-
+  state.role = document.querySelector('input[name="role"]:checked')?.value === "teacher" ? "teacher" : "student";
   try {
-    state.audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
-    state.audioCtx.resume();
-  } catch {
-    state.audioCtx = null;
-  }
+    localStorage.setItem("halaqati:name", state.name);
+    localStorage.setItem("halaqati:role", state.role);
+  } catch {}
+  ensureAudio();
 
   if (DEMO) {
     state.myId = "demo";
     enterRoom();
-    toast("وضع العرض: شغّل الخادم أو انشر الموقع حتى ينضم الآخرون");
+    toast("وضع العرض: انشر الموقع حتى ينضم الطلاب");
     return;
   }
 
@@ -787,7 +1205,7 @@ function join() {
       es.close();
       state.es = null;
       $("joinNowBtn").disabled = false;
-      $("lobbyError").textContent = "تعذر الاتصال بالخادم، أو أن الاجتماع ممتلئ.";
+      $("lobbyError").textContent = "تعذر الاتصال بالخادم، أو أن الحلقة ممتلئة.";
     } else {
       toast("انقطع الاتصال… جارٍ إعادة المحاولة");
     }
@@ -814,7 +1232,7 @@ async function handleSignal({ from, type, data }) {
       break;
     case "state":
       if (!peer) return;
-      if (data.hand && !peer.hand) toast(`✋ ${data.name} رفع يده`);
+      if (data.hand && !peer.hand) toast(`✋ ${data.name} يرفع يده`);
       Object.assign(peer, {
         name: String(data.name || peer.name).slice(0, 40),
         mic: !!data.mic,
@@ -822,8 +1240,10 @@ async function handleSignal({ from, type, data }) {
         hand: !!data.hand,
         screen: !!data.screen,
         recording: !!data.recording,
+        role: data.role === "teacher" ? "teacher" : "student",
       });
       updatePeerTile(peer);
+      layoutGrid();
       updateRecBanner();
       renderPeople();
       break;
@@ -845,11 +1265,11 @@ function createPeer(id, name, initiator) {
     id, name, pc, initiator,
     stream: new MediaStream(),
     pendingIce: [],
-    mic: true, cam: false, hand: false, screen: false,
+    mic: true, cam: false, hand: false, screen: false, role: "student",
     tile: null,
   };
   state.peers.set(id, peer);
-  peer.tile = createTile(peer.name, false);
+  peer.tile = createTile(id, false);
   updatePeerTile(peer);
 
   pc.ontrack = (e) => {
@@ -932,29 +1352,51 @@ function replaceOutgoingVideo() {
 
 /* ---------- البلاطات (عرض المشاركين) ---------- */
 
-function createTile(name, isLocal) {
+function createTile(id, isLocal) {
   const tile = document.createElement("div");
   tile.className = "tile" + (isLocal ? " local" : "");
+  tile.dataset.id = id;
   tile.innerHTML = `
     <video autoplay playsinline ${isLocal ? "muted" : ""}></video>
     <div class="avatar"></div>
-    <div class="badges"></div>
-    <div class="name"></div>`;
+    <span class="hand-badge">${icon("hand")}يرفع يده</span>
+    <button class="pin-btn" type="button" title="تثبيت في الوسط">${icon("pin")}</button>
+    <div class="label">${icon("mic-off", "mic-off")}<span class="name"></span><span class="role-tag" hidden>المعلّم</span></div>`;
+  tile.querySelector(".pin-btn").addEventListener("click", () => togglePin(id));
   $("grid").appendChild(tile);
   return tile;
 }
 
-function paintTile(tile, { name, mic, cam, hand, screen }) {
+function paintTile(tile, { name, mic, cam, hand, screen, role }) {
   tile.querySelector(".name").textContent = name;
   const avatar = tile.querySelector(".avatar");
   avatar.textContent = initial(name);
   avatar.style.background = colorFor(name.replace(" (أنت)", ""));
   tile.classList.toggle("cam-off", !cam && !screen);
   tile.classList.toggle("screen", screen);
-  const badges = [];
-  if (hand) badges.push("✋");
-  if (!mic) badges.push("🔇");
-  tile.querySelector(".badges").innerHTML = badges.map((b) => `<span>${b}</span>`).join("");
+  tile.classList.toggle("muted", !mic);
+  tile.classList.toggle("hand", hand);
+  tile.querySelector(".role-tag").hidden = role !== "teacher";
+}
+
+function togglePin(id) {
+  state.pinned = effectivePin() === id ? "none" : id;
+  layoutGrid();
+  renderPeople();
+}
+
+// من يظهر كبيراً في الوسط: المثبّت يدوياً، ثم من يشارك شاشته، ثم المعلّم
+function effectivePin() {
+  if (state.pinned === "none") return null;
+  if (state.pinned && (state.pinned === "local" || state.peers.has(state.pinned))) return state.pinned;
+  state.pinned = null;
+  const sharer = [...state.peers.values()].find((p) => p.screen);
+  if (sharer) return sharer.id;
+  if (state.role !== "teacher" && state.peers.size >= 2) {
+    const teacher = [...state.peers.values()].find((p) => p.role === "teacher");
+    if (teacher) return teacher.id;
+  }
+  return null;
 }
 
 function updatePeerTile(peer) {
@@ -971,16 +1413,28 @@ function updateLocalTile() {
 }
 
 function layoutGrid() {
-  const n = $("grid").children.length;
-  const narrow = window.innerWidth < 640;
-  const cols = narrow ? (n <= 2 ? 1 : 2) : n <= 1 ? 1 : n <= 4 ? 2 : n <= 9 ? 3 : 4;
-  $("grid").style.setProperty("--cols", cols);
+  const grid = $("grid");
+  const tiles = [...grid.children];
+  const n = tiles.length;
+  const pin = n > 1 ? effectivePin() : null;
+  for (const t of tiles) {
+    t.classList.toggle("pinned", t.dataset.id === pin);
+    t.querySelector(".pin-btn").title = t.dataset.id === pin ? "إلغاء التثبيت" : "تثبيت في الوسط";
+  }
+  grid.classList.toggle("spotlight", !!pin);
+  if (pin) {
+    grid.style.setProperty("--rows", Math.min(Math.max(n - 1, 1), 4));
+  } else {
+    const narrow = window.innerWidth < 640;
+    const cols = narrow ? (n <= 2 ? 1 : 2) : n <= 1 ? 1 : n <= 4 ? 2 : n <= 9 ? 3 : 4;
+    grid.style.setProperty("--cols", cols);
+  }
   $("peopleCount").textContent = state.peers.size + 1;
 }
 window.addEventListener("resize", layoutGrid);
 
 function floatReaction(tile, emoji) {
-  if (!tile || !["👍", "👏", "😂", "❤️", "🎉", "😮"].includes(emoji)) return;
+  if (!tile || !REACTIONS.includes(emoji)) return;
   const el = document.createElement("div");
   el.className = "float-reaction";
   el.textContent = emoji;
@@ -1001,15 +1455,23 @@ function watchLevel(stream, tile) {
 }
 
 const levelBuf = new Uint8Array(512);
+function levelOf(analyser) {
+  analyser.getByteTimeDomainData(levelBuf);
+  let sum = 0;
+  for (const v of levelBuf) sum += (v - 128) ** 2;
+  return Math.sqrt(sum / levelBuf.length);
+}
+
 setInterval(() => {
   for (const [tile, analyser] of state.meters) {
-    analyser.getByteTimeDomainData(levelBuf);
-    let sum = 0;
-    for (const v of levelBuf) sum += (v - 128) ** 2;
-    const muted = tile === state.localTile ? !state.micOn : tile.querySelector(".badges").textContent.includes("🔇");
-    tile.classList.toggle("speaking", !muted && Math.sqrt(sum / levelBuf.length) > 6);
+    const muted = tile === state.localTile ? !state.micOn : tile.classList.contains("muted");
+    tile.classList.toggle("speaking", !muted && levelOf(analyser) > 6);
   }
-}, 200);
+  if (lobbyAnalyser && !$("lobby").hidden) {
+    const level = state.micOn ? Math.min(100, levelOf(lobbyAnalyser) * 5) : 0;
+    $("micLevel").style.height = `${level}%`;
+  }
+}, 120);
 
 /* ---------- غرفة الاجتماع ---------- */
 
@@ -1019,17 +1481,19 @@ function enterRoom() {
   show("room");
   $("roomCode").textContent = state.code;
   $("grid").innerHTML = "";
-  $("messages").innerHTML = '<p class="muted small center">الرسائل تظهر فقط للموجودين في الاجتماع</p>';
-  state.localTile = createTile(state.name, true);
+  $("messages").innerHTML = '<p class="hint">الرسائل تظهر فقط للحاضرين في الحلقة الآن</p>';
+  state.pinned = null;
+  state.localTile = createTile("local", true);
   watchLevel(state.stream, state.localTile);
   updateLocalTile();
   syncToggleButtons();
   layoutGrid();
   renderPeople();
-  if (state.peers.size === 0) toast("أنت أول الحاضرين — شارك الرابط لدعوة الآخرين");
+  if (state.peers.size === 0) toast("أنت أول الحاضرين — شارك رابط الحلقة لدعوة الطلاب");
 }
 
 function leave(navigate = true) {
+  if (state.joinedAt) $("leftSummary").textContent = `مدة حضورك: ${formatDuration(Date.now() - state.joinedAt)}`;
   stopRecording();
   state.es?.close();
   state.es = null;
@@ -1100,14 +1564,15 @@ document.addEventListener("click", (e) => {
   if (!e.target.closest(".reactions-wrap")) $("reactions").hidden = true;
 });
 
-$("copyBtn").addEventListener("click", async () => {
-  try {
-    await navigator.clipboard.writeText(meetingLink());
-    toast("تم نسخ رابط الاجتماع");
-  } catch {
-    prompt("انسخ رابط الاجتماع:", meetingLink());
-  }
+$("copyBtn").addEventListener("click", () => copyText(meetingLink(), "تم نسخ رابط الحلقة"));
+
+$("settingsBtn").addEventListener("click", () => {
+  populateDevices();
+  $("settingsModal").hidden = false;
 });
+for (const el of document.querySelectorAll("#settingsModal [data-close]")) {
+  el.addEventListener("click", () => ($("settingsModal").hidden = true));
+}
 
 document.addEventListener("keydown", (e) => {
   if (!state.joinedAt || !(e.ctrlKey || e.metaKey)) return;
@@ -1147,19 +1612,19 @@ for (const t of document.querySelectorAll(".panel-tab")) {
   t.addEventListener("click", () => openPanel(t.dataset.tab));
 }
 
-function addMessage(author, text) {
+function addMessage(author, text, mine = false) {
   if (!text.trim()) return;
   const box = $("messages");
   const msg = document.createElement("div");
-  msg.className = "msg";
-  msg.innerHTML = "<div><b></b><time></time></div><p></p>";
+  msg.className = "msg" + (mine ? " mine" : "");
+  msg.innerHTML = '<div class="meta"><b></b><time></time></div><p></p>';
   msg.querySelector("b").textContent = author;
   msg.querySelector("time").textContent = timeNow();
   msg.querySelector("p").textContent = text;
   box.appendChild(msg);
   box.scrollTop = box.scrollHeight;
   const chatVisible = !$("panel").hidden && !document.querySelector('[data-pane="chat"]').hidden;
-  if (!chatVisible && author !== "أنت") {
+  if (!chatVisible && !mine) {
     $("chatDot").hidden = false;
     toast(`💬 ${author}: ${text.slice(0, 60)}`);
   }
@@ -1169,7 +1634,7 @@ $("chatForm").addEventListener("submit", (e) => {
   e.preventDefault();
   const text = $("chatInput").value.trim();
   if (!text) return;
-  addMessage("أنت", text);
+  addMessage("أنت", text, true);
   signal("chat", { text });
   $("chatInput").value = "";
 });
@@ -1177,14 +1642,21 @@ $("chatForm").addEventListener("submit", (e) => {
 function renderPeople() {
   const list = $("people");
   list.innerHTML = "";
-  const everyone = [{ ...myStatus(), name: `${state.name} (أنت)` }, ...state.peers.values()];
+  const everyone = [{ ...myStatus(), id: "local", name: `${state.name} (أنت)` }, ...state.peers.values()];
+  // المعلّم أولاً، ثم من رفع يده
+  everyone.sort((a, b) => (b.role === "teacher") - (a.role === "teacher") || b.hand - a.hand);
+  const pin = effectivePin();
   for (const p of everyone) {
     const li = document.createElement("li");
-    li.innerHTML = '<span class="mini"></span><span class="pname"></span><span class="icons"></span>';
+    li.innerHTML = `
+      <span class="mini"></span>
+      <span class="pname"><span class="pn"></span><small${p.role === "teacher" ? "" : " hidden"}>المعلّم</small></span>
+      <span class="icons">${p.hand ? icon("hand", "hand") : ""}${p.mic ? icon("mic") : icon("mic-off", "muted-i")}</span>
+      <button class="icon-btn${pin === p.id ? " active" : ""}" type="button" title="${pin === p.id ? "إلغاء التثبيت" : "تثبيت في الوسط"}">${icon("pin")}</button>`;
     li.querySelector(".mini").textContent = initial(p.name);
     li.querySelector(".mini").style.background = colorFor(p.name.replace(" (أنت)", ""));
-    li.querySelector(".pname").textContent = p.name;
-    li.querySelector(".icons").textContent = `${p.hand ? "✋ " : ""}${p.mic ? "🎙️" : "🔇"}`;
+    li.querySelector(".pn").textContent = p.name;
+    li.querySelector("button").addEventListener("click", () => togglePin(p.id));
     list.appendChild(li);
   }
   $("peopleCount").textContent = everyone.length;
@@ -1197,10 +1669,10 @@ function updateRecBanner() {
   const me = !!state.recorder;
   $("recBanner").hidden = !me && others.length === 0;
   $("recText").textContent = me
-    ? "أنت تسجّل هذا الاجتماع"
-    : `يتم تسجيل هذا الاجتماع بواسطة ${others.join("، ")}`;
+    ? "أنت تسجّل هذه الحلقة"
+    : `يتم تسجيل هذه الحلقة بواسطة ${others.join("، ")}`;
   $("recBtn").classList.toggle("recording", me);
-  $("recBtn").title = me ? "إيقاف التسجيل" : "تسجيل الاجتماع";
+  $("recBtn").title = me ? "إيقاف التسجيل" : "تسجيل الحلقة";
 }
 
 function addToRecording(stream) {
@@ -1317,7 +1789,7 @@ function renderUpcoming() {
     const live = m.start - Date.now() < 10 * 60000;
     li.innerHTML = `
       <div class="when"><b></b><span></span></div>
-      <button class="btn btn-primary" data-join>انضمام</button>
+      <button class="btn btn-primary" data-join>دخول</button>
       <button class="icon-btn" data-del aria-label="حذف">🗑️</button>`;
     li.querySelector("b").textContent = m.title;
     li.querySelector("span").textContent = live ? "يبدأ الآن" : formatWhen(m.start);
@@ -1336,7 +1808,7 @@ function toCalDate(ts) {
 }
 
 function inviteText(m) {
-  return `أنت مدعو لاجتماع على حلقتي\n\n${m.title}\n${formatWhen(m.start)} (${m.duration} دقيقة)\n\nرابط الانضمام:\n${linkFor(m.code)}`;
+  return `أنت مدعو لحضور حلقة تحفيظ عبر منصة حلقتي — مدرسة جامع الصحابة\n\n${m.title}\n${formatWhen(m.start)} (${m.duration} دقيقة)\n\nرابط الانضمام:\n${linkFor(m.code)}`;
 }
 
 function icsFile(m) {
@@ -1380,7 +1852,9 @@ function closeSchedule() {
 $("scheduleBtn").addEventListener("click", openSchedule);
 for (const el of document.querySelectorAll("#scheduleModal [data-close]")) el.addEventListener("click", closeSchedule);
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !$("scheduleModal").hidden) closeSchedule();
+  if (e.key !== "Escape") return;
+  if (!$("scheduleModal").hidden) closeSchedule();
+  $("settingsModal").hidden = true;
 });
 
 $("scheduleForm").addEventListener("submit", (e) => {
@@ -1392,7 +1866,7 @@ $("scheduleForm").addEventListener("submit", (e) => {
   }
   const m = {
     code: genCode(),
-    title: $("sTitle").value.trim() || "اجتماع",
+    title: $("sTitle").value.trim() || "حلقة",
     start,
     duration: Number($("sDuration").value),
   };
@@ -1432,6 +1906,13 @@ setInterval(() => {
 }, 60000);
 
 window.addEventListener("beforeunload", () => state.es?.close());
+
+// إن لم يوجد ملف الشعار logo.png نعرض الشعار المرسوم
+for (const img of document.querySelectorAll(".logo-img")) {
+  const fail = () => img.parentElement.classList.add("no-img");
+  if (img.complete && !img.naturalWidth) fail();
+  else img.addEventListener("error", fail);
+}
 
 route();
 </script>

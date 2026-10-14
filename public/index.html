@@ -3,87 +3,189 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>حلقتي — اجتماعات الفيديو</title>
-  <meta name="description" content="حلقتي: اجتماعات فيديو مجانية وآمنة من المتصفح مباشرة.">
+  <title>حلقتي — مدرسة جامع الصحابة</title>
+  <meta name="description" content="حلقتي: حلقات تحفيظ القرآن الكريم عن بُعد — مدرسة جامع الصحابة لتحفيظ القرآن الكريم بحي غبيراء.">
+  <meta name="theme-color" content="#0d4f3c">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
+  <!-- مكتبة الأيقونات -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5 10.5v.5a7 7 0 0 0 14 0v-.5M12 18v3.5"/></symbol>
+      <symbol id="i-mic-off" viewBox="0 0 24 24"><path d="M15 9.5V5.5a3 3 0 0 0-5.7-1.3M9 9v2.5a3 3 0 0 0 4.9 2.3M5 10.5v.5a7 7 0 0 0 11.6 5.3M19 10.5v.5a7 7 0 0 1-.4 2.3M12 18v3.5M3 3l18 18"/></symbol>
+      <symbol id="i-cam" viewBox="0 0 24 24"><rect x="2.5" y="6" width="13.5" height="12" rx="2.5"/><path d="M16 10.5l5.5-3.5v10L16 13.5z"/></symbol>
+      <symbol id="i-cam-off" viewBox="0 0 24 24"><path d="M16 12.5V8.5a2.5 2.5 0 0 0-2.5-2.5H9.5M5 6h-.5A2 2 0 0 0 2.5 8v7.5A2.5 2.5 0 0 0 5 18h8.5a2.5 2.5 0 0 0 2-1M16 10.5l5.5-3.5v10L17 14M3 3l18 18"/></symbol>
+      <symbol id="i-screen" viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8 21h8M12 17v4M9 10.5l3-3 3 3M12 7.5v6"/></symbol>
+      <symbol id="i-hand" viewBox="0 0 24 24"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11M11 10.5V4a1.5 1.5 0 0 1 3 0v6.5M14 10.5V5.5a1.5 1.5 0 0 1 3 0V12M17 11.5V9a1.5 1.5 0 0 1 3 0v5a7.5 7.5 0 0 1-7.5 7.5h-.8a6 6 0 0 1-5-2.7L4 15.2a1.6 1.6 0 0 1 2.6-1.8L8 15"/></symbol>
+      <symbol id="i-rec" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/></symbol>
+      <symbol id="i-smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 14.5s1.5 2 4 2 4-2 4-2M9 9.5h.01M15 9.5h.01"/></symbol>
+      <symbol id="i-end" viewBox="0 0 24 24"><path d="M2.5 13.2c5-4.6 14-4.6 19 0 .5.5.5 1.2 0 1.7l-1.8 1.8c-.4.4-1.1.5-1.6.1l-2-1.5a1.2 1.2 0 0 1-.5-1V12.4a14 14 0 0 0-7.2 0v1.9c0 .4-.2.8-.5 1l-2 1.5c-.5.4-1.2.3-1.6-.1l-1.8-1.8a1.2 1.2 0 0 1 0-1.7z" fill="currentColor" stroke="none"/></symbol>
+      <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4.2 4.2 0 0 0 6 0l3-3a4.2 4.2 0 0 0-6-6l-1 1M14 10a4.2 4.2 0 0 0-6 0l-3 3a4.2 4.2 0 0 0 6 6l1-1"/></symbol>
+      <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.2a6.3 6.3 0 0 1 3.5 5.8"/></symbol>
+      <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20 15.5a2 2 0 0 1-2 2H8l-4.5 3.5V6a2 2 0 0 1 2-2H18a2 2 0 0 1 2 2z"/></symbol>
+      <symbol id="i-send" viewBox="0 0 24 24"><path d="M20.5 12L4 4l3 8-3 8zM7 12h7"/></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+      <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 16.5V22M8.5 3h7l-1 6.5 3.5 4.5v2.5H6V14l3.5-4.5z"/></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12.5" height="12.5" rx="2.5"/><path d="M16 8V5.5A2 2 0 0 0 14 3.5H5.5a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2H8"/></symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4M8 14.5h.01M12 14.5h.01M16 14.5h.01M8 17.5h.01M12 17.5h.01"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></symbol>
+      <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6.5C10.5 5 8 4.5 3.5 4.5v14c4.5 0 7 .5 8.5 2 1.5-1.5 4-2 8.5-2v-14c-4.5 0-7 .5-8.5 2zM12 6.5v14"/></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7.5 3v6c0 4.6-3.2 7.8-7.5 9-4.3-1.2-7.5-4.4-7.5-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></symbol>
+      <symbol id="i-google" viewBox="0 0 24 24"><path d="M20.5 12.2c0-.6-.1-1.2-.2-1.7H12v3.3h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.6-3.9 2.6-6.5zM12 21c2.4 0 4.5-.8 5.9-2.2L15 16.5c-.8.5-1.8.9-3 .9-2.3 0-4.3-1.6-5-3.7H4v2.3A9 9 0 0 0 12 21zM7 13.7a5.4 5.4 0 0 1 0-3.4V8H4a9 9 0 0 0 0 8.1zM12 6.6c1.3 0 2.5.5 3.4 1.3L18 5.4A9 9 0 0 0 4 8l3 2.3c.7-2.1 2.7-3.7 5-3.7z" fill="currentColor" stroke="none"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+      <!-- شعار المدرسة: قوس وزخرفة -->
+      <symbol id="emblem" viewBox="0 0 100 124">
+        <path d="M8 118V50a42 42 0 0 1 84 0v68z" fill="none" stroke="currentColor" stroke-width="3.2"/>
+        <path d="M10 104h80M10 107.5h80M10 111h80M10 114.5h80" stroke="currentColor" stroke-width="1.1" opacity=".75"/>
+        <path d="M50 26c-3 14-9 30-17 38-5 5-12 6-12 2s9-4 16-1c5 2 9 4 13 4s8-2 13-4c7-3 16-3 16 1s-7 3-12-2c-8-8-14-24-17-38z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+        <path d="M50 76c-8-7-21-10-26-5-4 4 0 10 8 10 9 0 20-10 30-12 8-2 14 0 14 5s-6 7-12 6c-6-1-10-3-14-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M50 76c8-7 21-10 26-5 4 4 0 10-8 10-9 0-20-10-30-12-8-2-14 0-14 5s6 7 12 6c6-1 10-3 14-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </symbol>
+    </defs>
+  </svg>
+
   <!-- الصفحة الرئيسية -->
   <section id="home" class="view">
-    <header class="home-top">
-      <div class="brand"><span class="brand-mark"></span>حلقتي</div>
-      <div class="clock" id="homeClock"></div>
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo"><img class="logo-img" src="logo.png" alt=""><svg class="logo-svg"><use href="#emblem"/></svg></span>
+        <span class="brand-text"><b>حلقتي</b><small>مدرسة جامع الصحابة</small></span>
+      </div>
+      <div class="topbar-side">
+        <span class="clock" id="homeClock"></span>
+      </div>
     </header>
-    <div class="home-main">
+
+    <main class="home-main">
       <div class="home-text">
-        <h1>اجتماعات فيديو للجميع، <em>بلا تعقيد</em></h1>
-        <p class="muted">أنشئ اجتماعاً في ثانية وشارك الرابط مع فريقك. صوت وصورة ومشاركة شاشة ودردشة — من المتصفح مباشرة دون تثبيت أي شيء.</p>
+        <p class="ayah">﴿ وَرَتِّلِ الْقُرْآنَ تَرْتِيلًا ﴾</p>
+        <h1>حلقات تحفيظ القرآن الكريم <em>عن بُعد</em></h1>
+        <p class="lead">مكان واحد يجمع المعلّم بطلابه بالصوت والصورة: تسميع ومراجعة وتصحيح تلاوة، من الجوال أو الكمبيوتر بدون تثبيت أي برنامج.</p>
         <div class="home-actions">
-          <button class="btn btn-primary" id="newMeetingBtn">🎥 اجتماع جديد</button>
-          <button class="btn" id="scheduleBtn">📅 جدولة اجتماع</button>
-          <form class="join-form" id="joinForm">
-            <input id="joinCode" placeholder="أدخل رمز الاجتماع أو الرابط" autocomplete="off">
-            <button class="btn btn-text" type="submit">انضمام</button>
-          </form>
+          <button class="btn btn-primary btn-lg" id="newMeetingBtn"><svg class="i"><use href="#i-plus"/></svg>حلقة جديدة</button>
+          <button class="btn btn-lg" id="scheduleBtn"><svg class="i"><use href="#i-calendar"/></svg>جدولة حلقة</button>
         </div>
+        <form class="join-form" id="joinForm">
+          <label for="joinCode" class="sr-only">رمز الحلقة</label>
+          <input id="joinCode" placeholder="لديك رمز حلقة؟ اكتبه هنا" autocomplete="off" dir="auto">
+          <button class="btn btn-ghost" type="submit">دخول</button>
+        </form>
         <p class="error" id="homeError" role="alert"></p>
+
         <div class="upcoming" id="upcoming" hidden>
-          <h3>اجتماعاتك القادمة</h3>
+          <h3><svg class="i"><use href="#i-calendar"/></svg>حلقاتك القادمة</h3>
           <ul id="upcomingList"></ul>
         </div>
       </div>
-      <div class="home-art" aria-hidden="true">
-        <div class="ring"><span></span><span></span><span></span><span></span><span></span></div>
+
+      <div class="home-art">
+        <figure class="emblem-card">
+          <span class="logo logo-xl"><img class="logo-img" src="logo.png" alt="شعار مدرسة جامع الصحابة"><svg class="logo-svg"><use href="#emblem"/></svg></span>
+          <figcaption>
+            <b>مدرسة جامع الصحابة</b>
+            <span>لتحفيظ القرآن الكريم بحي غبيراء</span>
+            <small>تأسست عام ١٤٢٦هـ</small>
+          </figcaption>
+        </figure>
       </div>
-    </div>
+    </main>
+
+    <section class="features" aria-label="المزايا">
+      <div class="feature">
+        <span class="f-icon"><svg class="i"><use href="#i-book"/></svg></span>
+        <h3>تسميع مباشر</h3>
+        <p>صوت واضح وصورة، مع تثبيت المعلّم في وسط الشاشة.</p>
+      </div>
+      <div class="feature">
+        <span class="f-icon"><svg class="i"><use href="#i-hand"/></svg></span>
+        <h3>رفع اليد</h3>
+        <p>الطالب يرفع يده عند جاهزيته للتسميع، فيعرف المعلّم الدور.</p>
+      </div>
+      <div class="feature">
+        <span class="f-icon"><svg class="i"><use href="#i-calendar"/></svg></span>
+        <h3>مواعيد الحلقات</h3>
+        <p>جدولة الحلقة وإرسال الدعوة وإضافتها للتقويم بضغطة.</p>
+      </div>
+      <div class="feature">
+        <span class="f-icon"><svg class="i"><use href="#i-rec"/></svg></span>
+        <h3>تسجيل الحلقة</h3>
+        <p>يحفظ التسجيل على جهاز المعلّم للمراجعة لاحقاً.</p>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <span>مدرسة جامع الصحابة لتحفيظ القرآن الكريم — حي غبيراء</span>
+      <span>حلقتي</span>
+    </footer>
   </section>
 
   <!-- شاشة ما قبل الدخول -->
   <section id="lobby" class="view" hidden>
+    <header class="topbar">
+      <button class="btn btn-ghost" id="backHomeBtn"><svg class="i flip"><use href="#i-arrow"/></svg>الرئيسية</button>
+      <div class="brand brand-sm">
+        <span class="logo"><img class="logo-img" src="logo.png" alt=""><svg class="logo-svg"><use href="#emblem"/></svg></span>
+        <span class="brand-text"><b>حلقتي</b></span>
+      </div>
+    </header>
     <div class="lobby">
-      <div class="preview">
-        <video id="previewVideo" autoplay playsinline muted></video>
-        <div class="preview-off" id="previewOff">الكاميرا متوقفة</div>
-        <div class="preview-controls">
-          <button class="ctrl" id="lobbyMic" aria-label="الميكروفون">🎙️</button>
-          <button class="ctrl" id="lobbyCam" aria-label="الكاميرا">📷</button>
+      <div class="preview-wrap">
+        <div class="preview">
+          <video id="previewVideo" autoplay playsinline muted></video>
+          <div class="preview-off" id="previewOff"><svg class="i"><use href="#i-cam-off"/></svg><span>الكاميرا متوقفة</span></div>
+          <div class="mic-meter" aria-hidden="true"><span id="micLevel"></span></div>
+          <div class="preview-controls">
+            <button class="ctrl" id="lobbyMic" aria-label="الميكروفون"><svg class="i on-i"><use href="#i-mic"/></svg><svg class="i off-i"><use href="#i-mic-off"/></svg></button>
+            <button class="ctrl" id="lobbyCam" aria-label="الكاميرا"><svg class="i on-i"><use href="#i-cam"/></svg><svg class="i off-i"><use href="#i-cam-off"/></svg></button>
+          </div>
+        </div>
+        <div class="devices">
+          <label><svg class="i"><use href="#i-mic"/></svg><select class="dev-select" data-kind="audioinput" aria-label="الميكروفون"></select></label>
+          <label><svg class="i"><use href="#i-cam"/></svg><select class="dev-select" data-kind="videoinput" aria-label="الكاميرا"></select></label>
         </div>
       </div>
       <div class="lobby-side">
-        <h2>جاهز للانضمام؟</h2>
-        <p class="muted">رمز الاجتماع: <b id="lobbyCode" dir="ltr"></b></p>
-        <input id="nameInput" placeholder="ما اسمك؟" maxlength="40" autocomplete="name">
-        <button class="btn btn-primary btn-block" id="joinNowBtn">انضم الآن</button>
-        <button class="btn btn-text" id="backHomeBtn">العودة للرئيسية</button>
+        <h2>جاهز لدخول الحلقة؟</h2>
+        <button class="code-chip" id="lobbyCopy" title="نسخ رابط الحلقة"><span id="lobbyCode" dir="ltr"></span><svg class="i"><use href="#i-copy"/></svg></button>
+        <label for="nameInput" class="field-label">اسمك</label>
+        <input id="nameInput" placeholder="اكتب اسمك كما يعرفك المعلّم" maxlength="40" autocomplete="name">
+        <fieldset class="roles">
+          <legend class="field-label">أنا</legend>
+          <label class="role"><input type="radio" name="role" value="student" checked><span>طالب</span></label>
+          <label class="role"><input type="radio" name="role" value="teacher"><span>معلّم</span></label>
+        </fieldset>
+        <button class="btn btn-primary btn-lg btn-block" id="joinNowBtn">دخول الحلقة</button>
         <p class="error" id="lobbyError" role="alert"></p>
       </div>
     </div>
   </section>
 
-  <!-- غرفة الاجتماع -->
+  <!-- غرفة الحلقة -->
   <section id="room" class="view room" hidden>
-    <div class="rec-banner" id="recBanner" hidden>🔴 <span id="recText">يتم تسجيل هذا الاجتماع</span></div>
+    <div class="rec-banner" id="recBanner" hidden><span class="rec-dot"></span><span id="recText">يتم تسجيل هذه الحلقة</span></div>
     <div class="stage">
       <div class="grid" id="grid"></div>
       <aside class="panel" id="panel" hidden>
         <div class="panel-head">
-          <div class="panel-tabs">
-            <button class="panel-tab active" data-tab="chat">الدردشة</button>
-            <button class="panel-tab" data-tab="people">المشاركون (<span id="peopleCount">1</span>)</button>
+          <div class="panel-tabs" role="tablist">
+            <button class="panel-tab active" data-tab="chat" role="tab">الدردشة</button>
+            <button class="panel-tab" data-tab="people" role="tab">الحضور (<span id="peopleCount">1</span>)</button>
           </div>
-          <button class="icon-btn" id="closePanel" aria-label="إغلاق">✕</button>
+          <button class="icon-btn" id="closePanel" aria-label="إغلاق"><svg class="i"><use href="#i-close"/></svg></button>
         </div>
         <div class="panel-body" data-pane="chat">
-          <div class="messages" id="messages">
-            <p class="muted small center">الرسائل تظهر فقط للموجودين في الاجتماع</p>
-          </div>
+          <div class="messages" id="messages"></div>
           <form class="chat-form" id="chatForm">
-            <input id="chatInput" placeholder="اكتب رسالة..." autocomplete="off" maxlength="500">
-            <button class="icon-btn" type="submit" aria-label="إرسال">➤</button>
+            <input id="chatInput" placeholder="اكتب رسالة للحلقة…" autocomplete="off" maxlength="500">
+            <button class="send-btn" type="submit" aria-label="إرسال"><svg class="i flip"><use href="#i-send"/></svg></button>
           </form>
         </div>
         <div class="panel-body" data-pane="people" hidden>
@@ -94,28 +196,30 @@
 
     <footer class="bar">
       <div class="bar-info">
+        <span class="logo logo-sm"><img class="logo-img" src="logo.png" alt=""><svg class="logo-svg"><use href="#emblem"/></svg></span>
         <span id="roomClock"></span>
-        <span class="sep">|</span>
+        <span class="sep"></span>
         <span id="roomCode" dir="ltr"></span>
       </div>
       <div class="bar-controls">
-        <button class="ctrl" id="micBtn" title="الميكروفون (Ctrl+D)">🎙️</button>
-        <button class="ctrl" id="camBtn" title="الكاميرا (Ctrl+E)">📷</button>
-        <button class="ctrl" id="shareBtn" title="مشاركة الشاشة">🖥️</button>
-        <button class="ctrl" id="handBtn" title="رفع اليد">✋</button>
-        <button class="ctrl" id="recBtn" title="تسجيل الاجتماع">⏺️</button>
+        <button class="ctrl" id="micBtn" title="الميكروفون (Ctrl+D)"><svg class="i on-i"><use href="#i-mic"/></svg><svg class="i off-i"><use href="#i-mic-off"/></svg></button>
+        <button class="ctrl" id="camBtn" title="الكاميرا (Ctrl+E)"><svg class="i on-i"><use href="#i-cam"/></svg><svg class="i off-i"><use href="#i-cam-off"/></svg></button>
+        <button class="ctrl" id="handBtn" title="رفع اليد"><svg class="i"><use href="#i-hand"/></svg></button>
+        <button class="ctrl hide-sm" id="shareBtn" title="مشاركة الشاشة"><svg class="i"><use href="#i-screen"/></svg></button>
+        <button class="ctrl hide-sm" id="recBtn" title="تسجيل الحلقة"><svg class="i"><use href="#i-rec"/></svg></button>
         <div class="reactions-wrap">
-          <button class="ctrl" id="reactBtn" title="تفاعل">😊</button>
+          <button class="ctrl" id="reactBtn" title="تفاعل"><svg class="i"><use href="#i-smile"/></svg></button>
           <div class="reactions" id="reactions" hidden>
-            <button>👍</button><button>👏</button><button>😂</button><button>❤️</button><button>🎉</button><button>😮</button>
+            <button>👍</button><button>👏</button><button>🤲</button><button>❤️</button><button>🌟</button><button>✅</button>
           </div>
         </div>
-        <button class="ctrl ctrl-danger" id="leaveBtn" title="مغادرة الاجتماع">📞</button>
+        <button class="ctrl ctrl-danger" id="leaveBtn" title="مغادرة الحلقة"><svg class="i"><use href="#i-end"/></svg></button>
       </div>
       <div class="bar-side">
-        <button class="ctrl ctrl-flat" id="copyBtn" title="نسخ رابط الاجتماع">🔗</button>
-        <button class="ctrl ctrl-flat" id="peopleBtn" title="المشاركون">👥</button>
-        <button class="ctrl ctrl-flat" id="chatBtn" title="الدردشة">💬<span class="dot" id="chatDot" hidden></span></button>
+        <button class="ctrl ctrl-flat" id="settingsBtn" title="الأجهزة"><svg class="i"><use href="#i-sliders"/></svg></button>
+        <button class="ctrl ctrl-flat" id="copyBtn" title="نسخ رابط الحلقة"><svg class="i"><use href="#i-link"/></svg></button>
+        <button class="ctrl ctrl-flat" id="peopleBtn" title="الحضور"><svg class="i"><use href="#i-users"/></svg></button>
+        <button class="ctrl ctrl-flat" id="chatBtn" title="الدردشة"><svg class="i"><use href="#i-chat"/></svg><span class="dot" id="chatDot" hidden></span></button>
       </div>
     </footer>
   </section>
@@ -123,54 +227,72 @@
   <!-- بعد المغادرة -->
   <section id="left" class="view" hidden>
     <div class="left-box">
-      <h2>غادرت الاجتماع</h2>
+      <span class="logo logo-lg"><img class="logo-img" src="logo.png" alt=""><svg class="logo-svg"><use href="#emblem"/></svg></span>
+      <h2>انتهت مشاركتك في الحلقة</h2>
+      <p class="lead" id="leftSummary"></p>
+      <p class="dua">بارك الله فيكم ونفع بكم</p>
       <div class="home-actions center">
-        <button class="btn" id="rejoinBtn">إعادة الانضمام</button>
-        <button class="btn btn-primary" id="goHomeBtn">العودة للرئيسية</button>
+        <button class="btn btn-lg" id="rejoinBtn">العودة للحلقة</button>
+        <button class="btn btn-primary btn-lg" id="goHomeBtn">الصفحة الرئيسية</button>
       </div>
     </div>
   </section>
 
-  <!-- نافذة جدولة الاجتماع -->
+  <!-- نافذة جدولة الحلقة -->
   <div class="modal" id="scheduleModal" hidden>
     <div class="modal-backdrop" data-close></div>
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="scheduleTitle">
-      <button class="icon-btn modal-close" data-close aria-label="إغلاق">✕</button>
+      <button class="icon-btn modal-close" data-close aria-label="إغلاق"><svg class="i"><use href="#i-close"/></svg></button>
       <form id="scheduleForm">
-        <h2 id="scheduleTitle">جدولة اجتماع</h2>
-        <label for="sTitle">عنوان الاجتماع</label>
-        <input id="sTitle" required maxlength="80" placeholder="مثال: اجتماع الفريق الأسبوعي">
+        <h2 id="scheduleTitle">جدولة حلقة</h2>
+        <label for="sTitle" class="field-label">اسم الحلقة</label>
+        <input id="sTitle" required maxlength="80" placeholder="مثال: حلقة جزء عمّ — بعد العصر">
         <div class="row-2">
           <div>
-            <label for="sStart">الموعد</label>
+            <label for="sStart" class="field-label">الموعد</label>
             <input id="sStart" type="datetime-local" required>
           </div>
           <div>
-            <label for="sDuration">المدة</label>
+            <label for="sDuration" class="field-label">المدة</label>
             <select id="sDuration">
               <option value="15">15 دقيقة</option>
-              <option value="30" selected>30 دقيقة</option>
+              <option value="30">30 دقيقة</option>
               <option value="45">45 دقيقة</option>
-              <option value="60">ساعة</option>
+              <option value="60" selected>ساعة</option>
               <option value="90">ساعة ونصف</option>
               <option value="120">ساعتان</option>
             </select>
           </div>
         </div>
         <p class="error" id="scheduleError" role="alert"></p>
-        <button class="btn btn-primary btn-block" type="submit">إنشاء الاجتماع</button>
+        <button class="btn btn-primary btn-lg btn-block" type="submit">إنشاء الحلقة</button>
       </form>
       <div id="scheduleResult" hidden>
-        <h2>✅ تمت جدولة الاجتماع</h2>
-        <p class="muted" id="sSummary"></p>
+        <div class="success-mark"><svg class="i"><use href="#i-check"/></svg></div>
+        <h2 class="center">تمت جدولة الحلقة</h2>
+        <p class="muted center" id="sSummary"></p>
         <div class="link-box"><code id="sLink" dir="ltr"></code></div>
         <div class="result-actions">
-          <button class="btn" id="sCopy">📋 نسخ الدعوة</button>
-          <a class="btn" id="sGoogle" target="_blank" rel="noopener">📅 تقويم Google</a>
-          <button class="btn" id="sIcs">⬇️ ملف تقويم (ics)</button>
+          <button class="btn" id="sCopy"><svg class="i"><use href="#i-copy"/></svg>نسخ الدعوة</button>
+          <a class="btn" id="sGoogle" target="_blank" rel="noopener"><svg class="i"><use href="#i-google"/></svg>تقويم Google</a>
+          <button class="btn" id="sIcs"><svg class="i"><use href="#i-download"/></svg>ملف تقويم</button>
         </div>
-        <button class="btn btn-primary btn-block" data-close>تم</button>
+        <button class="btn btn-primary btn-lg btn-block" data-close>تم</button>
       </div>
+    </div>
+  </div>
+
+  <!-- نافذة اختيار الأجهزة داخل الحلقة -->
+  <div class="modal" id="settingsModal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <button class="icon-btn modal-close" data-close aria-label="إغلاق"><svg class="i"><use href="#i-close"/></svg></button>
+      <h2 id="settingsTitle">الأجهزة</h2>
+      <div class="devices devices-stack">
+        <label><span class="field-label">الميكروفون</span><select class="dev-select" data-kind="audioinput"></select></label>
+        <label><span class="field-label">الكاميرا</span><select class="dev-select" data-kind="videoinput"></select></label>
+      </div>
+      <button class="btn btn-primary btn-lg btn-block" data-close>تم</button>
     </div>
   </div>
 
