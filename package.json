@@ -1,0 +1,14 @@
+{
+  "name": "halaqati",
+  "version": "1.0.0",
+  "description": "حلقتي — منصة اجتماعات فيديو عن بعد عبر المتصفح",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}

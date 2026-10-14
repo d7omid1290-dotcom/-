@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>حلقتي — اجتماعات الفيديو</title>
+  <meta name="description" content="حلقتي: اجتماعات فيديو مجانية وآمنة من المتصفح مباشرة.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <!-- الصفحة الرئيسية -->
+  <section id="home" class="view">
+    <header class="home-top">
+      <div class="brand"><span class="brand-mark"></span>حلقتي</div>
+      <div class="clock" id="homeClock"></div>
+    </header>
+    <div class="home-main">
+      <div class="home-text">
+        <h1>اجتماعات فيديو للجميع، <em>بلا تعقيد</em></h1>
+        <p class="muted">أنشئ اجتماعاً في ثانية وشارك الرابط مع فريقك. صوت وصورة ومشاركة شاشة ودردشة — من المتصفح مباشرة دون تثبيت أي شيء.</p>
+        <div class="home-actions">
+          <button class="btn btn-primary" id="newMeetingBtn">🎥 اجتماع جديد</button>
+          <form class="join-form" id="joinForm">
+            <input id="joinCode" placeholder="أدخل رمز الاجتماع أو الرابط" autocomplete="off">
+            <button class="btn btn-text" type="submit">انضمام</button>
+          </form>
+        </div>
+        <p class="error" id="homeError" role="alert"></p>
+      </div>
+      <div class="home-art" aria-hidden="true">
+        <div class="ring"><span></span><span></span><span></span><span></span><span></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- شاشة ما قبل الدخول -->
+  <section id="lobby" class="view" hidden>
+    <div class="lobby">
+      <div class="preview">
+        <video id="previewVideo" autoplay playsinline muted></video>
+        <div class="preview-off" id="previewOff">الكاميرا متوقفة</div>
+        <div class="preview-controls">
+          <button class="ctrl" id="lobbyMic" aria-label="الميكروفون">🎙️</button>
+          <button class="ctrl" id="lobbyCam" aria-label="الكاميرا">📷</button>
+        </div>
+      </div>
+      <div class="lobby-side">
+        <h2>جاهز للانضمام؟</h2>
+        <p class="muted">رمز الاجتماع: <b id="lobbyCode" dir="ltr"></b></p>
+        <input id="nameInput" placeholder="ما اسمك؟" maxlength="40" autocomplete="name">
+        <button class="btn btn-primary btn-block" id="joinNowBtn">انضم الآن</button>
+        <button class="btn btn-text" id="backHomeBtn">العودة للرئيسية</button>
+        <p class="error" id="lobbyError" role="alert"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- غرفة الاجتماع -->
+  <section id="room" class="view room" hidden>
+    <div class="stage">
+      <div class="grid" id="grid"></div>
+      <aside class="panel" id="panel" hidden>
+        <div class="panel-head">
+          <div class="panel-tabs">
+            <button class="panel-tab active" data-tab="chat">الدردشة</button>
+            <button class="panel-tab" data-tab="people">المشاركون (<span id="peopleCount">1</span>)</button>
+          </div>
+          <button class="icon-btn" id="closePanel" aria-label="إغلاق">✕</button>
+        </div>
+        <div class="panel-body" data-pane="chat">
+          <div class="messages" id="messages">
+            <p class="muted small center">الرسائل تظهر فقط للموجودين في الاجتماع</p>
+          </div>
+          <form class="chat-form" id="chatForm">
+            <input id="chatInput" placeholder="اكتب رسالة..." autocomplete="off" maxlength="500">
+            <button class="icon-btn" type="submit" aria-label="إرسال">➤</button>
+          </form>
+        </div>
+        <div class="panel-body" data-pane="people" hidden>
+          <ul class="people" id="people"></ul>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="bar">
+      <div class="bar-info">
+        <span id="roomClock"></span>
+        <span class="sep">|</span>
+        <span id="roomCode" dir="ltr"></span>
+      </div>
+      <div class="bar-controls">
+        <button class="ctrl" id="micBtn" title="الميكروفون (Ctrl+D)">🎙️</button>
+        <button class="ctrl" id="camBtn" title="الكاميرا (Ctrl+E)">📷</button>
+        <button class="ctrl" id="shareBtn" title="مشاركة الشاشة">🖥️</button>
+        <button class="ctrl" id="handBtn" title="رفع اليد">✋</button>
+        <div class="reactions-wrap">
+          <button class="ctrl" id="reactBtn" title="تفاعل">😊</button>
+          <div class="reactions" id="reactions" hidden>
+            <button>👍</button><button>👏</button><button>😂</button><button>❤️</button><button>🎉</button><button>😮</button>
+          </div>
+        </div>
+        <button class="ctrl ctrl-danger" id="leaveBtn" title="مغادرة الاجتماع">📞</button>
+      </div>
+      <div class="bar-side">
+        <button class="ctrl ctrl-flat" id="copyBtn" title="نسخ رابط الاجتماع">🔗</button>
+        <button class="ctrl ctrl-flat" id="peopleBtn" title="المشاركون">👥</button>
+        <button class="ctrl ctrl-flat" id="chatBtn" title="الدردشة">💬<span class="dot" id="chatDot" hidden></span></button>
+      </div>
+    </footer>
+  </section>
+
+  <!-- بعد المغادرة -->
+  <section id="left" class="view" hidden>
+    <div class="left-box">
+      <h2>غادرت الاجتماع</h2>
+      <div class="home-actions center">
+        <button class="btn" id="rejoinBtn">إعادة الانضمام</button>
+        <button class="btn btn-primary" id="goHomeBtn">العودة للرئيسية</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
