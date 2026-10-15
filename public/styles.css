@@ -1017,3 +1017,88 @@ input[type="time"], input[type="date"] { color-scheme: dark; }
   .corner-logo { height: 40px; }
   .room-logo { height: 38px; top: 14px; inset-inline-end: 14px; }
 }
+
+/* ===================================================== */
+/* ===== الوضع النهاري ===== */
+/* ===================================================== */
+.theme-btn { color: var(--muted); }
+.theme-btn:hover { color: var(--text); }
+.theme-btn .sun { display: none; }
+:root[data-theme="light"] .theme-btn .sun { display: block; }
+:root[data-theme="light"] .theme-btn .moon { display: none; }
+
+:root[data-theme="light"] {
+  --bg: #f6f7fb;
+  --bg-2: #ffffff;
+  --glass: rgba(255, 255, 255, .72);
+  --glass-2: rgba(255, 255, 255, .95);
+  --glass-border: rgba(15, 23, 42, .1);
+  --text: #0f172a;
+  --muted: #526077;
+  --faint: #8792a8;
+  --blue: #4c6ef5;
+  --violet: #7c3aed;
+  --teal: #0d9488;
+  --grad: linear-gradient(135deg, #4c6ef5, #7c3aed);
+  --grad-text: linear-gradient(100deg, #3b5bdb 0%, #7c3aed 50%, #0d9488 100%);
+  color-scheme: light;
+}
+/* غرفة الحلقة والاحتفال يبقيان داكنين في الوضعين (أفضل للفيديو) */
+:root[data-theme="light"] :is(.room, .celebrate) {
+  --bg: #070b1a; --bg-2: #0c1229;
+  --glass: rgba(255, 255, 255, .055); --glass-2: rgba(255, 255, 255, .09); --glass-border: rgba(255, 255, 255, .12);
+  --text: #eef1ff; --muted: #9aa3c7; --faint: #6b7399;
+  --blue: #5b8cff; --violet: #8b5cf6; --teal: #2dd4bf;
+  --grad: linear-gradient(135deg, #5b8cff, #8b5cf6);
+  --grad-text: linear-gradient(100deg, #7aa2ff 0%, #a78bfa 45%, #2dd4bf 100%);
+  color-scheme: dark; color: var(--text);
+}
+:root[data-theme="light"] .room { background: #070b1a; }
+:root[data-theme="light"] body::before { background: radial-gradient(circle, rgba(76, 110, 245, .18), transparent 65%); }
+:root[data-theme="light"] body::after { background: radial-gradient(circle, rgba(124, 58, 237, .14), transparent 65%); }
+
+/* النصوص والروابط */
+:root[data-theme="light"] :is(.btn-text, .btn-ghost, .link-btn) { color: #3b5bdb; }
+:root[data-theme="light"] .link-btn:hover { color: #2b44b0; }
+:root[data-theme="light"] .eyebrow { color: #3b5bdb; background: #fff; }
+:root[data-theme="light"] :is(.link-box, .slug-preview) { color: #3b5bdb; }
+:root[data-theme="light"] .btn-danger { color: #be123c; }
+:root[data-theme="light"] .teacher-card .show-badge { color: #3b5bdb; background: rgba(76, 110, 245, .12); }
+:root[data-theme="light"] .student-card .show-badge { color: #b45309; background: rgba(245, 158, 11, .14); }
+:root[data-theme="light"] .left-stars b { color: #b45309; }
+:root[data-theme="light"] .ayah-card figcaption { color: #b45309; }
+
+/* الحقول والبطاقات */
+:root[data-theme="light"] :where(#home, #lobby, #left, .modal) :is(input, select) { background: #fff; }
+:root[data-theme="light"] .join-form { background: #fff; }
+:root[data-theme="light"] .join-form input { background: transparent; }
+:root[data-theme="light"] .join-go:disabled { background: rgba(15, 23, 42, .08); color: var(--muted); }
+:root[data-theme="light"] :is(.perks li, .devices label, .code-chip, .day span) { background: #fff; }
+:root[data-theme="light"] :is(.roles, .stepper, .link-box) { background: rgba(15, 23, 42, .05); }
+:root[data-theme="light"] .stepper button { background: #fff; box-shadow: 0 1px 2px rgba(15, 23, 42, .1); }
+:root[data-theme="light"] .role span { color: var(--muted); }
+:root[data-theme="light"] :is(.bo-chip, .bo-n) { background: rgba(15, 23, 42, .06); }
+:root[data-theme="light"] .bo-room-head input { background: rgba(255, 255, 255, .8); }
+:root[data-theme="light"] :is(.lobby-side, .show-card, .upcoming) { background: rgba(255, 255, 255, .8); box-shadow: 0 1px 3px rgba(15, 23, 42, .06), 0 12px 32px rgba(15, 23, 42, .06); }
+:root[data-theme="light"] .upcoming li { border-top-color: rgba(15, 23, 42, .07); }
+:root[data-theme="light"] .site-footer { border-top-color: rgba(15, 23, 42, .08); }
+:root[data-theme="light"] .sc-icon { background: #fff; }
+
+/* المدار والبطاقات العائمة */
+:root[data-theme="light"] .ring { border-color: rgba(15, 23, 42, .08); }
+:root[data-theme="light"] .ring.r1 { border-color: rgba(76, 110, 245, .25); }
+:root[data-theme="light"] .ring.r3 { border-color: rgba(124, 58, 237, .2); box-shadow: 0 0 80px rgba(124, 58, 237, .12); }
+:root[data-theme="light"] .core { background: radial-gradient(circle at 30% 25%, #fff, #eef1fb); box-shadow: 0 12px 40px rgba(15, 23, 42, .1); }
+:root[data-theme="light"] .float-card { background: rgba(255, 255, 255, .92); box-shadow: 0 16px 40px rgba(15, 23, 42, .12); }
+:root[data-theme="light"] .op i { border-color: #fff; }
+
+/* النوافذ */
+:root[data-theme="light"] .modal-backdrop { background: rgba(15, 23, 42, .35); }
+:root[data-theme="light"] .modal-card { background: #fff; box-shadow: 0 30px 80px rgba(15, 23, 42, .25); }
+:root[data-theme="light"] .toast { background: #0f172a; color: #fff; }
+
+/* الشعار: أسود كما هو، وتختفي خلفيته البيضاء */
+:root[data-theme="light"] .corner-logo { filter: none; mix-blend-mode: multiply; }
+/* الخيارات المحددة تبقى متدرجة وواضحة في الوضع النهاري */
+:root[data-theme="light"] .day input:checked + span { background: var(--grad); color: #fff; border-color: transparent; }
+:root[data-theme="light"] .role input:checked + span { color: #fff; }
