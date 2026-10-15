@@ -82,6 +82,19 @@ function broadcastFamily(main, event, data) {
   for (const room of familyRooms(main)) broadcast(room, event, data);
 }
 
+// من في كل غرفة من غرف الحلقة الآن — ليرى المعلّم والطلاب أماكن الجميع
+function presenceOf(main) {
+  const out = {};
+  for (const [id, room] of rooms.entries()) {
+    if (mainOf(id) !== main) continue;
+    out[id === main ? "main" : id.slice(main.length + 1)] = [...room.values()].map((p) => ({ cid: p.cid, name: p.name, role: p.role }));
+  }
+  return out;
+}
+function sendPresence(main) {
+  broadcastFamily(main, "presence", presenceOf(main));
+}
+
 // إرسال حدث لمشارك: عبر قناة SSE، أو يُحفظ في طابوره إن كان يتصل بالاستطلاع (polling)
 function send(peer, event, data) {
   peer.push(event, JSON.stringify(data));
@@ -126,6 +139,7 @@ function addPeer(roomId, url, push) {
   controlsOf(main).seen.add(cid);
   send(peer, "welcome", { id, role, peers, breakout: breakouts.get(main) || null, controls: publicControls(main) });
   broadcast(room, "peer-joined", { id, cid, name, role }, id);
+  sendPresence(main);
   return peer;
 }
 
@@ -136,6 +150,7 @@ function removePeer(roomId, id) {
   if (room.size === 0) rooms.delete(roomId);
   // إذا فرغت الحلقة كلها نحذف حالة غرفها
   const main = mainOf(roomId);
+  sendPresence(main);
   if (familyRooms(main).length === 0) {
     breakouts.delete(main);
     admins.delete(main);
@@ -314,6 +329,23 @@ function handleBreakout(req, res, roomId) {
         breakouts.set(main, next);
         broadcastFamily(main, "breakout", next);
       }
+    } else if (msg.action === "assign") {
+      // نقل طالب إلى غرفة أخرى (أو للرئيسية إن لم تُحدَّد غرفة) والغرف مفتوحة
+      const state = breakouts.get(main);
+      if (!state) return json(res, 404, { error: "not_open" });
+      const cid = String(msg.cid || "").slice(0, 64);
+      const to = msg.room ? String(msg.room) : null;
+      if (!cid) return json(res, 400, { error: "bad_cid" });
+      if (to && !state.rooms.some((r) => r.id === to)) return json(res, 404, { error: "no_room" });
+      const name = cleanName(msg.name);
+      const rooms = state.rooms.map((r) => {
+        const keep = r.members.map((c, i) => [c, r.names[i]]).filter(([c]) => c !== cid);
+        if (r.id === to) keep.push([cid, name]);
+        return { ...r, members: keep.map(([c]) => c), names: keep.map(([, n]) => n) };
+      });
+      const next = { open: true, rooms };
+      breakouts.set(main, next);
+      broadcastFamily(main, "breakout", next);
     } else if (msg.action === "announce") {
       const text = String(msg.text || "").trim().slice(0, 200);
       if (!text) return json(res, 400, { error: "empty" });
@@ -343,6 +375,7 @@ function handlePromote(req, res, roomId) {
       for (const peer of room.values()) if (peer.cid === cid && peer.role !== "teacher") peer.role = role;
     }
     broadcastFamily(main, "role", { cid, role });
+    sendPresence(main);
     json(res, 200, { ok: true, role });
   });
 }

@@ -248,6 +248,16 @@
     </div>
     <div class="recite-banner" id="reciteBanner" hidden><svg class="i"><use href="#i-book"/></svg><span id="reciteText"></span></div>
     <div class="rec-banner" id="recBanner" hidden><span class="rec-dot"></span><span id="recText">يتم تسجيل هذه الحلقة</span></div>
+    <header class="room-head">
+      <div class="bar-info">
+        <span id="roomClock"></span>
+        <span class="sep"></span>
+        <span id="roomCode" dir="ltr"></span>
+        <span class="lock-badge" id="lockBadge" hidden><svg class="i"><use href="#i-lock"/></svg>مقفلة</span>
+        <span class="elapsed" id="roomElapsed"></span>
+      </div>
+      <button class="people-pill" id="peopleBtn" type="button" title="الحضور وإدارة الأعضاء"><svg class="i"><use href="#i-users"/></svg><span>الحضور</span><b id="peoplePill">1</b><span class="count-badge" id="handCount" hidden>0</span></button>
+    </header>
     <div class="stage">
       <div class="grid" id="grid"></div>
       <div class="grade-card" id="gradeCard" hidden>
@@ -303,34 +313,30 @@
       </aside>
     </div>
 
+    <div class="rooms-strip" id="roomsStrip" hidden></div>
     <footer class="bar">
-      <div class="bar-info">
-        <span id="roomClock"></span>
-        <span class="sep"></span>
-        <span id="roomCode" dir="ltr"></span>
-        <span class="lock-badge" id="lockBadge" hidden><svg class="i"><use href="#i-lock"/></svg>مقفلة</span>
-        <span class="elapsed" id="roomElapsed"></span>
-      </div>
       <div class="bar-controls">
         <button class="ctrl" id="micBtn" title="الميكروفون (Ctrl+D)"><svg class="i on-i"><use href="#i-mic"/></svg><svg class="i off-i"><use href="#i-mic-off"/></svg></button>
         <button class="ctrl" id="camBtn" title="الكاميرا (Ctrl+E)"><svg class="i on-i"><use href="#i-cam"/></svg><svg class="i off-i"><use href="#i-cam-off"/></svg></button>
         <button class="ctrl" id="handBtn" title="رفع اليد"><svg class="i"><use href="#i-hand"/></svg></button>
-        <button class="ctrl hide-sm" id="shareBtn" title="مشاركة الشاشة"><svg class="i"><use href="#i-screen"/></svg></button>
-        <button class="ctrl" id="recBtn" title="تسجيل الحلقة"><svg class="i"><use href="#i-rec"/></svg></button>
         <div class="reactions-wrap">
           <button class="ctrl" id="reactBtn" title="تفاعل"><svg class="i"><use href="#i-smile"/></svg></button>
           <div class="reactions" id="reactions" hidden>
             <button>👍</button><button>👏</button><button>🤲</button><button>❤️</button><button>🌟</button><button>✅</button>
           </div>
         </div>
+        <button class="ctrl" id="chatBtn" title="الدردشة"><svg class="i"><use href="#i-chat"/></svg><span class="dot" id="chatDot" hidden></span></button>
+        <div class="more-wrap">
+          <button class="ctrl" id="moreBtn" title="المزيد" aria-haspopup="menu" aria-expanded="false"><svg class="i"><use href="#i-more"/></svg><span class="dot rec-dot-mini" id="moreDot" hidden></span></button>
+          <div class="more-menu" id="moreMenu" role="menu" hidden>
+            <button class="mi" id="breakoutBtn" type="button" role="menuitem" hidden><svg class="i"><use href="#i-rooms"/></svg><span>غرف الحلقة</span></button>
+            <button class="mi" id="recBtn" type="button" role="menuitem" hidden><svg class="i"><use href="#i-rec"/></svg><span id="recLabel">تسجيل الحلقة</span></button>
+            <button class="mi" id="shareBtn" type="button" role="menuitem"><svg class="i"><use href="#i-screen"/></svg><span id="shareLabel">مشاركة الشاشة</span></button>
+            <button class="mi" id="copyBtn" type="button" role="menuitem"><svg class="i"><use href="#i-link"/></svg><span>نسخ رابط الحلقة</span></button>
+            <button class="mi" id="settingsBtn" type="button" role="menuitem"><svg class="i"><use href="#i-sliders"/></svg><span>الكاميرا والميكروفون</span></button>
+          </div>
+        </div>
         <button class="ctrl ctrl-danger" id="leaveBtn" title="مغادرة الحلقة"><svg class="i"><use href="#i-end"/></svg></button>
-      </div>
-      <div class="bar-side">
-        <button class="ctrl ctrl-flat" id="breakoutBtn" title="غرف الحلقة" hidden><svg class="i"><use href="#i-rooms"/></svg></button>
-        <button class="ctrl ctrl-flat" id="settingsBtn" title="الأجهزة"><svg class="i"><use href="#i-sliders"/></svg></button>
-        <button class="ctrl ctrl-flat" id="copyBtn" title="نسخ رابط الحلقة"><svg class="i"><use href="#i-link"/></svg></button>
-        <button class="ctrl ctrl-flat" id="peopleBtn" title="الحضور وطابور التسميع"><svg class="i"><use href="#i-users"/></svg><span class="count-badge" id="handCount" hidden>0</span></button>
-        <button class="ctrl ctrl-flat" id="chatBtn" title="الدردشة"><svg class="i"><use href="#i-chat"/></svg><span class="dot" id="chatDot" hidden></span></button>
       </div>
     </footer>
   </section>

@@ -337,7 +337,8 @@ function syncToggleButtons() {
     setTip($(id), state.camOn ? "إيقاف الكاميرا" : "تشغيل الكاميرا");
   }
   $("previewOff").hidden = state.camOn && !!camTrack();
-  $("shareBtn").classList.toggle("on", !!state.screenStream);
+  $("shareBtn").classList.toggle("active", !!state.screenStream);
+  $("shareLabel").textContent = state.screenStream ? "إيقاف مشاركة الشاشة" : "مشاركة الشاشة";
   $("handBtn").classList.toggle("on", state.hand);
 }
 
@@ -658,6 +659,11 @@ function connect(roomId) {
     applyControls();
   });
   on("notice", (e) => toast(JSON.parse(e.data).text));
+  on("presence", (e) => {
+    state.presence = JSON.parse(e.data);
+    renderRoomsStrip();
+    if (!$("panel").hidden) renderPeople();
+  });
   on("announce", (e) => {
     const { text, name } = JSON.parse(e.data);
     showAnnounce(name, text);
@@ -703,7 +709,7 @@ function sseChannel(roomId, params, handlers) {
     connect(roomId);
   };
   const timer = setTimeout(fallback, WELCOME_TIMEOUT);
-  for (const name of ["welcome", "peer-joined", "peer-left", "signal", "breakout", "role", "announce", "moderate", "kicked", "controls", "notice"]) {
+  for (const name of ["welcome", "peer-joined", "peer-left", "signal", "breakout", "role", "announce", "moderate", "kicked", "controls", "notice", "presence"]) {
     es.addEventListener(name, (e) => {
       if (name === "welcome") {
         welcomed = true;
@@ -1273,7 +1279,7 @@ function layoutGrid() {
       : n <= 1 ? 1 : n <= 4 ? 2 : n <= 9 ? 3 : n <= 16 ? 4 : 5;
     grid.style.setProperty("--cols", cols);
   }
-  $("peopleCount").textContent = state.peers.size + 1;
+  $("peopleCount").textContent = $("peoplePill").textContent = state.peers.size + 1;
   $("inviteCard").hidden = !state.joinedAt || state.peers.size > 0 || state.inviteDismissed || state.room !== state.code;
 }
 window.addEventListener("resize", layoutGrid);
@@ -1390,6 +1396,10 @@ function leave(navigate = true) {
   state.handAt = 0;
   state.reciter = null;
   state.controls = null;
+  state.presence = null;
+  state.boChoice = null;
+  $("roomsStrip").hidden = true;
+  $("moreMenu").hidden = true;
   closePersonMenu();
   state.stars = {};
   state.localTile = null;
@@ -1544,6 +1554,10 @@ $("chatForm").addEventListener("submit", (e) => {
 // يحدّث الواجهة حسب دوري (معلّم/مشرف/طالب)
 function applyRole() {
   $("breakoutBtn").hidden = !isStaff(state.role) || DEMO;
+  // التسجيل للمستضيف (المعلّم) فقط
+  $("recBtn").hidden = state.role !== "teacher";
+  if (state.recorder && state.role !== "teacher") stopRecording();
+  renderRoomsStrip();
   applyControls(false);
   updateReciteUI();
   updateLocalTile();
@@ -1592,30 +1606,62 @@ $("lockBtn").addEventListener("click", () => moderate("lock", { on: !state.contr
 $("chatOffBtn").addEventListener("click", () => moderate("chat", { on: !!state.controls?.chatOff }));
 
 // قائمة إدارة مشارك واحد
-function openPersonMenu(btn, p) {
+// remoteRoom: الشخص في غرفة أخرى (لا نملك إلا نقله)
+function openPersonMenu(btn, p, remoteRoom) {
   closePersonMenu();
   const menu = document.createElement("div");
   menu.className = "pmenu";
   menu.id = "pmenu";
-  const items = [
-    ["mute", "mic-off", "كتم الميكروفون", p.mic],
-    ["camOff", "cam-off", "إيقاف الكاميرا", p.cam],
-    ["lowerHand", "hand", "إنزال اليد", p.hand],
-    ["kick", "end", "إخراج من الحلقة", true],
-  ];
-  for (const [action, ic, label, enabled] of items) {
+  // النقل بين الغرف عندما تكون مفتوحة (للطلاب، وللأدمن من المعلّم)
+  if (state.breakout && (p.role === "student" || state.role === "teacher")) {
+    const cur = remoteRoom || (state.room === state.code ? "main" : state.room.slice(state.code.length + 1));
+    const dests = [["main", "الحلقة الرئيسية"], ...state.breakout.rooms.map((r) => [r.id, r.name])].filter(([id]) => id !== cur);
+    const title = document.createElement("small");
+    title.className = "pm-title";
+    title.textContent = "نقل إلى";
+    menu.appendChild(title);
+    for (const [id, name] of dests) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.innerHTML = `<span class="rs-dot" style="--c:${roomColor(id === "main" ? null : id)}"></span><span></span>`;
+      b.lastChild.textContent = name;
+      b.addEventListener("click", () => {
+        closePersonMenu();
+        assignTo(p, id === "main" ? null : id);
+      });
+      menu.appendChild(b);
+    }
+  }
+  // [أيقونة، النص، متاح، التنفيذ، خطر]
+  const items = [];
+  if (!remoteRoom) {
+    const pinned = effectivePin() === p.id;
+    if (!isStaff(p.role)) items.push(["book", "ابدأ تسميعه", true, () => startRecite(p.id)]);
+    items.push(["pin", pinned ? "إلغاء التثبيت" : "تثبيت في الوسط", true, () => togglePin(p.id)]);
+    if (state.role === "teacher" && !DEMO) {
+      items.push(["shield", p.role === "admin" ? "إلغاء صلاحية الأدمن" : "تعيينه أدمن", true, () => setAdmin(p.cid, p.role !== "admin")]);
+    }
+    items.push(["hand", "إنزال اليد", p.hand, () => moderate("lowerHand", { target: p.id })]);
+    items.push([
+      "end",
+      "إخراج من الحلقة",
+      true,
+      async () => {
+        if (confirm(`إخراج ${p.name} من الحلقة؟`) && (await moderate("kick", { target: p.id }))) toast(`أُخرج ${p.name}`);
+      },
+      true,
+    ]);
+  }
+  if (items.length && menu.childElementCount) menu.appendChild(document.createElement("hr"));
+  for (const [ic, label, enabled, run, danger] of items) {
     const b = document.createElement("button");
     b.type = "button";
-    b.className = action === "kick" ? "danger" : "";
+    b.className = danger ? "danger" : "";
     b.disabled = !enabled;
     b.innerHTML = `${icon(ic)}<span>${label}</span>`;
-    b.addEventListener("click", async () => {
+    b.addEventListener("click", () => {
       closePersonMenu();
-      if (action === "kick" && !confirm(`إخراج ${p.name} من الحلقة؟`)) return;
-      if (await moderate(action, { target: p.id })) {
-        if (action === "kick") toast(`أُخرج ${p.name}`);
-        else if (action === "mute") toast(`كُتم ${p.name}`);
-      }
+      run();
     });
     menu.appendChild(b);
   }
@@ -1687,24 +1733,81 @@ function renderPeople() {
       <span class="mini"></span>
       <span class="pname"><span class="pn"></span><small class="r-${p.role}"${isStaff(p.role) ? "" : " hidden"}>${ROLE_LONG[p.role] || ""}</small>${reciting ? '<small class="now">يُسمّع الآن</small>' : ""}</span>
       ${stars ? `<span class="pstars">⭐ ${stars}</span>` : ""}
-      <span class="icons">${p.hand ? icon("hand", "hand") : ""}${p.mic ? icon("mic") : icon("mic-off", "muted-i")}</span>
-      ${canRecite ? `<button class="icon-btn recite-btn" type="button" title="ابدأ تسميعه">${icon("book")}</button>` : ""}
-      ${canPromote ? `<button class="icon-btn admin-btn${p.role === "admin" ? " active" : ""}" type="button" title="${p.role === "admin" ? "إلغاء صلاحية الأدمن" : "تعيينه أدمن"}">${icon("shield")}</button>` : ""}
-      <button class="icon-btn pin${pin === p.id ? " active" : ""}" type="button" title="${pin === p.id ? "إلغاء التثبيت" : "تثبيت في الوسط"}">${icon("pin")}</button>
+      <span class="icons">${p.hand ? icon("hand", "hand") : ""}${statusIcons(p, canManage, isTeacher)}</span>
+      ${canRecite && !canManage ? `<button class="icon-btn recite-btn" type="button" title="ابدأ تسميعه">${icon("book")}</button>` : ""}
+      ${canPromote && !canManage ? `<button class="icon-btn admin-btn${p.role === "admin" ? " active" : ""}" type="button" title="${p.role === "admin" ? "إلغاء صلاحية الأدمن" : "تعيينه أدمن"}">${icon("shield")}</button>` : ""}
+      ${canManage ? "" : `<button class="icon-btn pin${pin === p.id ? " active" : ""}" type="button" title="${pin === p.id ? "إلغاء التثبيت" : "تثبيت في الوسط"}">${icon("pin")}</button>`}
       ${canManage ? `<button class="icon-btn manage-btn" type="button" title="إدارة المشارك" aria-label="إدارة المشارك">${icon("more")}</button>` : ""}`;
     li.querySelector(".mini").textContent = initial(p.name);
     li.querySelector(".mini").style.background = colorFor(p.name.replace(" (أنت)", ""));
     li.querySelector(".pn").textContent = p.name;
-    li.querySelector(".pin").addEventListener("click", () => togglePin(p.id));
+    li.querySelector(".pin")?.addEventListener("click", () => togglePin(p.id));
     li.querySelector(".recite-btn")?.addEventListener("click", () => startRecite(p.id));
     li.querySelector(".admin-btn")?.addEventListener("click", () => setAdmin(p.cid, p.role !== "admin"));
     li.querySelector(".manage-btn")?.addEventListener("click", (e) => {
       e.stopPropagation();
       openPersonMenu(e.currentTarget, p);
     });
+    // المعلّم والأدمن يكتمون المايك أو يوقفون الكاميرا من أيقونتها مباشرة
+    li.querySelector(".mod-mic")?.addEventListener("click", async () => {
+      if (await moderate("mute", { target: p.id })) toast(`كُتم ميكروفون ${p.name}`);
+    });
+    li.querySelector(".mod-cam")?.addEventListener("click", async () => {
+      if (await moderate("camOff", { target: p.id })) toast(`أُوقفت كاميرا ${p.name}`);
+    });
     list.appendChild(li);
   }
-  $("peopleCount").textContent = everyone.length;
+  $("peopleCount").textContent = $("peoplePill").textContent = everyone.length;
+  if (isTeacher && state.breakout) renderOtherRooms(list, isHost);
+}
+
+// أيقونات المايك والكاميرا: أزرار للإدارة إن كانت مفتوحة، وإلا مجرد حالة
+function statusIcons(p, canManage, staffView) {
+  const mic = p.mic
+    ? canManage
+      ? `<button class="icon-btn mod mod-mic" type="button" title="كتم الميكروفون" aria-label="كتم ميكروفون ${p.name}">${icon("mic")}</button>`
+      : icon("mic")
+    : icon("mic-off", "muted-i");
+  if (!staffView) return mic;
+  const cam = p.cam
+    ? canManage
+      ? `<button class="icon-btn mod mod-cam" type="button" title="إيقاف الكاميرا" aria-label="إيقاف كاميرا ${p.name}">${icon("cam")}</button>`
+      : icon("cam")
+    : icon("cam-off", "muted-i");
+  return mic + cam;
+}
+
+// للمعلّم والأدمن: من في الغرف الأخرى، مع إمكانية نقلهم
+function renderOtherRooms(list, isHost) {
+  const here = state.room === state.code ? "main" : state.room.slice(state.code.length + 1);
+  const sections = [["main", "الحلقة الرئيسية"], ...state.breakout.rooms.map((r) => [r.id, r.name])];
+  for (const [rid, name] of sections) {
+    if (rid === here) continue;
+    const members = (state.presence?.[rid] || []).filter((m) => m.cid !== state.cid);
+    const head = document.createElement("li");
+    head.className = "p-section";
+    head.style.setProperty("--c", roomColor(rid === "main" ? null : rid));
+    head.innerHTML = `<span class="rs-dot"></span><b></b><small>${members.length}</small>`;
+    head.querySelector("b").textContent = name;
+    list.appendChild(head);
+    for (const m of members) {
+      const li = document.createElement("li");
+      li.className = "remote";
+      const movable = m.role === "student" || (isHost && m.role === "admin");
+      li.innerHTML = `
+        <span class="mini"></span>
+        <span class="pname"><span class="pn"></span><small class="r-${m.role}"${isStaff(m.role) ? "" : " hidden"}>${ROLE_LONG[m.role] || ""}</small></span>
+        ${movable ? `<button class="icon-btn manage-btn" type="button" title="نقل إلى غرفة" aria-label="نقل ${m.name}">${icon("more")}</button>` : ""}`;
+      li.querySelector(".mini").textContent = initial(m.name);
+      li.querySelector(".mini").style.background = colorFor(m.name);
+      li.querySelector(".pn").textContent = m.name;
+      li.querySelector(".manage-btn")?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openPersonMenu(e.currentTarget, m, rid);
+      });
+      list.appendChild(li);
+    }
+  }
 }
 
 /* ---------- تسجيل الاجتماع ---------- */
@@ -1716,8 +1819,9 @@ function updateRecBanner() {
   $("recText").textContent = me
     ? "أنت تسجّل هذه الحلقة"
     : `يتم تسجيل هذه الحلقة بواسطة ${others.join("، ")}`;
-  $("recBtn").classList.toggle("recording", me);
-  setTip($("recBtn"), me ? "إيقاف التسجيل" : "تسجيل الحلقة");
+  $("recBtn").classList.toggle("active", me);
+  $("recLabel").textContent = me ? "إيقاف التسجيل" : "تسجيل الحلقة";
+  $("moreDot").hidden = !me;
 }
 
 function addToRecording(stream) {
@@ -1905,6 +2009,27 @@ function downloadBlob(blob, filename) {
 
 $("recBtn").addEventListener("click", () => (state.recorder ? stopRecording() : startRecording()));
 
+/* ---------- قائمة «المزيد» ---------- */
+
+function setMoreMenu(open) {
+  $("moreMenu").hidden = !open;
+  $("moreBtn").setAttribute("aria-expanded", String(open));
+  $("moreBtn").classList.toggle("open", open);
+}
+$("moreBtn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  $("reactions").hidden = true;
+  setMoreMenu($("moreMenu").hidden);
+});
+// أي عنصر في القائمة يغلقها بعد تنفيذه
+$("moreMenu").addEventListener("click", (e) => e.target.closest(".mi") && setMoreMenu(false));
+document.addEventListener("click", (e) => {
+  if (!$("moreMenu").hidden && !e.target.closest(".more-wrap")) setMoreMenu(false);
+});
+document.addEventListener("keydown", (e) => e.key === "Escape" && setMoreMenu(false));
+// مشاركة الشاشة غير متاحة في أغلب الجوالات
+if (!navigator.mediaDevices?.getDisplayMedia) $("shareBtn").hidden = true;
+
 /* ---------- جدولة الاجتماعات ---------- */
 
 const SCHEDULE_KEY = "halaqati:scheduled";
@@ -2089,17 +2214,89 @@ function applyBreakout(b) {
     const stillOpen = state.breakout?.rooms.some((r) => r.id === rid);
     if (state.room !== main && !stillOpen) target = main;
   } else if (state.breakout) {
-    const mine = state.breakout.rooms.find((r) => r.members.includes(state.cid));
-    target = mine ? `${main}-${mine.id}` : main;
+    const mine = myBreakoutRoom();
+    // الطالب يستطيع العودة للرئيسية بنفسه، ويبقى فيها حتى يغيّر المعلّم غرفته
+    if (mine?.id !== state.boChoice?.room) state.boChoice = null;
+    target = mine && !state.boChoice ? `${main}-${mine.id}` : main;
   } else {
+    state.boChoice = null;
     target = main;
   }
   updateRoomUI();
+  renderRoomsStrip();
   if (target && target !== state.room) {
     moveTo(target);
     return true;
   }
   return false;
+}
+
+const myBreakoutRoom = () => state.breakout?.rooms.find((r) => r.members.includes(state.cid)) || null;
+
+/* ---------- شريط الغرف أسفل الحلقة ---------- */
+
+const roomColor = (id) => (id ? COLORS[(Number(id.slice(1)) - 1) % COLORS.length] : "#6b7d75");
+
+// المعلّم يرى كل الغرف المفتوحة، والطالب يرى غرفته والحلقة الرئيسية فقط ليتنقل بينهما
+function renderRoomsStrip() {
+  const strip = $("roomsStrip");
+  const b = state.breakout;
+  const staff = isStaff(state.role);
+  const mine = myBreakoutRoom();
+  if (!b || !state.joinedAt || (!staff && !mine)) {
+    strip.hidden = true;
+    return;
+  }
+  const cards = staff ? [{ id: null, name: "الحلقة الرئيسية" }, ...b.rooms] : [{ id: null, name: "الحلقة الرئيسية" }, mine];
+  strip.innerHTML = "";
+  strip.hidden = false;
+  if (staff) {
+    const manage = document.createElement("button");
+    manage.type = "button";
+    manage.className = "rs-manage";
+    manage.innerHTML = `${icon("rooms")}<span>إدارة الغرف</span>`;
+    manage.addEventListener("click", openBreakout);
+    strip.appendChild(manage);
+  }
+  for (const r of cards) {
+    const target = r.id ? `${state.code}-${r.id}` : state.code;
+    const here = state.room === target;
+    const present = state.presence?.[r.id || "main"] || [];
+    const card = document.createElement("div");
+    card.className = "rs-card" + (here ? " here" : "");
+    card.style.setProperty("--c", roomColor(r.id));
+    card.innerHTML = `
+      <span class="rs-dot"></span>
+      <span class="rs-body"><b></b><small></small></span>
+      <span class="rs-faces"></span>
+      ${here ? '<span class="rs-here">أنت هنا</span>' : `<button class="rs-go" type="button">${r.id ? "انتقل" : "الرئيسية"}</button>`}
+      ${staff && r.id ? `<button class="icon-btn rs-close" type="button" title="إغلاق هذه الغرفة" aria-label="إغلاق هذه الغرفة">${icon("close")}</button>` : ""}`;
+    card.querySelector("b").textContent = r.name;
+    card.querySelector("small").textContent = present.length ? `${present.length} في الغرفة` : "فارغة";
+    const faces = card.querySelector(".rs-faces");
+    for (const m of present.slice(0, 4)) {
+      const f = document.createElement("span");
+      f.textContent = initial(m.name);
+      f.title = m.name;
+      f.style.background = colorFor(m.name);
+      faces.appendChild(f);
+    }
+    if (present.length > 4) faces.insertAdjacentHTML("beforeend", `<span class="more">+${present.length - 4}</span>`);
+    card.querySelector(".rs-go")?.addEventListener("click", () => {
+      if (!staff) state.boChoice = r.id ? null : { room: mine.id };
+      moveTo(target);
+    });
+    card.querySelector(".rs-close")?.addEventListener("click", async () => {
+      if (await breakoutAction({ action: "closeRoom", room: r.id })) toast(`أُغلقت «${r.name}» وعاد طلابها للحلقة الرئيسية`);
+    });
+    strip.appendChild(card);
+  }
+}
+
+// نقل طالب إلى غرفة (أو للرئيسية) من قائمة الحضور
+async function assignTo(p, roomId) {
+  const dest = roomId ? state.breakout.rooms.find((r) => r.id === roomId)?.name : "الحلقة الرئيسية";
+  if (await breakoutAction({ action: "assign", cid: p.cid, name: p.name.replace(" (أنت)", ""), room: roomId })) toast(`نُقل ${p.name} إلى ${dest}`);
 }
 
 function moveTo(target) {
@@ -2118,6 +2315,7 @@ function moveTo(target) {
   layoutGrid();
   renderPeople();
   updateRoomUI();
+  renderRoomsStrip();
   const label = roomLabel(target);
   addNote(`انتقلت إلى ${label}`);
   toast(target === state.code ? "عدت إلى الحلقة الرئيسية" : `🚪 انتقلت إلى ${label}`);
@@ -2259,15 +2457,16 @@ function renderBreakoutLive() {
   });
 }
 
-$("breakoutBtn").addEventListener("click", () => {
+function openBreakout() {
   renderBreakout();
   $("breakoutModal").hidden = false;
-});
+}
+$("breakoutBtn").addEventListener("click", openBreakout);
 for (const el of document.querySelectorAll("#breakoutModal [data-close]")) {
   el.addEventListener("click", () => ($("breakoutModal").hidden = true));
 }
 $("boMinus").addEventListener("click", () => {
-  bo.count = Math.max(2, bo.count - 1);
+  bo.count = Math.max(1, bo.count - 1);
   renderBreakout();
 });
 $("boPlus").addEventListener("click", () => {
@@ -2282,7 +2481,10 @@ $("boOpen").addEventListener("click", async () => {
     return { name: bo.names[i].trim() || `غرفة ${i + 1}`, members: members.map((p) => p.cid), names: members.map((p) => p.name) };
   });
   $("boOpen").disabled = true;
-  if (await breakoutAction({ action: "open", rooms })) toast("🚪 فُتحت الغرف وانتقل الطلاب إليها");
+  if (await breakoutAction({ action: "open", rooms })) {
+    toast("فُتحت الغرف — تجدها في الشريط أسفل الحلقة");
+    $("breakoutModal").hidden = true;
+  }
   $("boOpen").disabled = false;
 });
 $("boClose").addEventListener("click", async () => {
