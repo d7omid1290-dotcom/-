@@ -1084,3 +1084,29 @@ input[type="time"], input[type="date"] { color-scheme: dark; }
 :root[data-theme="light"] .role input:checked + span { color: #fff; }
 .demo-note { margin: -6px 0 14px; font-size: .84rem; color: var(--muted); text-align: center; line-height: 1.7; }
 .demo-note b { color: var(--text); font-weight: 600; }
+
+/* ===== المعلّم والمشرف ===== */
+.slug-note { margin: 0 0 6px; font-size: .78rem; color: var(--faint); text-align: start; }
+.host-badge {
+  display: flex; align-items: center; gap: 10px; margin: 2px 0 14px; padding: 10px 12px; border-radius: 14px;
+  background: linear-gradient(135deg, rgba(91, 140, 255, .14), rgba(139, 92, 246, .1));
+  border: 1px solid rgba(91, 140, 255, .3); text-align: start;
+}
+.host-badge > .i { width: 28px; height: 28px; color: var(--blue); flex-shrink: 0; }
+.host-badge > div { flex: 1; line-height: 1.35; }
+.host-badge b { display: block; }
+.host-badge small { color: var(--muted); font-size: .8rem; }
+.host-link {
+  width: 100%; display: flex; align-items: center; gap: 10px; margin: -4px 0 14px; padding: 10px 14px;
+  border-radius: 14px; cursor: pointer; font: inherit; color: var(--text); text-align: start;
+  background: rgba(91, 140, 255, .08); border: 1px dashed rgba(91, 140, 255, .45);
+}
+.host-link:hover { background: rgba(91, 140, 255, .14); }
+.host-link > .i { width: 22px; height: 22px; color: var(--blue); flex-shrink: 0; }
+.host-link span { flex: 1; line-height: 1.35; }
+.host-link b { display: block; font-size: .92rem; }
+.host-link small { color: var(--muted); font-size: .78rem; }
+.people .pname small.r-admin { color: var(--teal); }
+.people .admin-btn { color: var(--faint); }
+.people .admin-btn.active { color: #fff; background: linear-gradient(135deg, #14b8a6, #0d9488); }
+.tile.admin .role-tag { background: linear-gradient(135deg, #14b8a6, #0d9488); }

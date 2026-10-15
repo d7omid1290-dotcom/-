@@ -14,6 +14,20 @@ const ROOM_RE = new RegExp(`^(?!.*-r[1-9]$)(?!(?:api|healthz)$)${SLUG}$`);
 // الغرف الفرعية داخل الحلقة: <الرمز>-r1 … -r9
 const API_ROOM_RE = new RegExp(`^(?!.*-r[1-9]-r[1-9]$)${SLUG}$`);
 const MAX_BREAKOUTS = 9;
+
+// مفتاح المعلّم: توقيع سرّي لرمز الغرفة. من يملكه هو منشئ الغرفة (المعلّم).
+// ضع WASL_SECRET في متغيرات البيئة حتى تبقى مفاتيح المعلّمين صالحة بعد إعادة تشغيل الخادم.
+const SECRET = process.env.WASL_SECRET || crypto.randomBytes(32).toString("hex");
+if (!process.env.WASL_SECRET) {
+  console.warn("تنبيه: WASL_SECRET غير مضبوط — مفاتيح المعلّمين ستتغير عند إعادة تشغيل الخادم");
+}
+const hostKey = (code) => crypto.createHmac("sha256", SECRET).update(`host:${code}`).digest("base64url").slice(0, 24);
+function isHostKey(code, key) {
+  const expected = Buffer.from(hostKey(code));
+  const given = Buffer.from(String(key || ""));
+  return given.length === expected.length && crypto.timingSafeEqual(given, expected);
+}
+const STAFF = new Set(["teacher", "admin"]);
 const MAX_PEERS = 25;
 const MAX_BODY = 64 * 1024;
 
@@ -31,6 +45,8 @@ const MIME = {
 const rooms = new Map();
 // الحلقة الرئيسية -> حالة الغرف الفرعية { open, rooms: [{ id, name, members: [cid], names: [name] }] }
 const breakouts = new Map();
+// الحلقة الرئيسية -> المشرفون الذين عيّنهم المعلّم (بمعرّفاتهم الثابتة)
+const admins = new Map();
 
 const mainOf = (roomId) => roomId.replace(/-r[1-9]$/, "");
 
@@ -73,7 +89,9 @@ function handleEvents(req, res, roomId, url) {
   const id = crypto.randomUUID();
   const name = cleanName(url.searchParams.get("name"));
   const cid = String(url.searchParams.get("cid") || id).slice(0, 64);
-  const role = url.searchParams.get("role") === "teacher" ? "teacher" : "student";
+  // الدور يقرّره الخادم: مفتاح المعلّم ← معلّم، ومن عيّنه المعلّم ← مشرف، والباقي طلاب
+  const main = mainOf(roomId);
+  const role = isHostKey(main, url.searchParams.get("key")) ? "teacher" : admins.get(main)?.has(cid) ? "admin" : "student";
 
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
@@ -83,10 +101,10 @@ function handleEvents(req, res, roomId, url) {
   });
   res.write("retry: 3000\n\n");
 
-  const peers = [...room.values()].map((p) => ({ id: p.id, cid: p.cid, name: p.name }));
+  const peers = [...room.values()].map((p) => ({ id: p.id, cid: p.cid, name: p.name, role: p.role }));
   room.set(id, { id, cid, name, role, res });
-  send(res, "welcome", { id, peers, breakout: breakouts.get(mainOf(roomId)) || null });
-  broadcast(room, "peer-joined", { id, cid, name }, id);
+  send(res, "welcome", { id, role, peers, breakout: breakouts.get(main) || null });
+  broadcast(room, "peer-joined", { id, cid, name, role }, id);
 
   const heartbeat = setInterval(() => res.write(": ping\n\n"), 20000);
 
@@ -96,8 +114,10 @@ function handleEvents(req, res, roomId, url) {
     broadcast(room, "peer-left", { id });
     if (room.size === 0) rooms.delete(roomId);
     // إذا فرغت الحلقة كلها نحذف حالة غرفها
-    const main = mainOf(roomId);
-    if (familyRooms(main).length === 0) breakouts.delete(main);
+    if (familyRooms(main).length === 0) {
+      breakouts.delete(main);
+      admins.delete(main);
+    }
   });
 }
 
@@ -124,7 +144,7 @@ function handleBreakout(req, res, roomId) {
   readJson(req, res, (msg) => {
     const sender = rooms.get(roomId)?.get(msg.from);
     if (!sender) return json(res, 404, { error: "not_in_room" });
-    if (sender.role !== "teacher") return json(res, 403, { error: "teacher_only" });
+    if (!STAFF.has(sender.role)) return json(res, 403, { error: "teacher_only" });
     const main = mainOf(roomId);
 
     if (msg.action === "open") {
@@ -154,12 +174,56 @@ function handleBreakout(req, res, roomId) {
   });
 }
 
+// المعلّم (منشئ الغرفة فقط) يعيّن مشرفاً أو يلغي إشرافه
+function handlePromote(req, res, roomId) {
+  readJson(req, res, (msg) => {
+    const sender = rooms.get(roomId)?.get(msg.from);
+    if (!sender) return json(res, 404, { error: "not_in_room" });
+    if (sender.role !== "teacher") return json(res, 403, { error: "host_only" });
+    const cid = String(msg.cid || "").slice(0, 64);
+    if (!cid || cid === sender.cid) return json(res, 400, { error: "bad_cid" });
+    const main = mainOf(roomId);
+    let set = admins.get(main);
+    if (!set) admins.set(main, (set = new Set()));
+    if (msg.admin) set.add(cid);
+    else set.delete(cid);
+    const role = msg.admin ? "admin" : "student";
+    for (const room of familyRooms(main)) {
+      for (const peer of room.values()) if (peer.cid === cid && peer.role !== "teacher") peer.role = role;
+    }
+    broadcastFamily(main, "role", { cid, role });
+    json(res, 200, { ok: true, role });
+  });
+}
+
+// إنشاء غرفة جديدة: الخادم يختار الرمز (أو يضيف لاحقة عشوائية للاسم المقروء) ويعطي منشئها مفتاح المعلّم
+const LETTERS = "abcdefghijkmnopqrstuvwxyz";
+const randomLetters = (n) => Array.from(crypto.randomBytes(n), (b) => LETTERS[b % LETTERS.length]).join("");
+function handleCreate(req, res) {
+  readJson(req, res, (msg) => {
+    let code;
+    if (msg.slug) {
+      const base = String(msg.slug).toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 34);
+      if (base.length < 2) return json(res, 400, { error: "bad_slug" });
+      code = `${base}-${randomLetters(3)}`;
+    } else {
+      code = `${randomLetters(3)}-${randomLetters(4)}-${randomLetters(3)}`;
+    }
+    if (!ROOM_RE.test(code)) return json(res, 400, { error: "bad_slug" });
+    json(res, 200, { code, key: hostKey(code) });
+  });
+}
+
 function handleSignal(req, res, roomId) {
   readJson(req, res, (msg) => {
     const room = rooms.get(roomId);
     if (!room || !room.has(msg.from)) return json(res, 404, { error: "not_in_room" });
     const allowed = ["offer", "answer", "ice", "chat", "state", "reaction", "recite", "grade"];
     if (!allowed.includes(msg.type)) return json(res, 400, { error: "bad_type" });
+    // مناداة الطالب للتسميع وتقييمه للمعلّم والمشرفين فقط
+    if ((msg.type === "recite" || msg.type === "grade") && !STAFF.has(room.get(msg.from).role)) {
+      return json(res, 403, { error: "teacher_only" });
+    }
 
     const payload = { from: msg.from, type: msg.type, data: msg.data };
     if (msg.to) {
@@ -197,13 +261,15 @@ const server = http.createServer((req, res) => {
     for (const room of rooms.values()) peers += room.size;
     return json(res, 200, { ok: true, rooms: rooms.size, peers });
   }
-  const m = url.pathname.match(/^\/api\/rooms\/([^/]+)\/(events|signal|peers|breakout)$/);
+  if (url.pathname === "/api/rooms" && req.method === "POST") return handleCreate(req, res);
+  const m = url.pathname.match(/^\/api\/rooms\/([^/]+)\/(events|signal|peers|breakout|promote)$/);
   if (m) {
     const [, roomId, action] = m;
     if (!API_ROOM_RE.test(roomId)) return json(res, 400, { error: "bad_room" });
     if (action === "events" && req.method === "GET") return handleEvents(req, res, roomId, url);
     if (action === "signal" && req.method === "POST") return handleSignal(req, res, roomId);
     if (action === "breakout" && req.method === "POST") return handleBreakout(req, res, roomId);
+    if (action === "promote" && req.method === "POST") return handlePromote(req, res, roomId);
     if (action === "peers" && req.method === "GET") {
       // من في الحلقة الآن — لعرضه في شاشة ما قبل الدخول
       const room = rooms.get(roomId);

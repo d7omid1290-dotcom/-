@@ -200,11 +200,11 @@
         <button class="code-chip" id="lobbyCopy" title="نسخ رابط الحلقة"><span id="lobbyCode" dir="ltr"></span><svg class="i"><use href="#i-copy"/></svg></button>
         <label for="nameInput" class="field-label">اسمك</label>
         <input id="nameInput" placeholder="اكتب اسمك كما يعرفك المعلّم" maxlength="40" autocomplete="name">
-        <fieldset class="roles">
-          <legend class="field-label">أنا</legend>
-          <label class="role"><input type="radio" name="role" value="student" checked><span>طالب</span></label>
-          <label class="role"><input type="radio" name="role" value="teacher"><span>معلّم</span></label>
-        </fieldset>
+        <div class="host-badge" id="hostBadge" hidden>
+          <svg class="i"><use href="#i-shield"/></svg>
+          <div><b>ستدخل كمعلّم</b><small>أنت منشئ هذه الغرفة</small></div>
+          <button class="btn btn-sm" type="button" id="hostLinkBtn" title="لفتح الغرفة كمعلّم من جهاز آخر">نسخ رابط المعلّم</button>
+        </div>
         <button class="btn btn-primary btn-lg btn-block" id="joinNowBtn">دخول الحلقة</button>
         <p class="error" id="lobbyError" role="alert"></p>
       </div>
@@ -372,6 +372,7 @@
         <label for="tSlug" class="field-label">اسم الرابط (بالإنجليزي)</label>
         <input id="tSlug" maxlength="40" dir="ltr" autocomplete="off" spellcheck="false">
         <p class="slug-preview" dir="ltr" id="tSlugPreview"></p>
+        <p class="slug-note">يُضاف في آخره رمز قصير من ٣ أحرف حتى لا يستطيع أحد غيرك إنشاء غرفة بنفس الاسم.</p>
         <span class="field-label">أيام الحلقة</span>
         <div class="days">
           <label class="day"><input type="checkbox" value="0"><span>أحد</span></label>
@@ -411,6 +412,7 @@
         <p class="muted center" id="tSummary"></p>
         <div class="link-box"><code id="tLink" dir="ltr"></code></div>
         <p class="demo-note" id="tDemoNote" hidden>هذا ملف تجريبي على جهازك، فالرابط يفتح الغرفة على هذا الجهاز فقط. بعد نشر الموقع يصير الرابط مثل <b dir="ltr">wasl.onrender.com/<span id="tDemoSlug"></span></b> ويدخل منه الجميع.</p>
+        <button class="host-link" id="tHostLink" type="button"><svg class="i"><use href="#i-shield"/></svg><span><b>رابط المعلّم الخاص بك</b><small>لتدخل كمعلّم من جهاز آخر — لا ترسله للطلاب</small></span><svg class="i"><use href="#i-copy"/></svg></button>
         <div class="result-actions">
           <button class="btn" id="tCopy"><svg class="i"><use href="#i-copy"/></svg>نسخ الدعوة</button>
           <a class="btn" id="tGoogle" target="_blank" rel="noopener"><svg class="i"><use href="#i-google"/></svg>تقويم Google</a>

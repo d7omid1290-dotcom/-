@@ -1,8 +1,12 @@
 services:
   - type: web
-    name: halaqati
+    name: wasl
     runtime: node
     plan: free
     buildCommand: "true"
     startCommand: node server.js
     healthCheckPath: /healthz
+    envVars:
+      # سرّ توقيع مفاتيح المعلّمين — يولّده Render مرة واحدة ويبقى ثابتاً
+      - key: WASL_SECRET
+        generateValue: true

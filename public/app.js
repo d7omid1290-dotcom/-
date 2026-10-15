@@ -36,7 +36,7 @@ const state = {
   micOn: true,
   camOn: true,
   hand: false,
-  role: "student", // student | teacher
+  role: "student", // teacher (منشئ الغرفة) | admin (مشرف يعيّنه المعلّم) | student — يقرّره الخادم
   pinned: null, // معرّف البلاطة المثبتة، أو "none" لإلغاء التثبيت التلقائي
   handAt: 0, // وقت رفع اليد — لترتيب طابور التسميع
   reciter: null, // معرّف الطالب الذي يُسمّع الآن
@@ -71,6 +71,49 @@ function setTip(el, text) {
   el.dataset.tip = text;
   el.setAttribute("aria-label", text);
   el.removeAttribute("title");
+}
+
+// المعلّم والمشرف لهم صلاحيات إدارة الحلقة
+const isStaff = (role) => role === "teacher" || role === "admin";
+const ROLE_LABEL = { teacher: "المعلّم", admin: "مشرف" };
+
+// مفاتيح المعلّم للغرف التي أنشأتها على هذا الجهاز
+const KEYS = "wasl:keys";
+function getKey(code) {
+  try {
+    return JSON.parse(localStorage.getItem(KEYS) || "{}")[code] || null;
+  } catch {
+    return null;
+  }
+}
+function saveKey(code, key) {
+  try {
+    const all = JSON.parse(localStorage.getItem(KEYS) || "{}");
+    all[code] = key;
+    localStorage.setItem(KEYS, JSON.stringify(all));
+  } catch {}
+}
+function teacherLink(code) {
+  const key = getKey(code);
+  return key && !DEMO ? `${linkFor(code)}#k=${key}` : null;
+}
+
+// الخادم ينشئ الغرفة ويعطي منشئها مفتاح المعلّم
+async function createRoom(slug) {
+  if (DEMO) {
+    const code = slug ? `${slug}-${genCode().slice(0, 3)}` : genCode();
+    saveKey(code, "demo");
+    return code;
+  }
+  const r = await fetch("/api/rooms", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(slug ? { slug } : {}),
+  });
+  if (!r.ok) throw new Error("create_failed");
+  const { code, key } = await r.json();
+  saveKey(code, key);
+  return code;
 }
 
 function formatDuration(ms) {
@@ -144,6 +187,12 @@ function meetingLink() {
 /* ---------- التنقل ---------- */
 
 function route() {
+  // رابط المعلّم: /رمز#k=المفتاح — نحفظ المفتاح ثم نزيله من شريط العنوان
+  if (!DEMO && location.hash.startsWith("#k=")) {
+    const code = parseCode(location.pathname.slice(1));
+    if (code) saveKey(code, decodeURIComponent(location.hash.slice(3)));
+    history.replaceState({}, "", location.pathname);
+  }
   const path = DEMO ? decodeURIComponent(location.hash.slice(1)) : location.pathname.slice(1);
   const code = parseCode(path);
   if (code && path === code) {
@@ -181,7 +230,15 @@ window.addEventListener("popstate", () => {
 
 /* ---------- الصفحة الرئيسية ---------- */
 
-$("newMeetingBtn").addEventListener("click", () => goTo(genCode()));
+$("newMeetingBtn").addEventListener("click", async () => {
+  $("newMeetingBtn").disabled = true;
+  try {
+    goTo(await createRoom());
+  } catch {
+    $("homeError").textContent = "تعذر إنشاء الحلقة، تأكد من الاتصال وحاول مرة أخرى";
+  }
+  $("newMeetingBtn").disabled = false;
+});
 
 $("joinForm").addEventListener("submit", (e) => {
   e.preventDefault();
@@ -284,8 +341,8 @@ async function openLobby() {
   $("lobbyCode").textContent = state.code;
   $("lobbyError").textContent = "";
   $("nameInput").value = localStorage.getItem("halaqati:name") || "";
-  const role = localStorage.getItem("halaqati:role") === "teacher" ? "teacher" : "student";
-  document.querySelector(`input[name="role"][value="${role}"]`).checked = true;
+  $("hostBadge").hidden = !getKey(state.code);
+  $("hostLinkBtn").hidden = !teacherLink(state.code);
   if (!state.stream) {
     try {
       state.stream = await getMedia();
@@ -421,6 +478,7 @@ document.addEventListener("change", (e) => {
 });
 
 $("lobbyCopy").addEventListener("click", () => copyText(meetingLink(), "تم نسخ رابط الحلقة"));
+$("hostLinkBtn").addEventListener("click", () => copyText(teacherLink(state.code), "تم نسخ رابط المعلّم — احتفظ به ولا ترسله للطلاب"));
 
 async function copyText(text, done) {
   try {
@@ -475,10 +533,10 @@ function join() {
     return;
   }
   state.name = name.slice(0, 40);
-  state.role = document.querySelector('input[name="role"]:checked')?.value === "teacher" ? "teacher" : "student";
+  // دور مبدئي حتى يؤكده الخادم
+  state.role = getKey(state.code) ? "teacher" : "student";
   try {
     localStorage.setItem("halaqati:name", state.name);
-    localStorage.setItem("halaqati:role", state.role);
   } catch {}
   ensureAudio();
 
@@ -497,7 +555,9 @@ function join() {
 
 // الاتصال بغرفة (الرئيسية أو فرعية) عبر قناة الأحداث
 function connect(roomId) {
-  const params = new URLSearchParams({ name: state.name, cid: state.cid, role: state.role });
+  const params = new URLSearchParams({ name: state.name, cid: state.cid });
+  const key = getKey(state.code);
+  if (key) params.set("key", key);
   const es = new EventSource(`/api/rooms/${roomId}/events?${params}`);
   state.es = es;
 
@@ -505,25 +565,42 @@ function connect(roomId) {
   const on = (name, fn) => es.addEventListener(name, (e) => es === state.es && fn(e));
 
   on("welcome", (e) => {
-    const { id, peers, breakout } = JSON.parse(e.data);
+    const { id, role, peers, breakout } = JSON.parse(e.data);
     // عند إعادة الاتصال التلقائي نبدأ من جديد
     for (const p of [...state.peers.values()]) removePeer(p.id, true);
     state.myId = id;
+    state.role = role;
     if (!state.joinedAt) enterRoom();
+    applyRole();
     if (applyBreakout(breakout)) return; // انتقلنا لغرفة أخرى
-    for (const p of peers) createPeer(p.id, p.name, true, p.cid);
+    for (const p of peers) createPeer(p.id, p.name, true, p.cid, p.role);
     broadcastState();
     layoutGrid();
   });
 
   on("peer-joined", (e) => {
-    const { id, name, cid } = JSON.parse(e.data);
-    createPeer(id, name, false, cid);
+    const { id, name, cid, role } = JSON.parse(e.data);
+    createPeer(id, name, false, cid, role);
     broadcastState(id);
     toast(`انضم ${name}`);
   });
 
   on("breakout", (e) => applyBreakout(JSON.parse(e.data)));
+  on("role", (e) => {
+    const { cid, role } = JSON.parse(e.data);
+    if (cid === state.cid) {
+      const was = state.role;
+      state.role = role;
+      applyRole();
+      if (role === "admin" && was !== "admin") toast("🛡️ عيّنك المعلّم مشرفاً في هذه الحلقة");
+      if (role === "student" && was === "admin") toast("أُلغي إشرافك، عدت طالباً");
+    } else {
+      for (const p of state.peers.values()) if (p.cid === cid) p.role = role;
+      repaintTiles();
+      renderPeople();
+      layoutGrid();
+    }
+  });
   on("announce", (e) => {
     const { text, name } = JSON.parse(e.data);
     showAnnounce(name, text);
@@ -575,7 +652,7 @@ async function handleSignal({ from, type, data }) {
       if (data.hand && !peer.hand) {
         peer.handAt = Date.now();
         const pos = handQueue().length + 1;
-        toast(state.role === "teacher" ? `✋ ${data.name} يرفع يده — رقم ${pos} في الطابور` : `✋ ${data.name} يرفع يده`);
+        toast(isStaff(state.role) ? `✋ ${data.name} يرفع يده — رقم ${pos} في الطابور` : `✋ ${data.name} يرفع يده`);
       }
       if (!data.hand) peer.handAt = 0;
       Object.assign(peer, {
@@ -585,7 +662,6 @@ async function handleSignal({ from, type, data }) {
         hand: !!data.hand,
         screen: !!data.screen,
         recording: !!data.recording,
-        role: data.role === "teacher" ? "teacher" : "student",
       });
       updatePeerTile(peer);
       layoutGrid();
@@ -599,11 +675,11 @@ async function handleSignal({ from, type, data }) {
       if (peer) floatReaction(peer.tile, data.emoji);
       break;
     case "recite":
-      if (peer?.role !== "teacher") return;
+      if (!isStaff(peer?.role)) return;
       setReciter(typeof data.id === "string" ? data.id : null);
       break;
     case "grade":
-      if (peer?.role !== "teacher" || !GRADES[data.grade]) return;
+      if (!isStaff(peer?.role) || !GRADES[data.grade]) return;
       receiveGrade(String(data.to), String(data.cid || ""), data.grade, Math.max(0, Number(data.total) || 0));
       break;
   }
@@ -611,14 +687,14 @@ async function handleSignal({ from, type, data }) {
 
 /* ---------- اتصالات WebRTC ---------- */
 
-function createPeer(id, name, initiator, cid) {
+function createPeer(id, name, initiator, cid, role) {
   if (state.peers.has(id)) return state.peers.get(id);
   const pc = new RTCPeerConnection(ICE_CONFIG);
   const peer = {
     id, cid: cid || id, name, pc, initiator,
     stream: new MediaStream(),
     pendingIce: [],
-    mic: true, cam: false, hand: false, screen: false, role: "student",
+    mic: true, cam: false, hand: false, screen: false, role: role || "student",
     tile: null,
   };
   state.peers.set(id, peer);
@@ -723,7 +799,7 @@ function videoEncoding(remotes) {
   else if (remotes <= 14) enc = { maxBitrate: 220000, scaleResolutionDownBy: 2, maxFramerate: 20 };
   else enc = { maxBitrate: 130000, scaleResolutionDownBy: 3, maxFramerate: 15 };
   // الجميع يشاهد المعلّم كبيراً، فنعطيه جودة أعلى
-  if (state.role === "teacher") {
+  if (isStaff(state.role)) {
     enc.maxBitrate *= 2;
     enc.scaleResolutionDownBy = Math.max(1, enc.scaleResolutionDownBy / 1.5);
   }
@@ -788,12 +864,15 @@ function paintTile(tile, { name, mic, cam, hand, screen, role }) {
   tile.classList.toggle("screen", screen);
   tile.classList.toggle("muted", !mic);
   tile.classList.toggle("hand", hand);
-  tile.querySelector(".role-tag").hidden = role !== "teacher";
+  const tag = tile.querySelector(".role-tag");
+  tag.hidden = !isStaff(role);
+  tag.textContent = ROLE_LABEL[role] || "";
+  tile.classList.toggle("admin", role === "admin");
   const id = tile.dataset.id === "local" ? state.myId : tile.dataset.id;
   const stars = state.stars[cidOf(id)] || 0;
-  const tag = tile.querySelector(".stars-tag");
-  tag.hidden = !stars;
-  tag.textContent = `⭐ ${stars}`;
+  const starsTag = tile.querySelector(".stars-tag");
+  starsTag.hidden = !stars;
+  starsTag.textContent = `⭐ ${stars}`;
   tile.classList.toggle("reciting", !!id && state.reciter === id);
 }
 
@@ -815,7 +894,7 @@ function effectivePin() {
     if (state.peers.has(state.reciter)) return state.reciter;
   }
   if (state.role !== "teacher" && state.peers.size >= 2) {
-    const teacher = [...state.peers.values()].find((p) => p.role === "teacher");
+    const teacher = [...state.peers.values()].find((p) => p.role === "teacher") || [...state.peers.values()].find((p) => p.role === "admin");
     if (teacher) return teacher.id;
   }
   return null;
@@ -834,7 +913,7 @@ function repaintTiles() {
 
 // الطلاب الرافعون أيديهم مرتّبين حسب أسبقية الرفع
 function handQueue() {
-  return [...state.peers.values()].filter((p) => p.hand && p.role !== "teacher").sort((a, b) => a.handAt - b.handAt);
+  return [...state.peers.values()].filter((p) => p.hand && !isStaff(p.role)).sort((a, b) => a.handAt - b.handAt);
 }
 
 // النجوم تُحفظ بالمعرّف الثابت حتى لا تضيع عند التنقل بين الغرف
@@ -868,7 +947,7 @@ function setReciter(id) {
 }
 
 function startRecite(id) {
-  if (state.role !== "teacher") return;
+  if (!isStaff(state.role)) return;
   setReciter(id);
   signal("recite", { id });
 }
@@ -880,7 +959,7 @@ function endRecite() {
 
 function gradeReciter(grade) {
   const id = state.reciter;
-  if (!id || state.role !== "teacher") return;
+  if (!id || !isStaff(state.role)) return;
   const key = cidOf(id);
   const total = (state.stars[key] || 0) + GRADES[grade].stars;
   state.stars[key] = total;
@@ -905,7 +984,7 @@ function receiveGrade(to, cid, grade, total) {
 
 function updateReciteUI() {
   const id = state.reciter;
-  const isTeacher = state.role === "teacher";
+  const isTeacher = isStaff(state.role);
   $("gradeCard").hidden = !id || !isTeacher;
   $("reciteBanner").hidden = !id || isTeacher;
   if (!id) return;
@@ -1065,7 +1144,7 @@ function enterRoom() {
   state.pinned = null;
   state.inviteDismissed = false;
   state.sessionStars = 0;
-  $("breakoutBtn").hidden = state.role !== "teacher" || DEMO;
+  applyRole();
   updateRoomUI();
   $("inviteLink").textContent = meetingLink().replace(/^https?:\/\//, "");
   $("roomElapsed").textContent = "00:00";
@@ -1243,8 +1322,30 @@ $("chatForm").addEventListener("submit", (e) => {
   $("chatInput").value = "";
 });
 
+// يحدّث الواجهة حسب دوري (معلّم/مشرف/طالب)
+function applyRole() {
+  $("breakoutBtn").hidden = !isStaff(state.role) || DEMO;
+  updateReciteUI();
+  updateLocalTile();
+  renderPeople();
+}
+
+async function setAdmin(cid, admin) {
+  try {
+    const r = await fetch(`/api/rooms/${state.room}/promote`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ from: state.myId, cid, admin }),
+    });
+    if (!r.ok) throw new Error();
+  } catch {
+    toast("تعذر تغيير الصلاحية، حاول مرة أخرى");
+  }
+}
+
 function renderPeople() {
-  const isTeacher = state.role === "teacher";
+  const isTeacher = isStaff(state.role);
+  const isHost = state.role === "teacher" && !DEMO;
   const queue = handQueue();
 
   // طابور التسميع (يراه الجميع، والمعلّم يستطيع مناداة الطالب)
@@ -1267,26 +1368,30 @@ function renderPeople() {
   list.innerHTML = "";
   const me = { ...myStatus(), id: "local", sid: state.myId, skey: state.cid, name: `${state.name} (أنت)` };
   const everyone = [me, ...[...state.peers.values()].map((p) => ({ ...p, sid: p.id, skey: p.cid }))];
-  everyone.sort((a, b) => (b.role === "teacher") - (a.role === "teacher") || (state.stars[b.skey] || 0) - (state.stars[a.skey] || 0));
+  const rank = (r) => (r === "teacher" ? 2 : r === "admin" ? 1 : 0);
+  everyone.sort((a, b) => rank(b.role) - rank(a.role) || (state.stars[b.skey] || 0) - (state.stars[a.skey] || 0));
   const pin = effectivePin();
   for (const p of everyone) {
     const stars = state.stars[p.skey] || 0;
-    const canRecite = isTeacher && p.id !== "local" && p.role !== "teacher";
+    const canRecite = isTeacher && p.id !== "local" && !isStaff(p.role);
+    const canPromote = isHost && p.id !== "local" && p.role !== "teacher";
     const reciting = state.reciter && state.reciter === p.sid;
     const li = document.createElement("li");
     li.classList.toggle("reciting", !!reciting);
     li.innerHTML = `
       <span class="mini"></span>
-      <span class="pname"><span class="pn"></span><small${p.role === "teacher" ? "" : " hidden"}>المعلّم</small>${reciting ? '<small class="now">يُسمّع الآن</small>' : ""}</span>
+      <span class="pname"><span class="pn"></span><small class="r-${p.role}"${isStaff(p.role) ? "" : " hidden"}>${ROLE_LABEL[p.role] || ""}</small>${reciting ? '<small class="now">يُسمّع الآن</small>' : ""}</span>
       ${stars ? `<span class="pstars">⭐ ${stars}</span>` : ""}
       <span class="icons">${p.hand ? icon("hand", "hand") : ""}${p.mic ? icon("mic") : icon("mic-off", "muted-i")}</span>
       ${canRecite ? `<button class="icon-btn recite-btn" type="button" title="ابدأ تسميعه">${icon("book")}</button>` : ""}
+      ${canPromote ? `<button class="icon-btn admin-btn${p.role === "admin" ? " active" : ""}" type="button" title="${p.role === "admin" ? "إلغاء الإشراف" : "تعيينه مشرفاً"}">${icon("shield")}</button>` : ""}
       <button class="icon-btn pin${pin === p.id ? " active" : ""}" type="button" title="${pin === p.id ? "إلغاء التثبيت" : "تثبيت في الوسط"}">${icon("pin")}</button>`;
     li.querySelector(".mini").textContent = initial(p.name);
     li.querySelector(".mini").style.background = colorFor(p.name.replace(" (أنت)", ""));
     li.querySelector(".pn").textContent = p.name;
     li.querySelector(".pin").addEventListener("click", () => togglePin(p.id));
     li.querySelector(".recite-btn")?.addEventListener("click", () => startRecite(p.id));
+    li.querySelector(".admin-btn")?.addEventListener("click", () => setAdmin(p.cid, p.role !== "admin"));
     list.appendChild(li);
   }
   $("peopleCount").textContent = everyone.length;
@@ -1489,15 +1594,22 @@ document.addEventListener("keydown", (e) => {
   $("breakoutModal").hidden = true;
 });
 
-$("scheduleForm").addEventListener("submit", (e) => {
+$("scheduleForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const start = new Date($("sStart").value).getTime();
   if (!start || start < Date.now() - 60000) {
     $("scheduleError").textContent = "اختر موعداً في المستقبل";
     return;
   }
+  let code;
+  try {
+    code = await createRoom();
+  } catch {
+    $("scheduleError").textContent = "تعذر إنشاء الحلقة، تأكد من الاتصال وحاول مرة أخرى";
+    return;
+  }
   const m = {
-    code: genCode(),
+    code,
     title: $("sTitle").value.trim() || "حلقة",
     start,
     duration: Number($("sDuration").value),
@@ -1553,7 +1665,7 @@ function applyBreakout(b) {
   state.breakout = b?.open ? b : null;
   const main = state.code;
   let target = state.room;
-  if (state.role === "teacher") {
+  if (isStaff(state.role)) {
     if (!state.breakout && state.room !== main) target = main;
   } else if (state.breakout) {
     const mine = state.breakout.rooms.find((r) => r.members.includes(state.cid));
@@ -1638,7 +1750,7 @@ async function breakoutAction(body) {
 }
 
 function boStudents() {
-  return [...state.peers.values()].filter((p) => p.role !== "teacher");
+  return [...state.peers.values()].filter((p) => !isStaff(p.role));
 }
 
 function autoAssign() {
@@ -1856,7 +1968,7 @@ function slugify(v) {
 function updateSlugPreview() {
   const slug = $("tSlug").value;
   const ok = ROOM_RE.test(slug);
-  $("tSlugPreview").textContent = (DEMO ? "" : `${location.host}/`) + (slug || "…");
+  $("tSlugPreview").textContent = (DEMO ? "" : `${location.host}/`) + (slug || "…") + "-•••";
   $("tSlugPreview").classList.toggle("bad", !!slug && !ok);
   return ok;
 }
@@ -1895,7 +2007,7 @@ $("tSlug").addEventListener("input", () => {
   updateSlugPreview();
 });
 
-$("termForm").addEventListener("submit", (e) => {
+$("termForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const slug = slugify($("tSlug").value);
   $("tSlug").value = slug;
@@ -1908,8 +2020,15 @@ $("termForm").addEventListener("submit", (e) => {
     $("termError").textContent = "اختر يوماً واحداً على الأقل";
     return;
   }
+  let code;
+  try {
+    code = await createRoom(slug);
+  } catch {
+    $("termError").textContent = "تعذر إنشاء الغرفة، تأكد من الاتصال وحاول مرة أخرى";
+    return;
+  }
   const t = {
-    code: slug,
+    code,
     title: $("tTitle").value.trim() || "الغرفة الثابتة",
     days,
     time: $("tTime").value || "16:30",
@@ -1922,6 +2041,7 @@ $("termForm").addEventListener("submit", (e) => {
   $("tLink").textContent = link;
   $("tDemoNote").hidden = !DEMO;
   $("tDemoSlug").textContent = t.code;
+  $("tHostLink").hidden = !teacherLink(t.code);
   $("tSummary").textContent = `${t.title} — ${daysText(t.days)} الساعة ${timeText(t.time)}${t.until ? ` حتى ${new Date(t.until).toLocaleDateString("ar", { day: "numeric", month: "long" })}` : ""}`;
   const first = nextOccurrence(t) || new Date();
   const g = new URL("https://calendar.google.com/calendar/render");
@@ -1936,6 +2056,7 @@ $("termForm").addEventListener("submit", (e) => {
   $("termResult").hidden = false;
 });
 
+$("tHostLink").addEventListener("click", () => lastTerm && copyText(teacherLink(lastTerm.code), "تم نسخ رابط المعلّم — احتفظ به ولا ترسله للطلاب"));
 $("tCopy").addEventListener("click", () => lastTerm && copyText(termInvite(lastTerm), "تم نسخ الدعوة — أرسلها لطلابك مرة واحدة"));
 $("tIcs").addEventListener("click", () => {
   if (!lastTerm) return;
