@@ -53,7 +53,7 @@ const MIME = {
   ".webmanifest": "application/manifest+json",
 };
 
-// roomId -> Map(peerId -> { id, cid, name, role, res })
+// roomId -> Map(peerId -> { id, cid, name, role, push })
 const rooms = new Map();
 // الحلقة الرئيسية -> حالة الغرف الفرعية { open, rooms: [{ id, name, members: [cid], names: [name] }] }
 const breakouts = new Map();
@@ -71,13 +71,14 @@ function broadcastFamily(main, event, data) {
   for (const room of familyRooms(main)) broadcast(room, event, data);
 }
 
-function send(res, event, data) {
-  res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+// إرسال حدث لمشارك: عبر قناة SSE، أو يُحفظ في طابوره إن كان يتصل بالاستطلاع (polling)
+function send(peer, event, data) {
+  peer.push(event, JSON.stringify(data));
 }
 
 function broadcast(room, event, data, exceptId) {
   for (const peer of room.values()) {
-    if (peer.id !== exceptId) send(peer.res, event, data);
+    if (peer.id !== exceptId) send(peer, event, data);
   }
 }
 
@@ -90,14 +91,17 @@ function cleanName(name) {
   return String(name || "").trim().slice(0, 40) || "ضيف";
 }
 
-function handleEvents(req, res, roomId, url) {
+// إضافة مشارك للغرفة — مشترك بين طريقتي الاتصال. يرجع null إن كانت الغرفة ممتلئة
+function addPeer(roomId, url, push) {
   let room = rooms.get(roomId);
   if (!room) {
     room = new Map();
     rooms.set(roomId, room);
   }
-  if (room.size >= MAX_PEERS) return json(res, 403, { error: "room_full" });
-
+  if (room.size >= MAX_PEERS) {
+    if (room.size === 0) rooms.delete(roomId);
+    return null;
+  }
   const id = crypto.randomUUID();
   const name = cleanName(url.searchParams.get("name"));
   const cid = String(url.searchParams.get("cid") || id).slice(0, 64);
@@ -105,30 +109,112 @@ function handleEvents(req, res, roomId, url) {
   const main = mainOf(roomId);
   const role = isHostKey(main, url.searchParams.get("key")) ? "teacher" : admins.get(main)?.has(cid) ? "admin" : "student";
 
+  const peers = [...room.values()].map((p) => ({ id: p.id, cid: p.cid, name: p.name, role: p.role }));
+  const peer = { id, cid, name, role, push };
+  room.set(id, peer);
+  send(peer, "welcome", { id, role, peers, breakout: breakouts.get(main) || null });
+  broadcast(room, "peer-joined", { id, cid, name, role }, id);
+  return peer;
+}
+
+function removePeer(roomId, id) {
+  const room = rooms.get(roomId);
+  if (!room || !room.delete(id)) return;
+  broadcast(room, "peer-left", { id });
+  if (room.size === 0) rooms.delete(roomId);
+  // إذا فرغت الحلقة كلها نحذف حالة غرفها
+  const main = mainOf(roomId);
+  if (familyRooms(main).length === 0) {
+    breakouts.delete(main);
+    admins.delete(main);
+  }
+}
+
+const isFull = (roomId) => (rooms.get(roomId)?.size || 0) >= MAX_PEERS;
+
+// الطريقة الأولى: قناة أحداث مستمرة (Server-Sent Events)
+function handleEvents(req, res, roomId, url) {
+  if (isFull(roomId)) return json(res, 403, { error: "room_full" });
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache, no-transform",
     Connection: "keep-alive",
     "X-Accel-Buffering": "no",
+    "Content-Encoding": "identity",
   });
-  res.write("retry: 3000\n\n");
-
-  const peers = [...room.values()].map((p) => ({ id: p.id, cid: p.cid, name: p.name, role: p.role }));
-  room.set(id, { id, cid, name, role, res });
-  send(res, "welcome", { id, role, peers, breakout: breakouts.get(main) || null });
-  broadcast(room, "peer-joined", { id, cid, name, role }, id);
-
-  const heartbeat = setInterval(() => res.write(": ping\n\n"), 20000);
-
+  // حشوة في البداية حتى لا تحبس بعض الوسائط (proxy) الأحداث الصغيرة في ذاكرتها
+  res.write(`:${" ".repeat(2048)}\nretry: 3000\n\n`);
+  const peer = addPeer(roomId, url, (event, data) => res.write(`event: ${event}\ndata: ${data}\n\n`));
+  const heartbeat = setInterval(() => res.write(": ping\n\n"), 15000);
   req.on("close", () => {
     clearInterval(heartbeat);
-    room.delete(id);
-    broadcast(room, "peer-left", { id });
-    if (room.size === 0) rooms.delete(roomId);
-    // إذا فرغت الحلقة كلها نحذف حالة غرفها
-    if (familyRooms(main).length === 0) {
-      breakouts.delete(main);
-      admins.delete(main);
+    removePeer(roomId, peer.id);
+  });
+}
+
+// الطريقة الاحتياطية: استطلاع طويل (long polling) لمن تحجب شبكته قناة الأحداث.
+// أول طلب بدون pid ينشئ المشارك، وكل طلب بعده يستلم الأحداث الجديدة (ack = آخر حدث وصله)
+const POLL_HOLD = 25000;
+const POLL_EXPIRE = 45000;
+const pollers = new Map(); // pid -> { roomId, peer, queue, seq, waiting, expire }
+
+function flushPoll(p) {
+  if (!p.waiting || !p.queue.length) return;
+  const { res, timer } = p.waiting;
+  clearTimeout(timer);
+  p.waiting = null;
+  json(res, 200, { pid: p.peer.id, events: p.queue });
+}
+
+function expirePoll(p) {
+  clearTimeout(p.expire);
+  p.expire = setTimeout(() => dropPoll(p.peer.id), POLL_EXPIRE);
+}
+
+function dropPoll(pid) {
+  const p = pollers.get(pid);
+  if (!p) return;
+  pollers.delete(pid);
+  clearTimeout(p.expire);
+  if (p.waiting) {
+    clearTimeout(p.waiting.timer);
+    json(p.waiting.res, 410, { error: "gone" });
+  }
+  removePeer(p.roomId, pid);
+}
+
+function handlePoll(req, res, roomId, url) {
+  const pid = url.searchParams.get("pid");
+  if (!pid) {
+    if (isFull(roomId)) return json(res, 403, { error: "room_full" });
+    const p = { roomId, queue: [], seq: 0, waiting: null, expire: 0 };
+    p.peer = addPeer(roomId, url, (event, data) => {
+      p.queue.push({ seq: ++p.seq, event, data });
+      flushPoll(p);
+    });
+    pollers.set(p.peer.id, p);
+    expirePoll(p);
+    return json(res, 200, { pid: p.peer.id, events: p.queue });
+  }
+  const p = pollers.get(pid);
+  if (!p || p.roomId !== roomId) return json(res, 410, { error: "gone" });
+  const ack = Number(url.searchParams.get("ack")) || 0;
+  p.queue = p.queue.filter((e) => e.seq > ack);
+  expirePoll(p);
+  if (p.waiting) {
+    clearTimeout(p.waiting.timer);
+    json(p.waiting.res, 200, { pid, events: [] });
+  }
+  if (p.queue.length) return json(res, 200, { pid, events: p.queue });
+  const timer = setTimeout(() => {
+    p.waiting = null;
+    json(res, 200, { pid, events: [] });
+  }, POLL_HOLD);
+  p.waiting = { res, timer };
+  req.on("close", () => {
+    if (p.waiting?.res === res) {
+      clearTimeout(timer);
+      p.waiting = null;
     }
   });
 }
@@ -254,7 +340,7 @@ function handleSignal(req, res, roomId) {
     const payload = { from: msg.from, type: msg.type, data: msg.data };
     if (msg.to) {
       const target = room.get(msg.to);
-      if (target) send(target.res, "signal", payload);
+      if (target) send(target, "signal", payload);
     } else {
       broadcast(room, "signal", payload, msg.from);
     }
@@ -291,11 +377,19 @@ const server = http.createServer((req, res) => {
     return json(res, 200, { ok: true, rooms: rooms.size, peers });
   }
   if (url.pathname === "/api/rooms" && req.method === "POST") return handleCreate(req, res);
-  const m = url.pathname.match(/^\/api\/rooms\/([^/]+)\/(events|signal|peers|breakout|promote)$/);
+  const m = url.pathname.match(/^\/api\/rooms\/([^/]+)\/(events|poll|leave|signal|peers|breakout|promote)$/);
   if (m) {
     const [, roomId, action] = m;
     if (!API_ROOM_RE.test(roomId)) return json(res, 400, { error: "bad_room" });
     if (action === "events" && req.method === "GET") return handleEvents(req, res, roomId, url);
+    if (action === "poll" && req.method === "GET") return handlePoll(req, res, roomId, url);
+    if (action === "leave" && req.method === "POST") {
+      // مغادرة مستخدم الاستطلاع (يُرسل عند إغلاق الصفحة)
+      return readJson(req, res, (msg) => {
+        if (pollers.get(String(msg.from))?.roomId === roomId) dropPoll(String(msg.from));
+        json(res, 200, { ok: true });
+      });
+    }
     if (action === "signal" && req.method === "POST") return handleSignal(req, res, roomId);
     if (action === "breakout" && req.method === "POST") return handleBreakout(req, res, roomId);
     if (action === "promote" && req.method === "POST") return handlePromote(req, res, roomId);

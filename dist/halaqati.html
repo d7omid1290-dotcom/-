@@ -2315,11 +2315,14 @@ function connect(roomId) {
   const params = new URLSearchParams({ name: state.name, cid: state.cid });
   const key = getKey(state.code);
   if (key) params.set("key", key);
-  const es = new EventSource(`/api/rooms/${roomId}/events?${params}`);
-  state.es = es;
+  // القناة: أحداث مستمرة (SSE)، وإن حجبتها الشبكة ننتقل تلقائياً للاستطلاع (polling)
+  const handlers = {};
+  const ch = state.usePoll ? pollChannel(roomId, params, handlers) : sseChannel(roomId, params, handlers);
+  state.es = ch;
 
   // أحداث قناة قديمة (بعد الانتقال لغرفة أخرى) نتجاهلها
-  const on = (name, fn) => es.addEventListener(name, (e) => es === state.es && fn(e));
+  const on = (name, fn) => (handlers[name] = (e) => ch === state.es && fn(e));
+  const es = ch;
 
   on("welcome", (e) => {
     const { id, role, peers, breakout } = JSON.parse(e.data);
@@ -2372,17 +2375,122 @@ function connect(roomId) {
 
   on("signal", (e) => handleSignal(JSON.parse(e.data)).catch(() => {}));
 
-  es.onerror = () => {
+  handlers.error = (fatal) => {
     if (es !== state.es) return;
-    if (!state.joinedAt) {
+    if (!state.joinedAt || fatal) {
       es.close();
       state.es = null;
       $("joinNowBtn").disabled = false;
-      $("lobbyError").textContent = "تعذر الاتصال بالخادم، أو أن الحلقة ممتلئة.";
+      if (state.joinedAt) {
+        toast("انقطع الاتصال بالحلقة… جارٍ إعادة الدخول");
+        setTimeout(() => !state.es && state.joinedAt && connect(roomId), 1500);
+      } else {
+        explainJoinError(fatal);
+      }
     } else {
       toast("انقطع الاتصال… جارٍ إعادة المحاولة");
     }
   };
+}
+
+// قناة الأحداث المستمرة. إن لم تصل رسالة الترحيب خلال ثوانٍ (شبكة أو وسيط يحبسها) ننتقل للاستطلاع
+const WELCOME_TIMEOUT = 7000;
+function sseChannel(roomId, params, handlers) {
+  const es = new EventSource(`/api/rooms/${roomId}/events?${params}`);
+  let welcomed = false;
+  const ch = { close: () => es.close() };
+  const fallback = () => {
+    if (welcomed || state.es !== ch) return;
+    es.close();
+    state.usePoll = true;
+    connect(roomId);
+  };
+  const timer = setTimeout(fallback, WELCOME_TIMEOUT);
+  for (const name of ["welcome", "peer-joined", "peer-left", "signal", "breakout", "role", "announce"]) {
+    es.addEventListener(name, (e) => {
+      if (name === "welcome") {
+        welcomed = true;
+        clearTimeout(timer);
+      }
+      handlers[name]?.(e);
+    });
+  }
+  es.onerror = () => {
+    if (state.es !== ch) return;
+    // قبل الترحيب نجرّب الاستطلاع مباشرة بدل إظهار خطأ
+    if (!welcomed) {
+      clearTimeout(timer);
+      return fallback();
+    }
+    handlers.error?.(false);
+  };
+  return ch;
+}
+
+// الاستطلاع الطويل: طلب ينتظر حتى تصل أحداث جديدة ثم يُعاد فوراً
+function pollChannel(roomId, params, handlers) {
+  let pid = null;
+  let ack = 0;
+  let closed = false;
+  let fails = 0;
+  let ctrl = null;
+  const ch = {
+    close() {
+      closed = true;
+      ctrl?.abort();
+      if (pid) {
+        const body = JSON.stringify({ from: pid });
+        if (!navigator.sendBeacon?.(`/api/rooms/${roomId}/leave`, new Blob([body], { type: "application/json" }))) {
+          fetch(`/api/rooms/${roomId}/leave`, { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true }).catch(() => {});
+        }
+      }
+    },
+  };
+  (async () => {
+    while (!closed) {
+      ctrl = new AbortController();
+      const q = pid ? new URLSearchParams({ pid, ack }) : params;
+      let r;
+      try {
+        r = await fetch(`/api/rooms/${roomId}/poll?${q}`, { signal: ctrl.signal, cache: "no-store" });
+      } catch {
+        if (closed) return;
+        if (++fails >= 4) return handlers.error?.(true);
+        handlers.error?.(false);
+        await new Promise((res) => setTimeout(res, 1500));
+        continue;
+      }
+      if (closed) return;
+      const body = await r.json().catch(() => null);
+      if (!r.ok || !body || !Array.isArray(body.events)) {
+        // 403: ممتلئة، 410: انتهت الجلسة، وغير JSON: الرابط ليس خادم وصل
+        return handlers.error?.(body ? body.error || true : "no_server");
+      }
+      fails = 0;
+      pid = body.pid;
+      for (const ev of body.events) {
+        if (ev.seq <= ack) continue;
+        ack = ev.seq;
+        if (closed) return;
+        handlers[ev.event]?.({ data: ev.data });
+      }
+    }
+  })();
+  return ch;
+}
+
+// سبب واضح لتعذّر الدخول
+async function explainJoinError(reason) {
+  let msg = "تعذر الاتصال بالخادم، أو أن الحلقة ممتلئة.";
+  if (reason === "room_full") msg = "الحلقة ممتلئة (25 مشاركاً).";
+  else {
+    const ok = await fetch("/healthz", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => j && j.ok)
+      .catch(() => false);
+    if (!ok) msg = "هذا الرابط لا يعمل عليه خادم «وصل»، لذلك لن يلتقي المشاركون. افتح رابط الخدمة الصحيح من Render.";
+  }
+  $("lobbyError").textContent = msg;
 }
 
 const isClosed = (peer) => !peer || peer.pc.signalingState === "closed";
@@ -2888,7 +2996,7 @@ function floatReaction(tile, emoji) {
 
 // إبراز من يتحدث
 function watchLevel(stream, tile) {
-  if (!state.audioCtx || !stream.getAudioTracks().length) return;
+  if (!state.audioCtx || !stream?.getAudioTracks().length) return;
   try {
     const src = state.audioCtx.createMediaStreamSource(stream);
     const analyser = state.audioCtx.createAnalyser();
