@@ -1030,7 +1030,101 @@ input[type="time"], input[type="date"] { color-scheme: dark; }
   .corner-logo { height: 40px; }
   .room-logo { height: 38px; top: 14px; inset-inline-end: 14px; }
 }
+
+/* ===================================================== */
+/* ===== الوضع النهاري ===== */
+/* ===================================================== */
+.theme-btn { color: var(--muted); }
+.theme-btn:hover { color: var(--text); }
+.theme-btn .sun { display: none; }
+:root[data-theme="light"] .theme-btn .sun { display: block; }
+:root[data-theme="light"] .theme-btn .moon { display: none; }
+
+:root[data-theme="light"] {
+  --bg: #f6f7fb;
+  --bg-2: #ffffff;
+  --glass: rgba(255, 255, 255, .72);
+  --glass-2: rgba(255, 255, 255, .95);
+  --glass-border: rgba(15, 23, 42, .1);
+  --text: #0f172a;
+  --muted: #526077;
+  --faint: #8792a8;
+  --blue: #4c6ef5;
+  --violet: #7c3aed;
+  --teal: #0d9488;
+  --grad: linear-gradient(135deg, #4c6ef5, #7c3aed);
+  --grad-text: linear-gradient(100deg, #3b5bdb 0%, #7c3aed 50%, #0d9488 100%);
+  color-scheme: light;
+}
+/* غرفة الحلقة والاحتفال يبقيان داكنين في الوضعين (أفضل للفيديو) */
+:root[data-theme="light"] :is(.room, .celebrate) {
+  --bg: #070b1a; --bg-2: #0c1229;
+  --glass: rgba(255, 255, 255, .055); --glass-2: rgba(255, 255, 255, .09); --glass-border: rgba(255, 255, 255, .12);
+  --text: #eef1ff; --muted: #9aa3c7; --faint: #6b7399;
+  --blue: #5b8cff; --violet: #8b5cf6; --teal: #2dd4bf;
+  --grad: linear-gradient(135deg, #5b8cff, #8b5cf6);
+  --grad-text: linear-gradient(100deg, #7aa2ff 0%, #a78bfa 45%, #2dd4bf 100%);
+  color-scheme: dark; color: var(--text);
+}
+:root[data-theme="light"] .room { background: #070b1a; }
+:root[data-theme="light"] body::before { background: radial-gradient(circle, rgba(76, 110, 245, .18), transparent 65%); }
+:root[data-theme="light"] body::after { background: radial-gradient(circle, rgba(124, 58, 237, .14), transparent 65%); }
+
+/* النصوص والروابط */
+:root[data-theme="light"] :is(.btn-text, .btn-ghost, .link-btn) { color: #3b5bdb; }
+:root[data-theme="light"] .link-btn:hover { color: #2b44b0; }
+:root[data-theme="light"] .eyebrow { color: #3b5bdb; background: #fff; }
+:root[data-theme="light"] :is(.link-box, .slug-preview) { color: #3b5bdb; }
+:root[data-theme="light"] .btn-danger { color: #be123c; }
+:root[data-theme="light"] .teacher-card .show-badge { color: #3b5bdb; background: rgba(76, 110, 245, .12); }
+:root[data-theme="light"] .student-card .show-badge { color: #b45309; background: rgba(245, 158, 11, .14); }
+:root[data-theme="light"] .left-stars b { color: #b45309; }
+:root[data-theme="light"] .ayah-card figcaption { color: #b45309; }
+
+/* الحقول والبطاقات */
+:root[data-theme="light"] :where(#home, #lobby, #left, .modal) :is(input, select) { background: #fff; }
+:root[data-theme="light"] .join-form { background: #fff; }
+:root[data-theme="light"] .join-form input { background: transparent; }
+:root[data-theme="light"] .join-go:disabled { background: rgba(15, 23, 42, .08); color: var(--muted); }
+:root[data-theme="light"] :is(.perks li, .devices label, .code-chip, .day span) { background: #fff; }
+:root[data-theme="light"] :is(.roles, .stepper, .link-box) { background: rgba(15, 23, 42, .05); }
+:root[data-theme="light"] .stepper button { background: #fff; box-shadow: 0 1px 2px rgba(15, 23, 42, .1); }
+:root[data-theme="light"] .role span { color: var(--muted); }
+:root[data-theme="light"] :is(.bo-chip, .bo-n) { background: rgba(15, 23, 42, .06); }
+:root[data-theme="light"] .bo-room-head input { background: rgba(255, 255, 255, .8); }
+:root[data-theme="light"] :is(.lobby-side, .show-card, .upcoming) { background: rgba(255, 255, 255, .8); box-shadow: 0 1px 3px rgba(15, 23, 42, .06), 0 12px 32px rgba(15, 23, 42, .06); }
+:root[data-theme="light"] .upcoming li { border-top-color: rgba(15, 23, 42, .07); }
+:root[data-theme="light"] .site-footer { border-top-color: rgba(15, 23, 42, .08); }
+:root[data-theme="light"] .sc-icon { background: #fff; }
+
+/* المدار والبطاقات العائمة */
+:root[data-theme="light"] .ring { border-color: rgba(15, 23, 42, .08); }
+:root[data-theme="light"] .ring.r1 { border-color: rgba(76, 110, 245, .25); }
+:root[data-theme="light"] .ring.r3 { border-color: rgba(124, 58, 237, .2); box-shadow: 0 0 80px rgba(124, 58, 237, .12); }
+:root[data-theme="light"] .core { background: radial-gradient(circle at 30% 25%, #fff, #eef1fb); box-shadow: 0 12px 40px rgba(15, 23, 42, .1); }
+:root[data-theme="light"] .float-card { background: rgba(255, 255, 255, .92); box-shadow: 0 16px 40px rgba(15, 23, 42, .12); }
+:root[data-theme="light"] .op i { border-color: #fff; }
+
+/* النوافذ */
+:root[data-theme="light"] .modal-backdrop { background: rgba(15, 23, 42, .35); }
+:root[data-theme="light"] .modal-card { background: #fff; box-shadow: 0 30px 80px rgba(15, 23, 42, .25); }
+:root[data-theme="light"] .toast { background: #0f172a; color: #fff; }
+
+/* الشعار: أسود كما هو، وتختفي خلفيته البيضاء */
+:root[data-theme="light"] .corner-logo { filter: none; mix-blend-mode: multiply; }
+/* الخيارات المحددة تبقى متدرجة وواضحة في الوضع النهاري */
+:root[data-theme="light"] .day input:checked + span { background: var(--grad); color: #fff; border-color: transparent; }
+:root[data-theme="light"] .role input:checked + span { color: #fff; }
 </style>
+  <script>
+    // نطبّق الوضع (نهاري/ليلي) قبل ظهور الصفحة حتى لا تومض
+    (function () {
+      var t;
+      try { t = localStorage.getItem("wasl:theme"); } catch (e) {}
+      if (t !== "light" && t !== "dark") t = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      document.documentElement.dataset.theme = t;
+    })();
+  </script>
 </head>
 <body>
   <!-- مكتبة الأيقونات -->
@@ -1061,6 +1155,8 @@ input[type="time"], input[type="date"] { color-scheme: dark; }
       <symbol id="i-google" viewBox="0 0 24 24"><path d="M20.5 12.2c0-.6-.1-1.2-.2-1.7H12v3.3h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.6-3.9 2.6-6.5zM12 21c2.4 0 4.5-.8 5.9-2.2L15 16.5c-.8.5-1.8.9-3 .9-2.3 0-4.3-1.6-5-3.7H4v2.3A9 9 0 0 0 12 21zM7 13.7a5.4 5.4 0 0 1 0-3.4V8H4a9 9 0 0 0 0 8.1zM12 6.6c1.3 0 2.5.5 3.4 1.3L18 5.4A9 9 0 0 0 4 8l3 2.3c.7-2.1 2.7-3.7 5-3.7z" fill="currentColor" stroke="none"/></symbol>
       <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
       <symbol id="i-rooms" viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/></symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7z"/></symbol>
       <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
       <!-- علامة وصل: أشخاص متّصلون في حلقة -->
       <linearGradient id="mg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b8cff"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient>
@@ -1079,6 +1175,7 @@ input[type="time"], input[type="date"] { color-scheme: dark; }
         <span class="wordmark"><b>وصل</b><em>بالقرآن نتّصل</em></span>
       </div>
       <div class="topbar-side">
+        <button class="icon-btn theme-btn" type="button" data-theme-toggle><svg class="i sun"><use href="#i-sun"/></svg><svg class="i moon"><use href="#i-moon"/></svg></button>
         <span class="clock" id="homeClock"></span>
         <img class="logo-img corner-logo" src="logo.png" alt="شعار مدرسة جامع الصحابة لتحفيظ القرآن الكريم">
       </div>
@@ -1177,7 +1274,10 @@ input[type="time"], input[type="date"] { color-scheme: dark; }
   <!-- شاشة ما قبل الدخول -->
   <section id="lobby" class="view" hidden>
     <header class="topbar">
-      <button class="btn btn-ghost" id="backHomeBtn"><svg class="i flip"><use href="#i-arrow"/></svg>الرئيسية</button>
+      <div class="topbar-side">
+        <button class="btn btn-ghost" id="backHomeBtn"><svg class="i flip"><use href="#i-arrow"/></svg>الرئيسية</button>
+        <button class="icon-btn theme-btn" type="button" data-theme-toggle><svg class="i sun"><use href="#i-sun"/></svg><svg class="i moon"><use href="#i-moon"/></svg></button>
+      </div>
       <div class="brand">
         <svg class="mark"><use href="#mark"/></svg>
         <span class="wordmark"><b>وصل</b><em>بالقرآن نتّصل</em></span>
@@ -1982,7 +2082,10 @@ function connect(roomId) {
   const es = new EventSource(`/api/rooms/${roomId}/events?${params}`);
   state.es = es;
 
-  es.addEventListener("welcome", (e) => {
+  // أحداث قناة قديمة (بعد الانتقال لغرفة أخرى) نتجاهلها
+  const on = (name, fn) => es.addEventListener(name, (e) => es === state.es && fn(e));
+
+  on("welcome", (e) => {
     const { id, peers, breakout } = JSON.parse(e.data);
     // عند إعادة الاتصال التلقائي نبدأ من جديد
     for (const p of [...state.peers.values()]) removePeer(p.id, true);
@@ -1994,27 +2097,27 @@ function connect(roomId) {
     layoutGrid();
   });
 
-  es.addEventListener("peer-joined", (e) => {
+  on("peer-joined", (e) => {
     const { id, name, cid } = JSON.parse(e.data);
     createPeer(id, name, false, cid);
     broadcastState(id);
     toast(`انضم ${name}`);
   });
 
-  es.addEventListener("breakout", (e) => applyBreakout(JSON.parse(e.data)));
-  es.addEventListener("announce", (e) => {
+  on("breakout", (e) => applyBreakout(JSON.parse(e.data)));
+  on("announce", (e) => {
     const { text, name } = JSON.parse(e.data);
     showAnnounce(name, text);
   });
 
-  es.addEventListener("peer-left", (e) => {
+  on("peer-left", (e) => {
     const { id } = JSON.parse(e.data);
     const p = state.peers.get(id);
     if (p) toast(`غادر ${p.name}`);
     removePeer(id);
   });
 
-  es.addEventListener("signal", (e) => handleSignal(JSON.parse(e.data)));
+  on("signal", (e) => handleSignal(JSON.parse(e.data)).catch(() => {}));
 
   es.onerror = () => {
     if (es !== state.es) return;
@@ -2029,6 +2132,8 @@ function connect(roomId) {
   };
 }
 
+const isClosed = (peer) => !peer || peer.pc.signalingState === "closed";
+
 async function handleSignal({ from, type, data }) {
   let peer = state.peers.get(from);
   switch (type) {
@@ -2037,13 +2142,12 @@ async function handleSignal({ from, type, data }) {
       await onOffer(peer, data);
       break;
     case "answer":
-      if (peer) {
-        await peer.pc.setRemoteDescription(data);
-        flushIce(peer);
-      }
+      if (isClosed(peer) || peer.pc.signalingState !== "have-local-offer") return;
+      await peer.pc.setRemoteDescription(data);
+      flushIce(peer);
       break;
     case "ice":
-      if (!peer) return;
+      if (isClosed(peer)) return;
       if (peer.pc.remoteDescription) peer.pc.addIceCandidate(data).catch(() => {});
       else peer.pendingIce.push(data);
       break;
@@ -2132,7 +2236,9 @@ function createPeer(id, name, initiator, cid) {
 
 async function makeOffer(peer, iceRestart = false) {
   try {
+    if (isClosed(peer)) return;
     const offer = await peer.pc.createOffer({ iceRestart });
+    if (isClosed(peer)) return;
     await peer.pc.setLocalDescription(offer);
     signal("offer", peer.pc.localDescription, peer.id);
     tuneSenders();
@@ -2143,13 +2249,17 @@ async function makeOffer(peer, iceRestart = false) {
 
 async function onOffer(peer, sdp) {
   const { pc } = peer;
+  if (isClosed(peer)) return;
   await pc.setRemoteDescription(sdp);
   for (const t of pc.getTransceivers()) {
+    if (isClosed(peer)) return;
     const kind = t.receiver.track.kind;
     t.direction = "sendrecv";
     await t.sender.replaceTrack(outgoingTrack(kind));
   }
+  if (isClosed(peer)) return;
   const answer = await pc.createAnswer();
+  if (isClosed(peer)) return;
   await pc.setLocalDescription(answer);
   signal("answer", pc.localDescription, peer.id);
   flushIce(peer);
@@ -2163,12 +2273,12 @@ function flushIce(peer) {
 function removePeer(id, silent) {
   const peer = state.peers.get(id);
   if (!peer) return;
+  disposeTile(peer.tile);
   peer.pc.close();
-  state.meters.delete(peer.tile);
-  peer.tile.remove();
   state.peers.delete(id);
   if (state.reciter === id) setReciter(null);
-  tuneSenders();
+  // عند الإزالة الجماعية (انتقال/مغادرة) لا نعدّل جودة اتصالات ستُغلق حالاً
+  if (!silent) tuneSenders();
   if (!silent) {
     renderPeople();
     layoutGrid();
@@ -2209,13 +2319,26 @@ function videoEncoding(remotes) {
 
 function tuneSenders() {
   const enc = videoEncoding(state.peers.size);
-  for (const { pc } of state.peers.values()) {
-    const sender = pc.getTransceivers().find((x) => x.receiver.track.kind === "video")?.sender;
+  for (const peer of state.peers.values()) {
+    if (isClosed(peer)) continue;
+    const sender = peer.pc.getTransceivers().find((x) => x.receiver.track.kind === "video")?.sender;
     if (!sender?.getParameters) continue;
+    // تعديل واحد في كل مرة لكل اتصال؛ وإن طُلب تعديل أثناء آخر نعيده بعده
+    if (sender.tuning) {
+      sender.retune = true;
+      continue;
+    }
     const params = sender.getParameters();
     if (!params.encodings?.length) continue; // قبل اكتمال التفاوض
     Object.assign(params.encodings[0], enc);
-    sender.setParameters(params).catch(() => {});
+    sender.tuning = true;
+    sender.setParameters(params).catch(() => {}).finally(() => {
+      sender.tuning = false;
+      if (sender.retune) {
+        sender.retune = false;
+        tuneSenders();
+      }
+    });
   }
 }
 
@@ -2466,8 +2589,30 @@ function watchLevel(stream, tile) {
     const analyser = state.audioCtx.createAnalyser();
     analyser.fftSize = 512;
     src.connect(analyser);
+    stopMeter(tile);
+    analyser.src = src;
     state.meters.set(tile, analyser);
   } catch {}
+}
+
+function stopMeter(tile) {
+  const old = state.meters.get(tile);
+  if (!old) return;
+  try {
+    old.src.disconnect();
+  } catch {}
+  state.meters.delete(tile);
+}
+
+// نوقف الفيديو ونحرّر مصدره قبل إزالة البلاطة، حتى لا تبقى إطارات معلّقة في المتصفح
+function disposeTile(tile) {
+  stopMeter(tile);
+  const video = tile.querySelector("video");
+  if (video) {
+    video.pause();
+    video.srcObject = null;
+  }
+  tile.remove();
 }
 
 const levelBuf = new Uint8Array(512);
@@ -2496,7 +2641,7 @@ function enterRoom() {
   $("joinNowBtn").disabled = false;
   show("room");
   $("roomCode").textContent = state.code;
-  $("grid").innerHTML = "";
+  for (const t of [...$("grid").children]) disposeTile(t);
   $("messages").innerHTML = '<p class="hint">الرسائل تظهر فقط للحاضرين في الحلقة الآن</p>';
   state.pinned = null;
   state.inviteDismissed = false;
@@ -2524,6 +2669,7 @@ function leave(navigate = true) {
   state.es?.close();
   state.es = null;
   for (const id of [...state.peers.keys()]) removePeer(id, true);
+  for (const t of [...$("grid").children]) disposeTile(t);
   state.meters.clear();
   stopMedia();
   state.myId = null;
@@ -3005,8 +3151,10 @@ function applyBreakout(b) {
 }
 
 function moveTo(target) {
-  for (const id of [...state.peers.keys()]) removePeer(id, true);
+  // نغلق قناة الأحداث أولاً حتى لا تصل إشارات للاتصالات التي سنغلقها
   state.es?.close();
+  state.es = null;
+  for (const id of [...state.peers.keys()]) removePeer(id, true);
   state.reciter = null;
   state.pinned = null;
   state.hand = false;
@@ -3021,7 +3169,11 @@ function moveTo(target) {
   const label = roomLabel(target);
   addNote(`انتقلت إلى ${label}`);
   toast(target === state.code ? "عدت إلى الحلقة الرئيسية" : `🚪 انتقلت إلى ${label}`);
-  connect(target);
+  // مهلة قصيرة حتى تُغلق الاتصالات القديمة تماماً قبل فتح الجديدة
+  clearTimeout(moveTo.t);
+  moveTo.t = setTimeout(() => {
+    if (state.room === target && state.joinedAt) connect(target);
+  }, 400);
 }
 
 function addNote(text) {
@@ -3391,6 +3543,28 @@ $("tGo").addEventListener("click", () => {
   $("termModal").hidden = true;
   goTo(lastTerm.code);
 });
+
+/* ---------- الوضع النهاري والليلي ---------- */
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  document.querySelector('meta[name="theme-color"]').content = theme === "light" ? "#f6f7fb" : "#070b1a";
+  for (const b of document.querySelectorAll("[data-theme-toggle]")) {
+    const label = theme === "light" ? "الوضع الليلي" : "الوضع النهاري";
+    b.title = label;
+    b.setAttribute("aria-label", label);
+  }
+}
+applyTheme(document.documentElement.dataset.theme === "light" ? "light" : "dark");
+for (const b of document.querySelectorAll("[data-theme-toggle]")) {
+  b.addEventListener("click", () => {
+    const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+    applyTheme(next);
+    try {
+      localStorage.setItem("wasl:theme", next);
+    } catch {}
+  });
+}
 
 window.addEventListener("beforeunload", () => state.es?.close());
 

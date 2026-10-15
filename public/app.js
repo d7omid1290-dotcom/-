@@ -489,7 +489,10 @@ function connect(roomId) {
   const es = new EventSource(`/api/rooms/${roomId}/events?${params}`);
   state.es = es;
 
-  es.addEventListener("welcome", (e) => {
+  // أحداث قناة قديمة (بعد الانتقال لغرفة أخرى) نتجاهلها
+  const on = (name, fn) => es.addEventListener(name, (e) => es === state.es && fn(e));
+
+  on("welcome", (e) => {
     const { id, peers, breakout } = JSON.parse(e.data);
     // عند إعادة الاتصال التلقائي نبدأ من جديد
     for (const p of [...state.peers.values()]) removePeer(p.id, true);
@@ -501,27 +504,27 @@ function connect(roomId) {
     layoutGrid();
   });
 
-  es.addEventListener("peer-joined", (e) => {
+  on("peer-joined", (e) => {
     const { id, name, cid } = JSON.parse(e.data);
     createPeer(id, name, false, cid);
     broadcastState(id);
     toast(`انضم ${name}`);
   });
 
-  es.addEventListener("breakout", (e) => applyBreakout(JSON.parse(e.data)));
-  es.addEventListener("announce", (e) => {
+  on("breakout", (e) => applyBreakout(JSON.parse(e.data)));
+  on("announce", (e) => {
     const { text, name } = JSON.parse(e.data);
     showAnnounce(name, text);
   });
 
-  es.addEventListener("peer-left", (e) => {
+  on("peer-left", (e) => {
     const { id } = JSON.parse(e.data);
     const p = state.peers.get(id);
     if (p) toast(`غادر ${p.name}`);
     removePeer(id);
   });
 
-  es.addEventListener("signal", (e) => handleSignal(JSON.parse(e.data)));
+  on("signal", (e) => handleSignal(JSON.parse(e.data)).catch(() => {}));
 
   es.onerror = () => {
     if (es !== state.es) return;
@@ -536,6 +539,8 @@ function connect(roomId) {
   };
 }
 
+const isClosed = (peer) => !peer || peer.pc.signalingState === "closed";
+
 async function handleSignal({ from, type, data }) {
   let peer = state.peers.get(from);
   switch (type) {
@@ -544,13 +549,12 @@ async function handleSignal({ from, type, data }) {
       await onOffer(peer, data);
       break;
     case "answer":
-      if (peer) {
-        await peer.pc.setRemoteDescription(data);
-        flushIce(peer);
-      }
+      if (isClosed(peer) || peer.pc.signalingState !== "have-local-offer") return;
+      await peer.pc.setRemoteDescription(data);
+      flushIce(peer);
       break;
     case "ice":
-      if (!peer) return;
+      if (isClosed(peer)) return;
       if (peer.pc.remoteDescription) peer.pc.addIceCandidate(data).catch(() => {});
       else peer.pendingIce.push(data);
       break;
@@ -639,7 +643,9 @@ function createPeer(id, name, initiator, cid) {
 
 async function makeOffer(peer, iceRestart = false) {
   try {
+    if (isClosed(peer)) return;
     const offer = await peer.pc.createOffer({ iceRestart });
+    if (isClosed(peer)) return;
     await peer.pc.setLocalDescription(offer);
     signal("offer", peer.pc.localDescription, peer.id);
     tuneSenders();
@@ -650,13 +656,17 @@ async function makeOffer(peer, iceRestart = false) {
 
 async function onOffer(peer, sdp) {
   const { pc } = peer;
+  if (isClosed(peer)) return;
   await pc.setRemoteDescription(sdp);
   for (const t of pc.getTransceivers()) {
+    if (isClosed(peer)) return;
     const kind = t.receiver.track.kind;
     t.direction = "sendrecv";
     await t.sender.replaceTrack(outgoingTrack(kind));
   }
+  if (isClosed(peer)) return;
   const answer = await pc.createAnswer();
+  if (isClosed(peer)) return;
   await pc.setLocalDescription(answer);
   signal("answer", pc.localDescription, peer.id);
   flushIce(peer);
@@ -670,12 +680,12 @@ function flushIce(peer) {
 function removePeer(id, silent) {
   const peer = state.peers.get(id);
   if (!peer) return;
+  disposeTile(peer.tile);
   peer.pc.close();
-  state.meters.delete(peer.tile);
-  peer.tile.remove();
   state.peers.delete(id);
   if (state.reciter === id) setReciter(null);
-  tuneSenders();
+  // عند الإزالة الجماعية (انتقال/مغادرة) لا نعدّل جودة اتصالات ستُغلق حالاً
+  if (!silent) tuneSenders();
   if (!silent) {
     renderPeople();
     layoutGrid();
@@ -716,13 +726,26 @@ function videoEncoding(remotes) {
 
 function tuneSenders() {
   const enc = videoEncoding(state.peers.size);
-  for (const { pc } of state.peers.values()) {
-    const sender = pc.getTransceivers().find((x) => x.receiver.track.kind === "video")?.sender;
+  for (const peer of state.peers.values()) {
+    if (isClosed(peer)) continue;
+    const sender = peer.pc.getTransceivers().find((x) => x.receiver.track.kind === "video")?.sender;
     if (!sender?.getParameters) continue;
+    // تعديل واحد في كل مرة لكل اتصال؛ وإن طُلب تعديل أثناء آخر نعيده بعده
+    if (sender.tuning) {
+      sender.retune = true;
+      continue;
+    }
     const params = sender.getParameters();
     if (!params.encodings?.length) continue; // قبل اكتمال التفاوض
     Object.assign(params.encodings[0], enc);
-    sender.setParameters(params).catch(() => {});
+    sender.tuning = true;
+    sender.setParameters(params).catch(() => {}).finally(() => {
+      sender.tuning = false;
+      if (sender.retune) {
+        sender.retune = false;
+        tuneSenders();
+      }
+    });
   }
 }
 
@@ -973,8 +996,30 @@ function watchLevel(stream, tile) {
     const analyser = state.audioCtx.createAnalyser();
     analyser.fftSize = 512;
     src.connect(analyser);
+    stopMeter(tile);
+    analyser.src = src;
     state.meters.set(tile, analyser);
   } catch {}
+}
+
+function stopMeter(tile) {
+  const old = state.meters.get(tile);
+  if (!old) return;
+  try {
+    old.src.disconnect();
+  } catch {}
+  state.meters.delete(tile);
+}
+
+// نوقف الفيديو ونحرّر مصدره قبل إزالة البلاطة، حتى لا تبقى إطارات معلّقة في المتصفح
+function disposeTile(tile) {
+  stopMeter(tile);
+  const video = tile.querySelector("video");
+  if (video) {
+    video.pause();
+    video.srcObject = null;
+  }
+  tile.remove();
 }
 
 const levelBuf = new Uint8Array(512);
@@ -1003,7 +1048,7 @@ function enterRoom() {
   $("joinNowBtn").disabled = false;
   show("room");
   $("roomCode").textContent = state.code;
-  $("grid").innerHTML = "";
+  for (const t of [...$("grid").children]) disposeTile(t);
   $("messages").innerHTML = '<p class="hint">الرسائل تظهر فقط للحاضرين في الحلقة الآن</p>';
   state.pinned = null;
   state.inviteDismissed = false;
@@ -1031,6 +1076,7 @@ function leave(navigate = true) {
   state.es?.close();
   state.es = null;
   for (const id of [...state.peers.keys()]) removePeer(id, true);
+  for (const t of [...$("grid").children]) disposeTile(t);
   state.meters.clear();
   stopMedia();
   state.myId = null;
@@ -1512,8 +1558,10 @@ function applyBreakout(b) {
 }
 
 function moveTo(target) {
-  for (const id of [...state.peers.keys()]) removePeer(id, true);
+  // نغلق قناة الأحداث أولاً حتى لا تصل إشارات للاتصالات التي سنغلقها
   state.es?.close();
+  state.es = null;
+  for (const id of [...state.peers.keys()]) removePeer(id, true);
   state.reciter = null;
   state.pinned = null;
   state.hand = false;
@@ -1528,7 +1576,11 @@ function moveTo(target) {
   const label = roomLabel(target);
   addNote(`انتقلت إلى ${label}`);
   toast(target === state.code ? "عدت إلى الحلقة الرئيسية" : `🚪 انتقلت إلى ${label}`);
-  connect(target);
+  // مهلة قصيرة حتى تُغلق الاتصالات القديمة تماماً قبل فتح الجديدة
+  clearTimeout(moveTo.t);
+  moveTo.t = setTimeout(() => {
+    if (state.room === target && state.joinedAt) connect(target);
+  }, 400);
 }
 
 function addNote(text) {
@@ -1898,6 +1950,28 @@ $("tGo").addEventListener("click", () => {
   $("termModal").hidden = true;
   goTo(lastTerm.code);
 });
+
+/* ---------- الوضع النهاري والليلي ---------- */
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  document.querySelector('meta[name="theme-color"]').content = theme === "light" ? "#f6f7fb" : "#070b1a";
+  for (const b of document.querySelectorAll("[data-theme-toggle]")) {
+    const label = theme === "light" ? "الوضع الليلي" : "الوضع النهاري";
+    b.title = label;
+    b.setAttribute("aria-label", label);
+  }
+}
+applyTheme(document.documentElement.dataset.theme === "light" ? "light" : "dark");
+for (const b of document.querySelectorAll("[data-theme-toggle]")) {
+  b.addEventListener("click", () => {
+    const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+    applyTheme(next);
+    try {
+      localStorage.setItem("wasl:theme", next);
+    } catch {}
+  });
+}
 
 window.addEventListener("beforeunload", () => state.es?.close());
 
