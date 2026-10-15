@@ -72,7 +72,6 @@
       <div class="topbar-side">
         <button class="icon-btn theme-btn" type="button" data-theme-toggle><svg class="i sun"><use href="#i-sun"/></svg><svg class="i moon"><use href="#i-moon"/></svg></button>
         <span class="clock" id="homeClock"></span>
-        <img class="logo-img corner-logo" src="logo.png" alt="شعار مدرسة جامع الصحابة لتحفيظ القرآن الكريم">
       </div>
     </header>
 
@@ -92,7 +91,7 @@
         </div>
         <p class="error" id="homeError" role="alert"></p>
         <div class="home-links">
-          <button class="link-btn" id="termBtn"><svg class="i"><use href="#i-link"/></svg>رابط ثابت للترم</button>
+          <button class="link-btn" id="termBtn"><svg class="i"><use href="#i-link"/></svg>غرفة ثابتة بنفس الرابط</button>
           <button class="link-btn" id="scheduleBtn"><svg class="i"><use href="#i-calendar"/></svg>جدولة حلقة لمرة واحدة</button>
         </div>
 
@@ -103,7 +102,7 @@
         </ul>
 
         <div class="upcoming terms" id="terms" hidden>
-          <h3>حلقاتي الثابتة</h3>
+          <h3>غرفي الثابتة</h3>
           <ul id="termsList"></ul>
         </div>
 
@@ -176,7 +175,6 @@
       <div class="brand">
         <svg class="mark"><use href="#mark"/></svg>
         <span class="wordmark"><b>وصل</b><em>بالقرآن نتّصل</em></span>
-        <img class="logo-img corner-logo" src="logo.png" alt="شعار مدرسة جامع الصحابة">
       </div>
     </header>
     <div class="lobby">
@@ -226,7 +224,6 @@
     <div class="recite-banner" id="reciteBanner" hidden><svg class="i"><use href="#i-book"/></svg><span id="reciteText"></span></div>
     <div class="rec-banner" id="recBanner" hidden><span class="rec-dot"></span><span id="recText">يتم تسجيل هذه الحلقة</span></div>
     <div class="stage">
-      <img class="logo-img room-logo" src="logo.png" alt="">
       <div class="grid" id="grid"></div>
       <div class="grade-card" id="gradeCard" hidden>
         <div class="grade-head">
@@ -362,16 +359,16 @@
     </div>
   </div>
 
-  <!-- رابط ثابت للترم -->
+  <!-- غرفة ثابتة بنفس الرابط -->
   <div class="modal" id="termModal" hidden>
     <div class="modal-backdrop" data-close></div>
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="termTitle">
       <button class="icon-btn modal-close" data-close aria-label="إغلاق"><svg class="i"><use href="#i-close"/></svg></button>
       <form id="termForm">
-        <h2 id="termTitle">رابط ثابت للترم</h2>
-        <p class="muted term-intro">رابط واحد ترسله لطلابك مرة واحدة، ويدخلون منه كل يوم طوال الترم.</p>
-        <label for="tTitle" class="field-label">اسم الحلقة</label>
-        <input id="tTitle" maxlength="60" placeholder="مثال: حلقة الشيخ عبدالرحمن — جزء عمّ">
+        <h2 id="termTitle">غرفة ثابتة بنفس الرابط</h2>
+        <p class="muted term-intro">رابط واحد ترسله لطلابك مرة واحدة، ويدخلون منه كل يوم إلى نفس الغرفة.</p>
+        <label for="tTitle" class="field-label">اسم الغرفة</label>
+        <input id="tTitle" maxlength="60" placeholder="مثال: غرفة الشيخ عبدالرحمن — جزء عمّ">
         <label for="tSlug" class="field-label">اسم الرابط (بالإنجليزي)</label>
         <input id="tSlug" maxlength="40" dir="ltr" autocomplete="off" spellcheck="false">
         <p class="slug-preview" dir="ltr" id="tSlugPreview"></p>
@@ -401,18 +398,19 @@
             </select>
           </div>
           <div>
-            <label for="tUntil" class="field-label">نهاية الترم</label>
+            <label for="tUntil" class="field-label">تنتهي في (اختياري)</label>
             <input id="tUntil" type="date">
           </div>
         </div>
         <p class="error" id="termError" role="alert"></p>
-        <button class="btn btn-primary btn-lg btn-block" type="submit">إنشاء الرابط الثابت</button>
+        <button class="btn btn-primary btn-lg btn-block" type="submit">إنشاء الغرفة الثابتة</button>
       </form>
       <div id="termResult" hidden>
         <div class="success-mark"><svg class="i"><use href="#i-check"/></svg></div>
-        <h2 class="center">رابطك الثابت جاهز</h2>
+        <h2 class="center">غرفتك الثابتة جاهزة</h2>
         <p class="muted center" id="tSummary"></p>
         <div class="link-box"><code id="tLink" dir="ltr"></code></div>
+        <p class="demo-note" id="tDemoNote" hidden>هذا ملف تجريبي على جهازك، فالرابط يفتح الغرفة على هذا الجهاز فقط. بعد نشر الموقع يصير الرابط مثل <b dir="ltr">wasl.onrender.com/<span id="tDemoSlug"></span></b> ويدخل منه الجميع.</p>
         <div class="result-actions">
           <button class="btn" id="tCopy"><svg class="i"><use href="#i-copy"/></svg>نسخ الدعوة</button>
           <a class="btn" id="tGoogle" target="_blank" rel="noopener"><svg class="i"><use href="#i-google"/></svg>تقويم Google</a>
@@ -420,7 +418,7 @@
         </div>
         <div class="row-2 term-done">
           <button class="btn btn-lg" data-close>تم</button>
-          <button class="btn btn-primary btn-lg" id="tGo">ادخل الحلقة الآن</button>
+          <button class="btn btn-primary btn-lg" id="tGo">ادخل الغرفة الآن</button>
         </div>
       </div>
     </div>

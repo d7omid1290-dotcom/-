@@ -140,7 +140,6 @@ input:focus, select:focus {
   display: flex; align-items: center; gap: 8px; font-size: .92rem; color: var(--muted);
   padding-inline-start: 14px; margin-inline-start: 4px; border-inline-start: 1px solid var(--glass-border);
 }
-.school .logo-img { height: 32px; width: auto; filter: invert(1) brightness(1.4); }
 .clock { color: var(--muted); font-variant-numeric: tabular-nums; }
 
 /* Home */
@@ -894,7 +893,6 @@ input[type="datetime-local"] { color-scheme: dark; }
 
 /* ===== ترتيب وتنظيم ===== */
 /* الشارة فوق العنوان */
-.eyebrow .logo-img { height: 22px; width: auto; filter: invert(1) brightness(1.4); margin-inline-end: 2px; }
 
 /* حقل الانضمام: الرمز والزر في حقل واحد */
 .home-actions { gap: 14px; align-items: stretch; }
@@ -975,7 +973,7 @@ input[type="datetime-local"] { color-scheme: dark; }
   .bar-side .ctrl { width: 40px; height: 40px; }
 }
 
-/* ===== رابط ثابت للترم ===== */
+/* ===== غرفة ثابتة بنفس الرابط ===== */
 .home-links { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 14px; }
 .home-text .home-links .link-btn { margin-top: 0; }
 .term-intro { margin: -6px 0 10px; }
@@ -1001,21 +999,6 @@ input[type="time"], input[type="date"] { color-scheme: dark; }
   .row-3 > div:last-child { grid-column: 1 / -1; }
   .day span { font-size: .72rem; }
   .home-links { justify-content: center; }
-}
-
-/* ===== شعار المدرسة في الزوايا ===== */
-/* الشعار أسود على خلفية بيضاء: نقلبه أبيض ونُخفي الخلفية فوق الثيم الداكن */
-.corner-logo, .room-logo { filter: invert(1) brightness(1.15); mix-blend-mode: screen; }
-.topbar-side { display: flex; align-items: center; gap: 16px; }
-.corner-logo { height: 52px; width: auto; opacity: .92; }
-.brand .corner-logo { height: 40px; margin-inline-start: 10px; padding-inline-start: 12px; border-inline-start: 1px solid var(--glass-border); }
-.room-logo {
-  position: absolute; top: 22px; inset-inline-end: 22px; z-index: 6; height: 54px; width: auto;
-  opacity: .55; pointer-events: none;
-}
-@media (max-width: 640px) {
-  .corner-logo { height: 40px; }
-  .room-logo { height: 38px; top: 14px; inset-inline-end: 14px; }
 }
 
 /* ===================================================== */
@@ -1096,9 +1079,8 @@ input[type="time"], input[type="date"] { color-scheme: dark; }
 :root[data-theme="light"] .modal-backdrop { background: rgba(15, 23, 42, .35); }
 :root[data-theme="light"] .modal-card { background: #fff; box-shadow: 0 30px 80px rgba(15, 23, 42, .25); }
 :root[data-theme="light"] .toast { background: #0f172a; color: #fff; }
-
-/* الشعار: أسود كما هو، وتختفي خلفيته البيضاء */
-:root[data-theme="light"] .corner-logo { filter: none; mix-blend-mode: multiply; }
 /* الخيارات المحددة تبقى متدرجة وواضحة في الوضع النهاري */
 :root[data-theme="light"] .day input:checked + span { background: var(--grad); color: #fff; border-color: transparent; }
 :root[data-theme="light"] .role input:checked + span { color: #fff; }
+.demo-note { margin: -6px 0 14px; font-size: .84rem; color: var(--muted); text-align: center; line-height: 1.7; }
+.demo-note b { color: var(--text); font-weight: 600; }

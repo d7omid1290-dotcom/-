@@ -4,7 +4,7 @@
 const ICE_CONFIG = {
   iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }],
 };
-// رمز الحلقة: عشوائي (abc-defg-hij) أو اسم ثابت للترم (sahaba-juz-amma) — مطابق لما في الخادم
+// رمز الحلقة: عشوائي (abc-defg-hij) أو اسم غرفة ثابتة (sahaba-juz-amma) — مطابق لما في الخادم
 const ROOM_RE = /^(?!.*-r[1-9]$)(?!(?:api|healthz)$)[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/;
 const COLORS = ["#5b8cff", "#10b981", "#f59e0b", "#8b5cf6", "#06b6d4", "#ec4899", "#f97316", "#64748b"];
 const REACTIONS = ["👍", "👏", "🤲", "❤️", "🌟", "✅"];
@@ -132,8 +132,9 @@ function show(viewId) {
   for (const v of document.querySelectorAll(".view")) v.hidden = v.id !== viewId;
 }
 
+// في الملف التجريبي (بدون خادم) نستخدم # حتى يفتح الرابط الغرفة بدل أن يبحث عنه المتصفح في Google
 function linkFor(code) {
-  return DEMO ? code : `${location.origin}/${code}`;
+  return DEMO ? `${location.href.split("#")[0]}#${code}` : `${location.origin}/${code}`;
 }
 
 function meetingLink() {
@@ -143,7 +144,7 @@ function meetingLink() {
 /* ---------- التنقل ---------- */
 
 function route() {
-  const path = DEMO ? state.code || "" : location.pathname.slice(1);
+  const path = DEMO ? decodeURIComponent(location.hash.slice(1)) : location.pathname.slice(1);
   const code = parseCode(path);
   if (code && path === code) {
     state.code = code;
@@ -157,10 +158,21 @@ function route() {
 }
 
 function goTo(code) {
-  if (DEMO) state.code = code;
-  else history.pushState({}, "", code ? `/${code}` : "/");
+  if (DEMO) {
+    const target = code ? `#${code}` : "";
+    if (location.hash === target || (!code && !location.hash)) route();
+    else location.hash = code || ""; // يستدعي route عبر hashchange
+    return;
+  }
+  history.pushState({}, "", code ? `/${code}` : "/");
   route();
 }
+
+window.addEventListener("hashchange", () => {
+  if (!DEMO) return;
+  if (state.joinedAt) leave(false);
+  route();
+});
 
 window.addEventListener("popstate", () => {
   if (state.es) leave(false);
@@ -1752,7 +1764,7 @@ $("boAnnounce").addEventListener("submit", async (e) => {
   }
 });
 
-/* ---------- رابط ثابت للترم ---------- */
+/* ---------- غرفة ثابتة بنفس الرابط ---------- */
 
 const TERMS_KEY = "wasl:terms";
 const DAYS = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
@@ -1803,7 +1815,7 @@ function termRRule(t) {
 }
 
 function termInvite(t) {
-  return `رابط ${t.title} — ثابت طوال الترم\nمنصة وصل (بالقرآن نتّصل) — مدرسة جامع الصحابة\n\nالمواعيد: ${daysText(t.days)} الساعة ${timeText(t.time)}\n\nادخل يومياً من نفس الرابط:\n${linkFor(t.code)}`;
+  return `رابط ${t.title} — غرفة ثابتة بنفس الرابط\nمنصة وصل (بالقرآن نتّصل) — مدرسة جامع الصحابة\n\nالمواعيد: ${daysText(t.days)} الساعة ${timeText(t.time)}\n\nادخل يومياً من نفس الرابط:\n${linkFor(t.code)}`;
 }
 
 function renderTerms() {
@@ -1825,7 +1837,7 @@ function renderTerms() {
     span.textContent = live ? "الحلقة الآن" : `${daysText(t.days)} · ${timeText(t.time)}`;
     span.classList.toggle("soon", !!live);
     li.querySelector("[data-join]").addEventListener("click", () => goTo(t.code));
-    li.querySelector("[data-copy]").addEventListener("click", () => copyText(termInvite(t), "تم نسخ رابط الحلقة الثابت"));
+    li.querySelector("[data-copy]").addEventListener("click", () => copyText(termInvite(t), "تم نسخ رابط الغرفة الثابتة"));
     li.querySelector("[data-del]").addEventListener("click", () => {
       if (!confirm(`حذف «${t.title}» من قائمتك؟ الرابط نفسه سيبقى يعمل لمن عنده.`)) return;
       saveTerms(loadTerms().filter((x) => x.code !== t.code));
@@ -1898,7 +1910,7 @@ $("termForm").addEventListener("submit", (e) => {
   }
   const t = {
     code: slug,
-    title: $("tTitle").value.trim() || "الحلقة",
+    title: $("tTitle").value.trim() || "الغرفة الثابتة",
     days,
     time: $("tTime").value || "16:30",
     duration: Number($("tDuration").value),
@@ -1908,6 +1920,8 @@ $("termForm").addEventListener("submit", (e) => {
   lastTerm = t;
   const link = linkFor(t.code);
   $("tLink").textContent = link;
+  $("tDemoNote").hidden = !DEMO;
+  $("tDemoSlug").textContent = t.code;
   $("tSummary").textContent = `${t.title} — ${daysText(t.days)} الساعة ${timeText(t.time)}${t.until ? ` حتى ${new Date(t.until).toLocaleDateString("ar", { day: "numeric", month: "long" })}` : ""}`;
   const first = nextOccurrence(t) || new Date();
   const g = new URL("https://calendar.google.com/calendar/render");
@@ -1915,7 +1929,7 @@ $("termForm").addEventListener("submit", (e) => {
   g.searchParams.set("text", t.title);
   g.searchParams.set("dates", `${toCalDate(first.getTime())}/${toCalDate(first.getTime() + t.duration * 60000)}`);
   g.searchParams.set("recur", termRRule(t));
-  g.searchParams.set("details", `رابط الحلقة الثابت طوال الترم: ${link}`);
+  g.searchParams.set("details", `رابط الغرفة الثابت: ${link}`);
   g.searchParams.set("location", link);
   $("tGoogle").href = g.toString();
   $("termForm").hidden = true;
@@ -1977,11 +1991,5 @@ window.addEventListener("beforeunload", () => state.es?.close());
 
 for (const el of document.querySelectorAll(".bar .ctrl[title]")) setTip(el, el.title);
 
-// شعار المدرسة اختياري: يظهر فقط إذا وُجد الملف public/logo.png
-for (const img of document.querySelectorAll(".logo-img")) {
-  const fail = () => img.remove();
-  if (img.complete && !img.naturalWidth) fail();
-  else img.addEventListener("error", fail);
-}
 
 route();
