@@ -1,4 +1,4 @@
-// خادم حلقتي: يقدّم الواجهة ويعمل كخادم إشارة (signaling) لاتصالات WebRTC
+// خادم وصل: يقدّم الواجهة ويعمل كخادم إشارة (signaling) لاتصالات WebRTC
 // بدون أي اعتماديات خارجية — Node.js فقط.
 const http = require("http");
 const fs = require("fs");
@@ -214,5 +214,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`حلقتي تعمل على http://localhost:${PORT}`);
+  console.log(`وصل تعمل على http://localhost:${PORT}`);
 });

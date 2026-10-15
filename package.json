@@ -1,7 +1,7 @@
 {
   "name": "halaqati",
   "version": "1.0.0",
-  "description": "حلقتي — منصة اجتماعات فيديو عن بعد عبر المتصفح",
+  "description": "وصل — بالقرآن نتّصل: منصة حلقات تحفيظ القرآن عن بعد",
   "main": "server.js",
   "private": true,
   "scripts": {

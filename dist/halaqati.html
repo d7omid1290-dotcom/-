@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>حلقتي — مدرسة جامع الصحابة</title>
-  <meta name="description" content="حلقتي: حلقات تحفيظ القرآن الكريم عن بُعد — مدرسة جامع الصحابة لتحفيظ القرآن الكريم بحي غبيراء.">
+  <title>وصل — بالقرآن نتّصل</title>
+  <meta name="description" content="وصل — بالقرآن نتّصل: حلقات تحفيظ القرآن الكريم عن بُعد — مدرسة جامع الصحابة لتحفيظ القرآن الكريم بحي غبيراء.">
   <meta name="theme-color" content="#070b1a">
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%235b8cff%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%238b5cf6%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%229%22%20fill%3D%22url(%23g)%22%2F%3E%3Cg%20fill%3D%22%23fff%22%3E%3Ccircle%20cx%3D%2224%22%20cy%3D%2216%22%20r%3D%222.6%22%2F%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%2222.9%22%20r%3D%222.6%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2222.9%22%20r%3D%222.6%22%2F%3E%3Ccircle%20cx%3D%228%22%20cy%3D%2216%22%20r%3D%222.6%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%229.1%22%20r%3D%222.6%22%2F%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%229.1%22%20r%3D%222.6%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-/* حلقتي — ثيم ليلي بأضواء الشفق وبطاقات زجاجية */
+/* وصل — ثيم ليلي بأضواء الشفق وبطاقات زجاجية */
 :root {
   --bg: #070b1a;
   --bg-2: #0c1229;
@@ -905,6 +905,16 @@ input[type="datetime-local"] { color-scheme: dark; }
 .modal-card form.bo-announce { display: flex; }
 .bo-announce input { flex: 1; min-width: 0; }
 .bo-announce .btn { flex-shrink: 0; }
+
+/* اسم المنصة مع الشعار اللفظي */
+.wordmark { display: inline-flex; align-items: baseline; gap: 10px; line-height: 1; }
+.wordmark b { font-size: 1.55rem; font-weight: 700; letter-spacing: -.01em; }
+.wordmark em {
+  font-style: normal; font-size: .9rem; font-weight: 500; white-space: nowrap;
+  background: var(--grad-text); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+@media (max-width: 640px) { .wordmark em { font-size: .8rem; } }
+@media (max-width: 380px) { .wordmark em { display: none; } }
 </style>
 </head>
 <body>
@@ -937,7 +947,7 @@ input[type="datetime-local"] { color-scheme: dark; }
       <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
       <symbol id="i-rooms" viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/></symbol>
       <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
-      <!-- علامة حلقتي: أشخاص في حلقة -->
+      <!-- علامة وصل: أشخاص متّصلون في حلقة -->
       <linearGradient id="mg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b8cff"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient>
       <symbol id="mark" viewBox="0 0 32 32">
         <rect width="32" height="32" rx="9" fill="url(#mg)"/>
@@ -951,7 +961,7 @@ input[type="datetime-local"] { color-scheme: dark; }
     <header class="topbar">
       <div class="brand">
         <svg class="mark"><use href="#mark"/></svg>
-        <b>حلقتي</b>
+        <span class="wordmark"><b>وصل</b><em>بالقرآن نتّصل</em></span>
         <span class="school"><img class="logo-img" src="logo.png" alt=""><span>مدرسة جامع الصحابة</span></span>
       </div>
       <span class="clock" id="homeClock"></span>
@@ -959,7 +969,7 @@ input[type="datetime-local"] { color-scheme: dark; }
 
     <main class="home-main">
       <div class="home-text">
-        <span class="eyebrow"><span class="live-dot"></span>منصة الحلقات عن بُعد</span>
+        <span class="eyebrow"><span class="live-dot"></span>وصل — بالقرآن نتّصل</span>
         <h1>حلقات القرآن الكريم، <br><span class="grad">من أي مكان</span></h1>
         <p class="lead">اتصال بالصوت والصورة يجمع المعلّم بطلابه للتسميع والمراجعة، من المتصفح مباشرة.</p>
         <div class="home-actions">
@@ -1015,7 +1025,7 @@ input[type="datetime-local"] { color-scheme: dark; }
       </div>
     </main>
 
-    <section class="showcase" aria-label="لمن حلقتي">
+    <section class="showcase" aria-label="لمن منصة وصل">
       <article class="show-card teacher-card">
         <span class="show-badge">للمعلّم</span>
         <h2>أدِر حلقتك بسهولة</h2>
@@ -1045,7 +1055,7 @@ input[type="datetime-local"] { color-scheme: dark; }
       <button class="btn btn-ghost" id="backHomeBtn"><svg class="i flip"><use href="#i-arrow"/></svg>الرئيسية</button>
       <div class="brand">
         <svg class="mark"><use href="#mark"/></svg>
-        <b>حلقتي</b>
+        <span class="wordmark"><b>وصل</b><em>بالقرآن نتّصل</em></span>
       </div>
     </header>
     <div class="lobby">
@@ -1290,7 +1300,7 @@ input[type="datetime-local"] { color-scheme: dark; }
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script>window.HALAQATI_DEMO = true;</script>
   <script>
-// حلقتي — منطق الواجهة واتصالات WebRTC (شبكة نظير-لنظير بين كل المشاركين)
+// وصل — منطق الواجهة واتصالات WebRTC (شبكة نظير-لنظير بين كل المشاركين)
 "use strict";
 
 const ICE_CONFIG = {
@@ -2682,7 +2692,7 @@ function toCalDate(ts) {
 }
 
 function inviteText(m) {
-  return `أنت مدعو لحضور حلقة تحفيظ عبر منصة حلقتي — مدرسة جامع الصحابة\n\n${m.title}\n${formatWhen(m.start)} (${m.duration} دقيقة)\n\nرابط الانضمام:\n${linkFor(m.code)}`;
+  return `أنت مدعو لحضور حلقة تحفيظ عبر منصة وصل (بالقرآن نتّصل) — مدرسة جامع الصحابة\n\n${m.title}\n${formatWhen(m.start)} (${m.duration} دقيقة)\n\nرابط الانضمام:\n${linkFor(m.code)}`;
 }
 
 function icsFile(m) {

@@ -1,4 +1,4 @@
-// حلقتي — منطق الواجهة واتصالات WebRTC (شبكة نظير-لنظير بين كل المشاركين)
+// وصل — منطق الواجهة واتصالات WebRTC (شبكة نظير-لنظير بين كل المشاركين)
 "use strict";
 
 const ICE_CONFIG = {
@@ -1390,7 +1390,7 @@ function toCalDate(ts) {
 }
 
 function inviteText(m) {
-  return `أنت مدعو لحضور حلقة تحفيظ عبر منصة حلقتي — مدرسة جامع الصحابة\n\n${m.title}\n${formatWhen(m.start)} (${m.duration} دقيقة)\n\nرابط الانضمام:\n${linkFor(m.code)}`;
+  return `أنت مدعو لحضور حلقة تحفيظ عبر منصة وصل (بالقرآن نتّصل) — مدرسة جامع الصحابة\n\n${m.title}\n${formatWhen(m.start)} (${m.duration} دقيقة)\n\nرابط الانضمام:\n${linkFor(m.code)}`;
 }
 
 function icsFile(m) {

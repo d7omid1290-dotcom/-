@@ -1,4 +1,4 @@
-/* حلقتي — ثيم ليلي بأضواء الشفق وبطاقات زجاجية */
+/* وصل — ثيم ليلي بأضواء الشفق وبطاقات زجاجية */
 :root {
   --bg: #070b1a;
   --bg-2: #0c1229;
@@ -892,3 +892,13 @@ input[type="datetime-local"] { color-scheme: dark; }
 .modal-card form.bo-announce { display: flex; }
 .bo-announce input { flex: 1; min-width: 0; }
 .bo-announce .btn { flex-shrink: 0; }
+
+/* اسم المنصة مع الشعار اللفظي */
+.wordmark { display: inline-flex; align-items: baseline; gap: 10px; line-height: 1; }
+.wordmark b { font-size: 1.55rem; font-weight: 700; letter-spacing: -.01em; }
+.wordmark em {
+  font-style: normal; font-size: .9rem; font-weight: 500; white-space: nowrap;
+  background: var(--grad-text); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+@media (max-width: 640px) { .wordmark em { font-size: .8rem; } }
+@media (max-width: 380px) { .wordmark em { display: none; } }
