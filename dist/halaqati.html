@@ -987,6 +987,49 @@ input[type="datetime-local"] { color-scheme: dark; }
   .bar-side { justify-self: center; height: 46px; }
   .bar-side .ctrl { width: 40px; height: 40px; }
 }
+
+/* ===== رابط ثابت للترم ===== */
+.home-links { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 14px; }
+.home-text .home-links .link-btn { margin-top: 0; }
+.term-intro { margin: -6px 0 10px; }
+.slug-preview { margin: 4px 0 2px; font-size: .85rem; color: #a5b8ff; text-align: start; overflow-wrap: anywhere; }
+.slug-preview.bad { color: #fb7185; }
+.days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 4px; }
+.day { position: relative; cursor: pointer; }
+.day input { position: absolute; inset: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.day span {
+  display: block; text-align: center; padding: 8px 0; border-radius: 10px; font-size: .82rem; font-weight: 600;
+  background: rgba(255, 255, 255, .05); border: 1px solid var(--glass-border); color: var(--muted); transition: .15s;
+}
+.day input:checked + span { background: var(--grad); color: #fff; border-color: transparent; }
+.day input:focus-visible + span { outline: 2px solid var(--blue); outline-offset: 2px; }
+.row-3 { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 10px; }
+input[type="time"], input[type="date"] { color-scheme: dark; }
+.term-done { grid-template-columns: 1fr 1.6fr; }
+.terms li { border-inline-start: 3px solid var(--blue); padding-inline-start: 12px; }
+.terms .icon-btn { color: var(--muted); width: 36px; height: 36px; }
+.terms .icon-btn .i { width: 18px; height: 18px; }
+@media (max-width: 640px) {
+  .row-3 { grid-template-columns: 1fr 1fr; }
+  .row-3 > div:last-child { grid-column: 1 / -1; }
+  .day span { font-size: .72rem; }
+  .home-links { justify-content: center; }
+}
+
+/* ===== شعار المدرسة في الزوايا ===== */
+/* الشعار أسود على خلفية بيضاء: نقلبه أبيض ونُخفي الخلفية فوق الثيم الداكن */
+.corner-logo, .room-logo { filter: invert(1) brightness(1.15); mix-blend-mode: screen; }
+.topbar-side { display: flex; align-items: center; gap: 16px; }
+.corner-logo { height: 52px; width: auto; opacity: .92; }
+.brand .corner-logo { height: 40px; margin-inline-start: 10px; padding-inline-start: 12px; border-inline-start: 1px solid var(--glass-border); }
+.room-logo {
+  position: absolute; top: 22px; inset-inline-end: 22px; z-index: 6; height: 54px; width: auto;
+  opacity: .55; pointer-events: none;
+}
+@media (max-width: 640px) {
+  .corner-logo { height: 40px; }
+  .room-logo { height: 38px; top: 14px; inset-inline-end: 14px; }
+}
 </style>
 </head>
 <body>
@@ -1035,12 +1078,15 @@ input[type="datetime-local"] { color-scheme: dark; }
         <svg class="mark"><use href="#mark"/></svg>
         <span class="wordmark"><b>وصل</b><em>بالقرآن نتّصل</em></span>
       </div>
-      <span class="clock" id="homeClock"></span>
+      <div class="topbar-side">
+        <span class="clock" id="homeClock"></span>
+        <img class="logo-img corner-logo" src="logo.png" alt="شعار مدرسة جامع الصحابة لتحفيظ القرآن الكريم">
+      </div>
     </header>
 
     <main class="home-main">
       <div class="home-text">
-        <span class="eyebrow"><img class="logo-img" src="logo.png" alt=""><span class="live-dot"></span>مدرسة جامع الصحابة لتحفيظ القرآن الكريم</span>
+        <span class="eyebrow"><span class="live-dot"></span>مدرسة جامع الصحابة لتحفيظ القرآن الكريم</span>
         <h1>حلقات القرآن الكريم، <br><span class="grad">من أي مكان</span></h1>
         <p class="lead">اتصال بالصوت والصورة يجمع المعلّم بطلابه للتسميع والمراجعة، من المتصفح مباشرة.</p>
         <div class="home-actions">
@@ -1053,13 +1099,21 @@ input[type="datetime-local"] { color-scheme: dark; }
           </form>
         </div>
         <p class="error" id="homeError" role="alert"></p>
-        <button class="link-btn" id="scheduleBtn"><svg class="i"><use href="#i-calendar"/></svg>جدولة حلقة لوقت لاحق</button>
+        <div class="home-links">
+          <button class="link-btn" id="termBtn"><svg class="i"><use href="#i-link"/></svg>رابط ثابت للترم</button>
+          <button class="link-btn" id="scheduleBtn"><svg class="i"><use href="#i-calendar"/></svg>جدولة حلقة لمرة واحدة</button>
+        </div>
 
         <ul class="perks">
           <li><svg class="i"><use href="#i-check"/></svg>بدون تثبيت أي برنامج</li>
           <li><svg class="i"><use href="#i-check"/></svg>يعمل على الجوال والكمبيوتر</li>
           <li><svg class="i"><use href="#i-check"/></svg>حتى 25 مشاركاً في الحلقة</li>
         </ul>
+
+        <div class="upcoming terms" id="terms" hidden>
+          <h3>حلقاتي الثابتة</h3>
+          <ul id="termsList"></ul>
+        </div>
 
         <div class="upcoming" id="upcoming" hidden>
           <h3>الحلقات القادمة</h3>
@@ -1127,6 +1181,7 @@ input[type="datetime-local"] { color-scheme: dark; }
       <div class="brand">
         <svg class="mark"><use href="#mark"/></svg>
         <span class="wordmark"><b>وصل</b><em>بالقرآن نتّصل</em></span>
+        <img class="logo-img corner-logo" src="logo.png" alt="شعار مدرسة جامع الصحابة">
       </div>
     </header>
     <div class="lobby">
@@ -1176,6 +1231,7 @@ input[type="datetime-local"] { color-scheme: dark; }
     <div class="recite-banner" id="reciteBanner" hidden><svg class="i"><use href="#i-book"/></svg><span id="reciteText"></span></div>
     <div class="rec-banner" id="recBanner" hidden><span class="rec-dot"></span><span id="recText">يتم تسجيل هذه الحلقة</span></div>
     <div class="stage">
+      <img class="logo-img room-logo" src="logo.png" alt="">
       <div class="grid" id="grid"></div>
       <div class="grade-card" id="gradeCard" hidden>
         <div class="grade-head">
@@ -1311,6 +1367,70 @@ input[type="datetime-local"] { color-scheme: dark; }
     </div>
   </div>
 
+  <!-- رابط ثابت للترم -->
+  <div class="modal" id="termModal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="termTitle">
+      <button class="icon-btn modal-close" data-close aria-label="إغلاق"><svg class="i"><use href="#i-close"/></svg></button>
+      <form id="termForm">
+        <h2 id="termTitle">رابط ثابت للترم</h2>
+        <p class="muted term-intro">رابط واحد ترسله لطلابك مرة واحدة، ويدخلون منه كل يوم طوال الترم.</p>
+        <label for="tTitle" class="field-label">اسم الحلقة</label>
+        <input id="tTitle" maxlength="60" placeholder="مثال: حلقة الشيخ عبدالرحمن — جزء عمّ">
+        <label for="tSlug" class="field-label">اسم الرابط (بالإنجليزي)</label>
+        <input id="tSlug" maxlength="40" dir="ltr" autocomplete="off" spellcheck="false">
+        <p class="slug-preview" dir="ltr" id="tSlugPreview"></p>
+        <span class="field-label">أيام الحلقة</span>
+        <div class="days">
+          <label class="day"><input type="checkbox" value="0"><span>أحد</span></label>
+          <label class="day"><input type="checkbox" value="1"><span>إثنين</span></label>
+          <label class="day"><input type="checkbox" value="2"><span>ثلاثاء</span></label>
+          <label class="day"><input type="checkbox" value="3"><span>أربعاء</span></label>
+          <label class="day"><input type="checkbox" value="4"><span>خميس</span></label>
+          <label class="day"><input type="checkbox" value="5"><span>جمعة</span></label>
+          <label class="day"><input type="checkbox" value="6"><span>سبت</span></label>
+        </div>
+        <div class="row-3">
+          <div>
+            <label for="tTime" class="field-label">الوقت</label>
+            <input id="tTime" type="time" value="16:30">
+          </div>
+          <div>
+            <label for="tDuration" class="field-label">المدة</label>
+            <select id="tDuration">
+              <option value="30">30 دقيقة</option>
+              <option value="45">45 دقيقة</option>
+              <option value="60" selected>ساعة</option>
+              <option value="90">ساعة ونصف</option>
+              <option value="120">ساعتان</option>
+            </select>
+          </div>
+          <div>
+            <label for="tUntil" class="field-label">نهاية الترم</label>
+            <input id="tUntil" type="date">
+          </div>
+        </div>
+        <p class="error" id="termError" role="alert"></p>
+        <button class="btn btn-primary btn-lg btn-block" type="submit">إنشاء الرابط الثابت</button>
+      </form>
+      <div id="termResult" hidden>
+        <div class="success-mark"><svg class="i"><use href="#i-check"/></svg></div>
+        <h2 class="center">رابطك الثابت جاهز</h2>
+        <p class="muted center" id="tSummary"></p>
+        <div class="link-box"><code id="tLink" dir="ltr"></code></div>
+        <div class="result-actions">
+          <button class="btn" id="tCopy"><svg class="i"><use href="#i-copy"/></svg>نسخ الدعوة</button>
+          <a class="btn" id="tGoogle" target="_blank" rel="noopener"><svg class="i"><use href="#i-google"/></svg>تقويم Google</a>
+          <button class="btn" id="tIcs"><svg class="i"><use href="#i-download"/></svg>ملف تقويم</button>
+        </div>
+        <div class="row-2 term-done">
+          <button class="btn btn-lg" data-close>تم</button>
+          <button class="btn btn-primary btn-lg" id="tGo">ادخل الحلقة الآن</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- غرف الحلقة (للمعلّم) -->
   <div class="modal" id="breakoutModal" hidden>
     <div class="modal-backdrop" data-close></div>
@@ -1377,7 +1497,8 @@ input[type="datetime-local"] { color-scheme: dark; }
 const ICE_CONFIG = {
   iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }],
 };
-const CODE_RE = /[a-z]{3}-[a-z]{4}-[a-z]{3}/;
+// رمز الحلقة: عشوائي (abc-defg-hij) أو اسم ثابت للترم (sahaba-juz-amma) — مطابق لما في الخادم
+const ROOM_RE = /^(?!.*-r[1-9]$)(?!(?:api|healthz)$)[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/;
 const COLORS = ["#5b8cff", "#10b981", "#f59e0b", "#8b5cf6", "#06b6d4", "#ec4899", "#f97316", "#64748b"];
 const REACTIONS = ["👍", "👏", "🤲", "❤️", "🌟", "✅"];
 const GRADES = {
@@ -1484,12 +1605,15 @@ function genCode() {
   return `${part(3)}-${part(4)}-${part(3)}`;
 }
 
+// يقبل الرمز وحده أو الرابط كاملاً
 function parseCode(input) {
-  const s = String(input).trim().toLowerCase();
-  const m = s.match(CODE_RE);
-  if (m) return m[0];
+  let s = String(input).trim().toLowerCase();
+  if (!s) return null;
+  s = s.replace(/[?#].*$/, "").replace(/\/+$/, "");
+  s = s.slice(s.lastIndexOf("/") + 1);
+  if (ROOM_RE.test(s)) return s;
   const plain = s.replace(/[^a-z]/g, "");
-  if (plain.length === 10) return `${plain.slice(0, 3)}-${plain.slice(3, 7)}-${plain.slice(7)}`;
+  if (plain.length === 10 && !/[0-9]/.test(s)) return `${plain.slice(0, 3)}-${plain.slice(3, 7)}-${plain.slice(7)}`;
   return null;
 }
 
@@ -1521,6 +1645,7 @@ function route() {
     stopMedia();
     show("home");
     renderUpcoming();
+    renderTerms();
   }
 }
 
@@ -1543,7 +1668,7 @@ $("joinForm").addEventListener("submit", (e) => {
   e.preventDefault();
   const code = parseCode($("joinCode").value);
   if (!code) {
-    $("homeError").textContent = "رمز غير صالح. الشكل الصحيح مثل: abc-defg-hij";
+    $("homeError").textContent = "رمز غير صالح. الصق رابط الحلقة أو رمزها مثل: abc-defg-hij";
     return;
   }
   $("homeError").textContent = "";
@@ -2794,6 +2919,7 @@ for (const el of document.querySelectorAll("#scheduleModal [data-close]")) el.ad
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
   if (!$("scheduleModal").hidden) closeSchedule();
+  if (!$("termModal").hidden) closeTerm();
   $("settingsModal").hidden = true;
   $("breakoutModal").hidden = true;
 });
@@ -3065,6 +3191,205 @@ $("boAnnounce").addEventListener("submit", async (e) => {
     $("boMsg").value = "";
     toast("📢 أُرسلت الرسالة لكل الغرف");
   }
+});
+
+/* ---------- رابط ثابت للترم ---------- */
+
+const TERMS_KEY = "wasl:terms";
+const DAYS = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+const DAY_CODES = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+
+function loadTerms() {
+  try {
+    const list = JSON.parse(localStorage.getItem(TERMS_KEY)) || [];
+    const today = new Date().toISOString().slice(0, 10);
+    return list.filter((t) => !t.until || t.until >= today);
+  } catch {
+    return [];
+  }
+}
+
+function saveTerms(list) {
+  try {
+    localStorage.setItem(TERMS_KEY, JSON.stringify(list));
+  } catch {}
+}
+
+function daysText(days) {
+  const d = [...days].sort();
+  if (d.length === 7) return "يومياً";
+  if (d.join() === "0,1,2,3,4") return "من الأحد إلى الخميس";
+  return d.map((i) => DAYS[i]).join("، ");
+}
+
+function timeText(hhmm) {
+  const [h, m] = hhmm.split(":").map(Number);
+  return new Date(2000, 0, 1, h, m).toLocaleTimeString("ar", { hour: "numeric", minute: "2-digit" });
+}
+
+// أقرب موعد قادم للحلقة حسب أيامها ووقتها
+function nextOccurrence(t, from = new Date()) {
+  const [h, m] = t.time.split(":").map(Number);
+  for (let i = 0; i < 8; i++) {
+    const d = new Date(from.getFullYear(), from.getMonth(), from.getDate() + i, h, m);
+    if (t.days.includes(d.getDay()) && d.getTime() + t.duration * 60000 > from.getTime()) return d;
+  }
+  return null;
+}
+
+function termRRule(t) {
+  let rule = `RRULE:FREQ=WEEKLY;BYDAY=${[...t.days].sort().map((i) => DAY_CODES[i]).join(",")}`;
+  if (t.until) rule += `;UNTIL=${t.until.replace(/-/g, "")}T235959Z`;
+  return rule;
+}
+
+function termInvite(t) {
+  return `رابط ${t.title} — ثابت طوال الترم\nمنصة وصل (بالقرآن نتّصل) — مدرسة جامع الصحابة\n\nالمواعيد: ${daysText(t.days)} الساعة ${timeText(t.time)}\n\nادخل يومياً من نفس الرابط:\n${linkFor(t.code)}`;
+}
+
+function renderTerms() {
+  const list = loadTerms();
+  $("terms").hidden = list.length === 0;
+  const ul = $("termsList");
+  ul.innerHTML = "";
+  for (const t of list) {
+    const next = nextOccurrence(t);
+    const live = next && next.getTime() - Date.now() < 15 * 60000;
+    const li = document.createElement("li");
+    li.innerHTML = `
+      <div class="when"><b></b><span></span></div>
+      <button class="icon-btn" data-copy title="نسخ الرابط">${icon("copy")}</button>
+      <button class="btn btn-primary" data-join>دخول</button>
+      <button class="icon-btn" data-del title="حذف">${icon("close")}</button>`;
+    li.querySelector("b").textContent = t.title;
+    const span = li.querySelector("span");
+    span.textContent = live ? "الحلقة الآن" : `${daysText(t.days)} · ${timeText(t.time)}`;
+    span.classList.toggle("soon", !!live);
+    li.querySelector("[data-join]").addEventListener("click", () => goTo(t.code));
+    li.querySelector("[data-copy]").addEventListener("click", () => copyText(termInvite(t), "تم نسخ رابط الحلقة الثابت"));
+    li.querySelector("[data-del]").addEventListener("click", () => {
+      if (!confirm(`حذف «${t.title}» من قائمتك؟ الرابط نفسه سيبقى يعمل لمن عنده.`)) return;
+      saveTerms(loadTerms().filter((x) => x.code !== t.code));
+      renderTerms();
+    });
+    ul.appendChild(li);
+  }
+}
+
+let lastTerm = null;
+
+function slugify(v) {
+  return v.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
+}
+
+function updateSlugPreview() {
+  const slug = $("tSlug").value;
+  const ok = ROOM_RE.test(slug);
+  $("tSlugPreview").textContent = (DEMO ? "" : `${location.host}/`) + (slug || "…");
+  $("tSlugPreview").classList.toggle("bad", !!slug && !ok);
+  return ok;
+}
+
+function openTerm() {
+  $("tTitle").value = "";
+  const rand = Array.from(crypto.getRandomValues(new Uint8Array(3)), (b) => "abcdefghjkmnpqrstuvwxyz"[b % 23]).join("");
+  $("tSlug").value = `sahaba-${rand}`;
+  $("tTime").value = "16:30";
+  $("tUntil").value = "";
+  for (const c of document.querySelectorAll("#termForm .day input")) c.checked = Number(c.value) <= 4;
+  $("termError").textContent = "";
+  $("termForm").hidden = false;
+  $("termResult").hidden = true;
+  updateSlugPreview();
+  $("termModal").hidden = false;
+  $("tTitle").focus();
+}
+
+function closeTerm() {
+  $("termModal").hidden = true;
+  renderTerms();
+}
+
+$("termBtn").addEventListener("click", openTerm);
+for (const el of document.querySelectorAll("#termModal [data-close]")) el.addEventListener("click", closeTerm);
+$("tSlug").addEventListener("input", () => {
+  const el = $("tSlug");
+  const clean = (v) => v.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+  if (clean(el.value) !== el.value) {
+    // نحافظ على مكان المؤشر بحساب ما قبله بعد التنظيف
+    const before = clean(el.value.slice(0, el.selectionStart));
+    el.value = clean(el.value);
+    el.setSelectionRange(before.length, before.length);
+  }
+  updateSlugPreview();
+});
+
+$("termForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const slug = slugify($("tSlug").value);
+  $("tSlug").value = slug;
+  const days = [...document.querySelectorAll("#termForm .day input:checked")].map((c) => Number(c.value));
+  if (!updateSlugPreview()) {
+    $("termError").textContent = "اسم الرابط: حروف إنجليزية صغيرة وأرقام وشرطة (-) فقط، من 3 أحرف على الأقل";
+    return;
+  }
+  if (!days.length) {
+    $("termError").textContent = "اختر يوماً واحداً على الأقل";
+    return;
+  }
+  const t = {
+    code: slug,
+    title: $("tTitle").value.trim() || "الحلقة",
+    days,
+    time: $("tTime").value || "16:30",
+    duration: Number($("tDuration").value),
+    until: $("tUntil").value || "",
+  };
+  saveTerms([...loadTerms().filter((x) => x.code !== t.code), t]);
+  lastTerm = t;
+  const link = linkFor(t.code);
+  $("tLink").textContent = link;
+  $("tSummary").textContent = `${t.title} — ${daysText(t.days)} الساعة ${timeText(t.time)}${t.until ? ` حتى ${new Date(t.until).toLocaleDateString("ar", { day: "numeric", month: "long" })}` : ""}`;
+  const first = nextOccurrence(t) || new Date();
+  const g = new URL("https://calendar.google.com/calendar/render");
+  g.searchParams.set("action", "TEMPLATE");
+  g.searchParams.set("text", t.title);
+  g.searchParams.set("dates", `${toCalDate(first.getTime())}/${toCalDate(first.getTime() + t.duration * 60000)}`);
+  g.searchParams.set("recur", termRRule(t));
+  g.searchParams.set("details", `رابط الحلقة الثابت طوال الترم: ${link}`);
+  g.searchParams.set("location", link);
+  $("tGoogle").href = g.toString();
+  $("termForm").hidden = true;
+  $("termResult").hidden = false;
+});
+
+$("tCopy").addEventListener("click", () => lastTerm && copyText(termInvite(lastTerm), "تم نسخ الدعوة — أرسلها لطلابك مرة واحدة"));
+$("tIcs").addEventListener("click", () => {
+  if (!lastTerm) return;
+  const t = lastTerm;
+  const first = nextOccurrence(t) || new Date();
+  const esc = (x) => x.replace(/[\\;,]/g, (c) => "\\" + c).replace(/\n/g, "\\n");
+  const link = linkFor(t.code);
+  const ics = [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Wasl//AR", "CALSCALE:GREGORIAN", "BEGIN:VEVENT",
+    `UID:${t.code}-term@wasl`,
+    `DTSTAMP:${toCalDate(Date.now())}`,
+    `DTSTART:${toCalDate(first.getTime())}`,
+    `DTEND:${toCalDate(first.getTime() + t.duration * 60000)}`,
+    termRRule(t),
+    `SUMMARY:${esc(t.title)}`,
+    `DESCRIPTION:${esc("رابط الحلقة الثابت: " + link)}`,
+    `URL:${link}`,
+    `LOCATION:${esc(link)}`,
+    "BEGIN:VALARM", "TRIGGER:-PT10M", "ACTION:DISPLAY", `DESCRIPTION:${esc(t.title)}`, "END:VALARM",
+    "END:VEVENT", "END:VCALENDAR",
+  ].join("\r\n");
+  downloadBlob(new Blob([ics], { type: "text/calendar;charset=utf-8" }), `wasl-${t.code}.ics`);
+});
+$("tGo").addEventListener("click", () => {
+  if (!lastTerm) return;
+  $("termModal").hidden = true;
+  goTo(lastTerm.code);
 });
 
 window.addEventListener("beforeunload", () => state.es?.close());

@@ -974,3 +974,46 @@ input[type="datetime-local"] { color-scheme: dark; }
   .bar-side { justify-self: center; height: 46px; }
   .bar-side .ctrl { width: 40px; height: 40px; }
 }
+
+/* ===== رابط ثابت للترم ===== */
+.home-links { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 14px; }
+.home-text .home-links .link-btn { margin-top: 0; }
+.term-intro { margin: -6px 0 10px; }
+.slug-preview { margin: 4px 0 2px; font-size: .85rem; color: #a5b8ff; text-align: start; overflow-wrap: anywhere; }
+.slug-preview.bad { color: #fb7185; }
+.days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 4px; }
+.day { position: relative; cursor: pointer; }
+.day input { position: absolute; inset: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.day span {
+  display: block; text-align: center; padding: 8px 0; border-radius: 10px; font-size: .82rem; font-weight: 600;
+  background: rgba(255, 255, 255, .05); border: 1px solid var(--glass-border); color: var(--muted); transition: .15s;
+}
+.day input:checked + span { background: var(--grad); color: #fff; border-color: transparent; }
+.day input:focus-visible + span { outline: 2px solid var(--blue); outline-offset: 2px; }
+.row-3 { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 10px; }
+input[type="time"], input[type="date"] { color-scheme: dark; }
+.term-done { grid-template-columns: 1fr 1.6fr; }
+.terms li { border-inline-start: 3px solid var(--blue); padding-inline-start: 12px; }
+.terms .icon-btn { color: var(--muted); width: 36px; height: 36px; }
+.terms .icon-btn .i { width: 18px; height: 18px; }
+@media (max-width: 640px) {
+  .row-3 { grid-template-columns: 1fr 1fr; }
+  .row-3 > div:last-child { grid-column: 1 / -1; }
+  .day span { font-size: .72rem; }
+  .home-links { justify-content: center; }
+}
+
+/* ===== شعار المدرسة في الزوايا ===== */
+/* الشعار أسود على خلفية بيضاء: نقلبه أبيض ونُخفي الخلفية فوق الثيم الداكن */
+.corner-logo, .room-logo { filter: invert(1) brightness(1.15); mix-blend-mode: screen; }
+.topbar-side { display: flex; align-items: center; gap: 16px; }
+.corner-logo { height: 52px; width: auto; opacity: .92; }
+.brand .corner-logo { height: 40px; margin-inline-start: 10px; padding-inline-start: 12px; border-inline-start: 1px solid var(--glass-border); }
+.room-logo {
+  position: absolute; top: 22px; inset-inline-end: 22px; z-index: 6; height: 54px; width: auto;
+  opacity: .55; pointer-events: none;
+}
+@media (max-width: 640px) {
+  .corner-logo { height: 40px; }
+  .room-logo { height: 38px; top: 14px; inset-inline-end: 14px; }
+}

@@ -58,12 +58,15 @@
         <svg class="mark"><use href="#mark"/></svg>
         <span class="wordmark"><b>وصل</b><em>بالقرآن نتّصل</em></span>
       </div>
-      <span class="clock" id="homeClock"></span>
+      <div class="topbar-side">
+        <span class="clock" id="homeClock"></span>
+        <img class="logo-img corner-logo" src="logo.png" alt="شعار مدرسة جامع الصحابة لتحفيظ القرآن الكريم">
+      </div>
     </header>
 
     <main class="home-main">
       <div class="home-text">
-        <span class="eyebrow"><img class="logo-img" src="logo.png" alt=""><span class="live-dot"></span>مدرسة جامع الصحابة لتحفيظ القرآن الكريم</span>
+        <span class="eyebrow"><span class="live-dot"></span>مدرسة جامع الصحابة لتحفيظ القرآن الكريم</span>
         <h1>حلقات القرآن الكريم، <br><span class="grad">من أي مكان</span></h1>
         <p class="lead">اتصال بالصوت والصورة يجمع المعلّم بطلابه للتسميع والمراجعة، من المتصفح مباشرة.</p>
         <div class="home-actions">
@@ -76,13 +79,21 @@
           </form>
         </div>
         <p class="error" id="homeError" role="alert"></p>
-        <button class="link-btn" id="scheduleBtn"><svg class="i"><use href="#i-calendar"/></svg>جدولة حلقة لوقت لاحق</button>
+        <div class="home-links">
+          <button class="link-btn" id="termBtn"><svg class="i"><use href="#i-link"/></svg>رابط ثابت للترم</button>
+          <button class="link-btn" id="scheduleBtn"><svg class="i"><use href="#i-calendar"/></svg>جدولة حلقة لمرة واحدة</button>
+        </div>
 
         <ul class="perks">
           <li><svg class="i"><use href="#i-check"/></svg>بدون تثبيت أي برنامج</li>
           <li><svg class="i"><use href="#i-check"/></svg>يعمل على الجوال والكمبيوتر</li>
           <li><svg class="i"><use href="#i-check"/></svg>حتى 25 مشاركاً في الحلقة</li>
         </ul>
+
+        <div class="upcoming terms" id="terms" hidden>
+          <h3>حلقاتي الثابتة</h3>
+          <ul id="termsList"></ul>
+        </div>
 
         <div class="upcoming" id="upcoming" hidden>
           <h3>الحلقات القادمة</h3>
@@ -150,6 +161,7 @@
       <div class="brand">
         <svg class="mark"><use href="#mark"/></svg>
         <span class="wordmark"><b>وصل</b><em>بالقرآن نتّصل</em></span>
+        <img class="logo-img corner-logo" src="logo.png" alt="شعار مدرسة جامع الصحابة">
       </div>
     </header>
     <div class="lobby">
@@ -199,6 +211,7 @@
     <div class="recite-banner" id="reciteBanner" hidden><svg class="i"><use href="#i-book"/></svg><span id="reciteText"></span></div>
     <div class="rec-banner" id="recBanner" hidden><span class="rec-dot"></span><span id="recText">يتم تسجيل هذه الحلقة</span></div>
     <div class="stage">
+      <img class="logo-img room-logo" src="logo.png" alt="">
       <div class="grid" id="grid"></div>
       <div class="grade-card" id="gradeCard" hidden>
         <div class="grade-head">
@@ -330,6 +343,70 @@
           <button class="btn" id="sIcs"><svg class="i"><use href="#i-download"/></svg>ملف تقويم</button>
         </div>
         <button class="btn btn-primary btn-lg btn-block" data-close>تم</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- رابط ثابت للترم -->
+  <div class="modal" id="termModal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="termTitle">
+      <button class="icon-btn modal-close" data-close aria-label="إغلاق"><svg class="i"><use href="#i-close"/></svg></button>
+      <form id="termForm">
+        <h2 id="termTitle">رابط ثابت للترم</h2>
+        <p class="muted term-intro">رابط واحد ترسله لطلابك مرة واحدة، ويدخلون منه كل يوم طوال الترم.</p>
+        <label for="tTitle" class="field-label">اسم الحلقة</label>
+        <input id="tTitle" maxlength="60" placeholder="مثال: حلقة الشيخ عبدالرحمن — جزء عمّ">
+        <label for="tSlug" class="field-label">اسم الرابط (بالإنجليزي)</label>
+        <input id="tSlug" maxlength="40" dir="ltr" autocomplete="off" spellcheck="false">
+        <p class="slug-preview" dir="ltr" id="tSlugPreview"></p>
+        <span class="field-label">أيام الحلقة</span>
+        <div class="days">
+          <label class="day"><input type="checkbox" value="0"><span>أحد</span></label>
+          <label class="day"><input type="checkbox" value="1"><span>إثنين</span></label>
+          <label class="day"><input type="checkbox" value="2"><span>ثلاثاء</span></label>
+          <label class="day"><input type="checkbox" value="3"><span>أربعاء</span></label>
+          <label class="day"><input type="checkbox" value="4"><span>خميس</span></label>
+          <label class="day"><input type="checkbox" value="5"><span>جمعة</span></label>
+          <label class="day"><input type="checkbox" value="6"><span>سبت</span></label>
+        </div>
+        <div class="row-3">
+          <div>
+            <label for="tTime" class="field-label">الوقت</label>
+            <input id="tTime" type="time" value="16:30">
+          </div>
+          <div>
+            <label for="tDuration" class="field-label">المدة</label>
+            <select id="tDuration">
+              <option value="30">30 دقيقة</option>
+              <option value="45">45 دقيقة</option>
+              <option value="60" selected>ساعة</option>
+              <option value="90">ساعة ونصف</option>
+              <option value="120">ساعتان</option>
+            </select>
+          </div>
+          <div>
+            <label for="tUntil" class="field-label">نهاية الترم</label>
+            <input id="tUntil" type="date">
+          </div>
+        </div>
+        <p class="error" id="termError" role="alert"></p>
+        <button class="btn btn-primary btn-lg btn-block" type="submit">إنشاء الرابط الثابت</button>
+      </form>
+      <div id="termResult" hidden>
+        <div class="success-mark"><svg class="i"><use href="#i-check"/></svg></div>
+        <h2 class="center">رابطك الثابت جاهز</h2>
+        <p class="muted center" id="tSummary"></p>
+        <div class="link-box"><code id="tLink" dir="ltr"></code></div>
+        <div class="result-actions">
+          <button class="btn" id="tCopy"><svg class="i"><use href="#i-copy"/></svg>نسخ الدعوة</button>
+          <a class="btn" id="tGoogle" target="_blank" rel="noopener"><svg class="i"><use href="#i-google"/></svg>تقويم Google</a>
+          <button class="btn" id="tIcs"><svg class="i"><use href="#i-download"/></svg>ملف تقويم</button>
+        </div>
+        <div class="row-2 term-done">
+          <button class="btn btn-lg" data-close>تم</button>
+          <button class="btn btn-primary btn-lg" id="tGo">ادخل الحلقة الآن</button>
+        </div>
       </div>
     </div>
   </div>

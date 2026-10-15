@@ -4,7 +4,8 @@
 const ICE_CONFIG = {
   iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }],
 };
-const CODE_RE = /[a-z]{3}-[a-z]{4}-[a-z]{3}/;
+// رمز الحلقة: عشوائي (abc-defg-hij) أو اسم ثابت للترم (sahaba-juz-amma) — مطابق لما في الخادم
+const ROOM_RE = /^(?!.*-r[1-9]$)(?!(?:api|healthz)$)[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/;
 const COLORS = ["#5b8cff", "#10b981", "#f59e0b", "#8b5cf6", "#06b6d4", "#ec4899", "#f97316", "#64748b"];
 const REACTIONS = ["👍", "👏", "🤲", "❤️", "🌟", "✅"];
 const GRADES = {
@@ -111,12 +112,15 @@ function genCode() {
   return `${part(3)}-${part(4)}-${part(3)}`;
 }
 
+// يقبل الرمز وحده أو الرابط كاملاً
 function parseCode(input) {
-  const s = String(input).trim().toLowerCase();
-  const m = s.match(CODE_RE);
-  if (m) return m[0];
+  let s = String(input).trim().toLowerCase();
+  if (!s) return null;
+  s = s.replace(/[?#].*$/, "").replace(/\/+$/, "");
+  s = s.slice(s.lastIndexOf("/") + 1);
+  if (ROOM_RE.test(s)) return s;
   const plain = s.replace(/[^a-z]/g, "");
-  if (plain.length === 10) return `${plain.slice(0, 3)}-${plain.slice(3, 7)}-${plain.slice(7)}`;
+  if (plain.length === 10 && !/[0-9]/.test(s)) return `${plain.slice(0, 3)}-${plain.slice(3, 7)}-${plain.slice(7)}`;
   return null;
 }
 
@@ -148,6 +152,7 @@ function route() {
     stopMedia();
     show("home");
     renderUpcoming();
+    renderTerms();
   }
 }
 
@@ -170,7 +175,7 @@ $("joinForm").addEventListener("submit", (e) => {
   e.preventDefault();
   const code = parseCode($("joinCode").value);
   if (!code) {
-    $("homeError").textContent = "رمز غير صالح. الشكل الصحيح مثل: abc-defg-hij";
+    $("homeError").textContent = "رمز غير صالح. الصق رابط الحلقة أو رمزها مثل: abc-defg-hij";
     return;
   }
   $("homeError").textContent = "";
@@ -1421,6 +1426,7 @@ for (const el of document.querySelectorAll("#scheduleModal [data-close]")) el.ad
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
   if (!$("scheduleModal").hidden) closeSchedule();
+  if (!$("termModal").hidden) closeTerm();
   $("settingsModal").hidden = true;
   $("breakoutModal").hidden = true;
 });
@@ -1692,6 +1698,205 @@ $("boAnnounce").addEventListener("submit", async (e) => {
     $("boMsg").value = "";
     toast("📢 أُرسلت الرسالة لكل الغرف");
   }
+});
+
+/* ---------- رابط ثابت للترم ---------- */
+
+const TERMS_KEY = "wasl:terms";
+const DAYS = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+const DAY_CODES = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+
+function loadTerms() {
+  try {
+    const list = JSON.parse(localStorage.getItem(TERMS_KEY)) || [];
+    const today = new Date().toISOString().slice(0, 10);
+    return list.filter((t) => !t.until || t.until >= today);
+  } catch {
+    return [];
+  }
+}
+
+function saveTerms(list) {
+  try {
+    localStorage.setItem(TERMS_KEY, JSON.stringify(list));
+  } catch {}
+}
+
+function daysText(days) {
+  const d = [...days].sort();
+  if (d.length === 7) return "يومياً";
+  if (d.join() === "0,1,2,3,4") return "من الأحد إلى الخميس";
+  return d.map((i) => DAYS[i]).join("، ");
+}
+
+function timeText(hhmm) {
+  const [h, m] = hhmm.split(":").map(Number);
+  return new Date(2000, 0, 1, h, m).toLocaleTimeString("ar", { hour: "numeric", minute: "2-digit" });
+}
+
+// أقرب موعد قادم للحلقة حسب أيامها ووقتها
+function nextOccurrence(t, from = new Date()) {
+  const [h, m] = t.time.split(":").map(Number);
+  for (let i = 0; i < 8; i++) {
+    const d = new Date(from.getFullYear(), from.getMonth(), from.getDate() + i, h, m);
+    if (t.days.includes(d.getDay()) && d.getTime() + t.duration * 60000 > from.getTime()) return d;
+  }
+  return null;
+}
+
+function termRRule(t) {
+  let rule = `RRULE:FREQ=WEEKLY;BYDAY=${[...t.days].sort().map((i) => DAY_CODES[i]).join(",")}`;
+  if (t.until) rule += `;UNTIL=${t.until.replace(/-/g, "")}T235959Z`;
+  return rule;
+}
+
+function termInvite(t) {
+  return `رابط ${t.title} — ثابت طوال الترم\nمنصة وصل (بالقرآن نتّصل) — مدرسة جامع الصحابة\n\nالمواعيد: ${daysText(t.days)} الساعة ${timeText(t.time)}\n\nادخل يومياً من نفس الرابط:\n${linkFor(t.code)}`;
+}
+
+function renderTerms() {
+  const list = loadTerms();
+  $("terms").hidden = list.length === 0;
+  const ul = $("termsList");
+  ul.innerHTML = "";
+  for (const t of list) {
+    const next = nextOccurrence(t);
+    const live = next && next.getTime() - Date.now() < 15 * 60000;
+    const li = document.createElement("li");
+    li.innerHTML = `
+      <div class="when"><b></b><span></span></div>
+      <button class="icon-btn" data-copy title="نسخ الرابط">${icon("copy")}</button>
+      <button class="btn btn-primary" data-join>دخول</button>
+      <button class="icon-btn" data-del title="حذف">${icon("close")}</button>`;
+    li.querySelector("b").textContent = t.title;
+    const span = li.querySelector("span");
+    span.textContent = live ? "الحلقة الآن" : `${daysText(t.days)} · ${timeText(t.time)}`;
+    span.classList.toggle("soon", !!live);
+    li.querySelector("[data-join]").addEventListener("click", () => goTo(t.code));
+    li.querySelector("[data-copy]").addEventListener("click", () => copyText(termInvite(t), "تم نسخ رابط الحلقة الثابت"));
+    li.querySelector("[data-del]").addEventListener("click", () => {
+      if (!confirm(`حذف «${t.title}» من قائمتك؟ الرابط نفسه سيبقى يعمل لمن عنده.`)) return;
+      saveTerms(loadTerms().filter((x) => x.code !== t.code));
+      renderTerms();
+    });
+    ul.appendChild(li);
+  }
+}
+
+let lastTerm = null;
+
+function slugify(v) {
+  return v.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
+}
+
+function updateSlugPreview() {
+  const slug = $("tSlug").value;
+  const ok = ROOM_RE.test(slug);
+  $("tSlugPreview").textContent = (DEMO ? "" : `${location.host}/`) + (slug || "…");
+  $("tSlugPreview").classList.toggle("bad", !!slug && !ok);
+  return ok;
+}
+
+function openTerm() {
+  $("tTitle").value = "";
+  const rand = Array.from(crypto.getRandomValues(new Uint8Array(3)), (b) => "abcdefghjkmnpqrstuvwxyz"[b % 23]).join("");
+  $("tSlug").value = `sahaba-${rand}`;
+  $("tTime").value = "16:30";
+  $("tUntil").value = "";
+  for (const c of document.querySelectorAll("#termForm .day input")) c.checked = Number(c.value) <= 4;
+  $("termError").textContent = "";
+  $("termForm").hidden = false;
+  $("termResult").hidden = true;
+  updateSlugPreview();
+  $("termModal").hidden = false;
+  $("tTitle").focus();
+}
+
+function closeTerm() {
+  $("termModal").hidden = true;
+  renderTerms();
+}
+
+$("termBtn").addEventListener("click", openTerm);
+for (const el of document.querySelectorAll("#termModal [data-close]")) el.addEventListener("click", closeTerm);
+$("tSlug").addEventListener("input", () => {
+  const el = $("tSlug");
+  const clean = (v) => v.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+  if (clean(el.value) !== el.value) {
+    // نحافظ على مكان المؤشر بحساب ما قبله بعد التنظيف
+    const before = clean(el.value.slice(0, el.selectionStart));
+    el.value = clean(el.value);
+    el.setSelectionRange(before.length, before.length);
+  }
+  updateSlugPreview();
+});
+
+$("termForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const slug = slugify($("tSlug").value);
+  $("tSlug").value = slug;
+  const days = [...document.querySelectorAll("#termForm .day input:checked")].map((c) => Number(c.value));
+  if (!updateSlugPreview()) {
+    $("termError").textContent = "اسم الرابط: حروف إنجليزية صغيرة وأرقام وشرطة (-) فقط، من 3 أحرف على الأقل";
+    return;
+  }
+  if (!days.length) {
+    $("termError").textContent = "اختر يوماً واحداً على الأقل";
+    return;
+  }
+  const t = {
+    code: slug,
+    title: $("tTitle").value.trim() || "الحلقة",
+    days,
+    time: $("tTime").value || "16:30",
+    duration: Number($("tDuration").value),
+    until: $("tUntil").value || "",
+  };
+  saveTerms([...loadTerms().filter((x) => x.code !== t.code), t]);
+  lastTerm = t;
+  const link = linkFor(t.code);
+  $("tLink").textContent = link;
+  $("tSummary").textContent = `${t.title} — ${daysText(t.days)} الساعة ${timeText(t.time)}${t.until ? ` حتى ${new Date(t.until).toLocaleDateString("ar", { day: "numeric", month: "long" })}` : ""}`;
+  const first = nextOccurrence(t) || new Date();
+  const g = new URL("https://calendar.google.com/calendar/render");
+  g.searchParams.set("action", "TEMPLATE");
+  g.searchParams.set("text", t.title);
+  g.searchParams.set("dates", `${toCalDate(first.getTime())}/${toCalDate(first.getTime() + t.duration * 60000)}`);
+  g.searchParams.set("recur", termRRule(t));
+  g.searchParams.set("details", `رابط الحلقة الثابت طوال الترم: ${link}`);
+  g.searchParams.set("location", link);
+  $("tGoogle").href = g.toString();
+  $("termForm").hidden = true;
+  $("termResult").hidden = false;
+});
+
+$("tCopy").addEventListener("click", () => lastTerm && copyText(termInvite(lastTerm), "تم نسخ الدعوة — أرسلها لطلابك مرة واحدة"));
+$("tIcs").addEventListener("click", () => {
+  if (!lastTerm) return;
+  const t = lastTerm;
+  const first = nextOccurrence(t) || new Date();
+  const esc = (x) => x.replace(/[\\;,]/g, (c) => "\\" + c).replace(/\n/g, "\\n");
+  const link = linkFor(t.code);
+  const ics = [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Wasl//AR", "CALSCALE:GREGORIAN", "BEGIN:VEVENT",
+    `UID:${t.code}-term@wasl`,
+    `DTSTAMP:${toCalDate(Date.now())}`,
+    `DTSTART:${toCalDate(first.getTime())}`,
+    `DTEND:${toCalDate(first.getTime() + t.duration * 60000)}`,
+    termRRule(t),
+    `SUMMARY:${esc(t.title)}`,
+    `DESCRIPTION:${esc("رابط الحلقة الثابت: " + link)}`,
+    `URL:${link}`,
+    `LOCATION:${esc(link)}`,
+    "BEGIN:VALARM", "TRIGGER:-PT10M", "ACTION:DISPLAY", `DESCRIPTION:${esc(t.title)}`, "END:VALARM",
+    "END:VEVENT", "END:VCALENDAR",
+  ].join("\r\n");
+  downloadBlob(new Blob([ics], { type: "text/calendar;charset=utf-8" }), `wasl-${t.code}.ics`);
+});
+$("tGo").addEventListener("click", () => {
+  if (!lastTerm) return;
+  $("termModal").hidden = true;
+  goTo(lastTerm.code);
 });
 
 window.addEventListener("beforeunload", () => state.es?.close());

@@ -7,9 +7,12 @@ const crypto = require("crypto");
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, "public");
-const ROOM_RE = /^[a-z]{3}-[a-z]{4}-[a-z]{3}$/;
-// الغرف الفرعية داخل الحلقة: abc-defg-hij-r1 … -r9
-const API_ROOM_RE = /^[a-z]{3}-[a-z]{4}-[a-z]{3}(-r[1-9])?$/;
+// رمز الحلقة: عشوائي مثل abc-defg-hij، أو اسم ثابت يختاره المعلّم للترم مثل sahaba-juz-amma
+// (حروف إنجليزية صغيرة وأرقام وشرطات، ولا ينتهي بـ -r رقم حتى لا يختلط بالغرف الفرعية)
+const SLUG = "[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])";
+const ROOM_RE = new RegExp(`^(?!.*-r[1-9]$)(?!(?:api|healthz)$)${SLUG}$`);
+// الغرف الفرعية داخل الحلقة: <الرمز>-r1 … -r9
+const API_ROOM_RE = new RegExp(`^(?!.*-r[1-9]-r[1-9]$)${SLUG}$`);
 const MAX_BREAKOUTS = 9;
 const MAX_PEERS = 25;
 const MAX_BODY = 64 * 1024;
