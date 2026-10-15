@@ -92,7 +92,7 @@ function handleSignal(req, res, roomId) {
     }
     const room = rooms.get(roomId);
     if (!room || !room.has(msg.from)) return json(res, 404, { error: "not_in_room" });
-    const allowed = ["offer", "answer", "ice", "chat", "state", "reaction"];
+    const allowed = ["offer", "answer", "ice", "chat", "state", "reaction", "recite", "grade"];
     if (!allowed.includes(msg.type)) return json(res, 400, { error: "bad_type" });
 
     const payload = { from: msg.from, type: msg.type, data: msg.data };

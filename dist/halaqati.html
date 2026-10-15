@@ -647,6 +647,176 @@ input[type="datetime-local"] { color-scheme: dark; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ===== آية اليوم ===== */
+.ayah-card {
+  margin: 28px 0 0; max-width: 480px; padding: 16px 20px; border-radius: var(--radius);
+  background: linear-gradient(135deg, rgba(245, 158, 11, .1), rgba(139, 92, 246, .08));
+  border: 1px solid rgba(245, 158, 11, .22);
+}
+.ayah-card figcaption { color: #fbbf24; font-size: .8rem; font-weight: 600; margin-bottom: 4px; }
+.ayah-card blockquote { margin: 0; font-size: 1.2rem; font-weight: 600; line-height: 1.9; }
+.ayah-card cite { color: var(--muted); font-style: normal; font-size: .82rem; }
+
+/* ===== للمعلّم وللطالب ===== */
+.showcase {
+  max-width: 1280px; margin: 0 auto; padding: 0 32px 80px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+}
+.show-card {
+  position: relative; overflow: hidden; padding: 30px 28px 26px; border-radius: 26px;
+  border: 1px solid var(--glass-border); background: var(--glass);
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+}
+.show-card::before {
+  content: ""; position: absolute; width: 280px; height: 280px; border-radius: 50%; top: -140px; inset-inline-end: -80px;
+  filter: blur(40px); opacity: .55; pointer-events: none;
+}
+.teacher-card::before { background: radial-gradient(circle, #5b8cff, transparent 70%); }
+.student-card::before { background: radial-gradient(circle, #f59e0b, transparent 70%); }
+.show-badge {
+  display: inline-block; font-size: .8rem; font-weight: 700; padding: 3px 12px; border-radius: 999px; margin-bottom: 12px;
+}
+.teacher-card .show-badge { background: rgba(91, 140, 255, .18); color: #a5b8ff; }
+.student-card .show-badge { background: rgba(245, 158, 11, .18); color: #fcd34d; }
+.show-card h2 { font-size: 1.6rem; margin-bottom: 18px; }
+.show-card ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.show-card li { display: flex; gap: 12px; align-items: flex-start; }
+.show-card li b { display: block; font-weight: 600; }
+.show-card li small { color: var(--muted); font-size: .86rem; line-height: 1.5; }
+.sc-icon {
+  flex-shrink: 0; width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; font-size: 1.2rem;
+  background: rgba(255, 255, 255, .07); border: 1px solid var(--glass-border);
+}
+
+/* ===== طابور التسميع ===== */
+.btn-sm { height: 34px; padding: 0 12px; font-size: .82rem; border-radius: 10px; gap: 5px; }
+.btn-sm .i { width: 16px; height: 16px; }
+.count-badge {
+  position: absolute; top: 4px; right: 2px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  background: var(--amber); color: #1c1203; font-size: .7rem; font-weight: 800; display: grid; place-items: center;
+}
+.queue {
+  margin-bottom: 14px; padding: 12px; border-radius: 16px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, .12), rgba(245, 158, 11, .04));
+  border: 1px solid rgba(245, 158, 11, .25);
+}
+.queue h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: .92rem; }
+.qcount { margin-inline-start: auto; background: var(--amber); color: #1c1203; border-radius: 999px; padding: 0 8px; font-size: .75rem; }
+.queue ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.queue li { display: flex; align-items: center; gap: 10px; }
+.queue .pn { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qnum {
+  width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0;
+  background: rgba(245, 158, 11, .25); color: #fcd34d; font-weight: 700; font-size: .8rem;
+}
+.people li.reciting { background: rgba(245, 158, 11, .1); }
+.people .pname .now { color: #fcd34d; }
+.pstars { color: #fcd34d; font-size: .82rem; font-weight: 700; white-space: nowrap; }
+.people .recite-btn { color: #fcd34d; }
+
+/* ===== من يُسمّع الآن ===== */
+.tile .recite-tag {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 4; display: none;
+  align-items: center; gap: 5px; white-space: nowrap;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #1c1203; font-weight: 700; font-size: .8rem;
+  padding: 4px 12px; border-radius: 999px; box-shadow: 0 6px 18px rgba(245, 158, 11, .45);
+}
+.tile .recite-tag .i { width: 15px; height: 15px; }
+.tile.reciting .recite-tag { display: inline-flex; }
+.tile.reciting::before {
+  opacity: 1; background: linear-gradient(135deg, #fde047, #f59e0b, #f97316);
+}
+.tile.reciting { box-shadow: 0 0 50px rgba(245, 158, 11, .35); }
+.tile .stars-tag {
+  background: rgba(245, 158, 11, .2); color: #fcd34d; font-size: .72rem; font-weight: 700;
+  padding: 0 7px; border-radius: 999px; flex-shrink: 0;
+}
+.recite-banner {
+  align-self: center; margin-top: 12px; display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(245, 158, 11, .14); border: 1px solid rgba(245, 158, 11, .35); color: #fde68a;
+  padding: 5px 18px; border-radius: 999px; font-size: .9rem; font-weight: 600;
+}
+.recite-banner .i { width: 18px; height: 18px; }
+.recite-banner.mine {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #1c1203; border-color: transparent;
+  box-shadow: 0 8px 28px rgba(245, 158, 11, .45); animation: glow 1.6s ease-in-out infinite;
+}
+@keyframes glow { 50% { box-shadow: 0 8px 40px rgba(245, 158, 11, .75); } }
+
+/* ===== بطاقة التقييم (للمعلّم) ===== */
+.grade-card {
+  position: absolute; top: 16px; inset-inline-start: 32px; z-index: 7; width: min(400px, calc(100% - 48px));
+  background: rgba(20, 26, 51, .85); border: 1px solid rgba(245, 158, 11, .35);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-radius: 22px; padding: 16px 16px 14px; box-shadow: 0 24px 60px rgba(0, 0, 0, .5);
+  animation: pop .3s ease-out;
+}
+.grade-head { display: flex; align-items: center; gap: 12px; }
+.grade-head > div { flex: 1; min-width: 0; line-height: 1.3; }
+.grade-head small { color: #fcd34d; font-size: .78rem; font-weight: 600; }
+.grade-head b { display: block; font-size: 1.1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grade-live {
+  width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; flex-shrink: 0;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #1c1203;
+}
+.grade-card p { margin: 12px 0 8px; color: var(--muted); font-size: .85rem; }
+.grade-btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.grade-btns button {
+  display: grid; justify-items: center; gap: 2px; padding: 10px 4px 8px; border-radius: 14px; cursor: pointer;
+  font: inherit; font-size: .8rem; font-weight: 700; color: var(--text);
+  background: rgba(255, 255, 255, .06); border: 1px solid var(--glass-border);
+  transition: transform .12s, background .2s, border-color .2s;
+}
+.grade-btns button span { font-size: .78rem; letter-spacing: -2px; }
+.grade-btns button:hover { transform: translateY(-2px); }
+.grade-btns .g-excellent:hover { background: rgba(250, 204, 21, .18); border-color: #facc15; }
+.grade-btns .g-vgood:hover { background: rgba(45, 212, 191, .16); border-color: var(--teal); }
+.grade-btns .g-good:hover { background: rgba(91, 140, 255, .18); border-color: var(--blue); }
+.grade-btns .g-review:hover { background: rgba(244, 63, 94, .14); border-color: #fb7185; }
+
+/* ===== الاحتفال ===== */
+.celebrate { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; background: rgba(4, 6, 16, .55); backdrop-filter: blur(4px); cursor: pointer; animation: fade .25s ease-out; }
+.confetti { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.confetti i {
+  position: absolute; top: -20px; height: 14px; border-radius: 3px; opacity: .95;
+  animation-name: fall; animation-timing-function: cubic-bezier(.2, .6, .4, 1); animation-fill-mode: forwards;
+}
+@keyframes fall { to { top: 105%; transform: translateX(40px) rotate(720deg); opacity: .8; } }
+.cel-card {
+  position: relative; text-align: center; padding: 34px 40px 30px; border-radius: 28px; max-width: min(420px, 90vw);
+  background: rgba(20, 26, 51, .92); border: 1px solid var(--glass-border); box-shadow: 0 30px 80px rgba(0, 0, 0, .55);
+  animation: celpop .5s cubic-bezier(.2, 1.4, .4, 1);
+}
+.g-excellent .cel-card { border-color: rgba(250, 204, 21, .5); box-shadow: 0 0 80px rgba(250, 204, 21, .3), 0 30px 80px rgba(0, 0, 0, .55); }
+@keyframes celpop { from { opacity: 0; transform: scale(.6); } }
+.cel-stars { display: flex; justify-content: center; gap: 8px; font-size: 3rem; margin-bottom: 8px; }
+.cel-stars span { display: inline-block; animation: starin .6s cubic-bezier(.2, 1.6, .4, 1) both; animation-delay: var(--d, 0s); filter: drop-shadow(0 6px 16px rgba(250, 204, 21, .5)); }
+@keyframes starin { from { opacity: 0; transform: scale(0) rotate(-90deg); } }
+.cel-card h2 { font-size: 1.7rem; margin-bottom: 6px; }
+.g-excellent .cel-card h2 { background: linear-gradient(100deg, #fde047, #f59e0b); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.cel-card p { margin: 0; color: var(--muted); }
+
+/* ===== صفحة المغادرة ===== */
+.left-stars {
+  display: inline-flex; align-items: center; gap: 10px; margin: -8px 0 26px; padding: 10px 20px; border-radius: 18px;
+  background: rgba(245, 158, 11, .12); border: 1px solid rgba(245, 158, 11, .3);
+}
+.left-stars span { font-size: 1.6rem; }
+.left-stars b { font-size: 1.6rem; color: #fcd34d; }
+.left-stars small { color: var(--muted); }
+
+@media (max-width: 960px) {
+  .showcase { grid-template-columns: 1fr; }
+  .ayah-card { margin-inline: auto; }
+}
+@media (max-width: 640px) {
+  .showcase { padding: 0 16px 48px; }
+  .show-card { padding: 24px 18px 20px; }
+  .show-card ul { grid-template-columns: 1fr; }
+  .grade-card { inset-inline: 8px; top: 8px; width: auto; }
+  .grade-btns button { font-size: .74rem; }
+}
 </style>
 </head>
 <body>
@@ -720,6 +890,12 @@ input[type="datetime-local"] { color-scheme: dark; }
           <li><svg class="i"><use href="#i-check"/></svg>حتى 12 مشاركاً في الحلقة</li>
         </ul>
 
+        <figure class="ayah-card" id="ayahCard">
+          <figcaption>آية اليوم</figcaption>
+          <blockquote id="ayahText"></blockquote>
+          <cite id="ayahRef"></cite>
+        </figure>
+
         <div class="upcoming" id="upcoming" hidden>
           <h3>الحلقات القادمة</h3>
           <ul id="upcomingList"></ul>
@@ -749,6 +925,29 @@ input[type="datetime-local"] { color-scheme: dark; }
         <div class="float-card fc-chat"><span class="fc-av" style="background:#f59e0b">أ</span><div><b>أحمد</b><small>السلام عليكم يا شيخ</small></div></div>
       </div>
     </main>
+
+    <section class="showcase" aria-label="لمن حلقتي">
+      <article class="show-card teacher-card">
+        <span class="show-badge">للمعلّم</span>
+        <h2>أدِر حلقتك بسهولة</h2>
+        <ul>
+          <li><span class="sc-icon">🙋</span><div><b>طابور التسميع</b><small>الطلاب يرفعون أيديهم بالترتيب، وتنادي التالي بضغطة</small></div></li>
+          <li><span class="sc-icon">⭐</span><div><b>تقييم فوري بالنجوم</b><small>ممتاز، جيد جداً، جيد، أو يحتاج مراجعة</small></div></li>
+          <li><span class="sc-icon">📌</span><div><b>الطالب في الوسط</b><small>من يُسمّع يظهر كبيراً للجميع تلقائياً</small></div></li>
+          <li><span class="sc-icon">⏺️</span><div><b>تسجيل الحلقة</b><small>احفظ الحلقة للمراجعة لاحقاً</small></div></li>
+        </ul>
+      </article>
+      <article class="show-card student-card">
+        <span class="show-badge">للطالب</span>
+        <h2>سمّع واجمع النجوم</h2>
+        <ul>
+          <li><span class="sc-icon">✋</span><div><b>ارفع يدك</b><small>واعرف رقمك في طابور التسميع</small></div></li>
+          <li><span class="sc-icon">🎉</span><div><b>احتفال عند الإتقان</b><small>نجوم ونثار ملوّن إذا كان تسميعك ممتازاً</small></div></li>
+          <li><span class="sc-icon">🏅</span><div><b>نجومك أمام الجميع</b><small>تظهر بجانب اسمك طوال الحلقة</small></div></li>
+          <li><span class="sc-icon">📱</span><div><b>من جوالك</b><small>ادخل بالرابط فقط، بدون تطبيق</small></div></li>
+        </ul>
+      </article>
+    </section>
   </section>
 
   <!-- شاشة ما قبل الدخول -->
@@ -796,9 +995,24 @@ input[type="datetime-local"] { color-scheme: dark; }
 
   <!-- غرفة الحلقة -->
   <section id="room" class="view room" hidden>
+    <div class="recite-banner" id="reciteBanner" hidden><svg class="i"><use href="#i-book"/></svg><span id="reciteText"></span></div>
     <div class="rec-banner" id="recBanner" hidden><span class="rec-dot"></span><span id="recText">يتم تسجيل هذه الحلقة</span></div>
     <div class="stage">
       <div class="grid" id="grid"></div>
+      <div class="grade-card" id="gradeCard" hidden>
+        <div class="grade-head">
+          <span class="grade-live"><svg class="i"><use href="#i-book"/></svg></span>
+          <div><small>يُسمّع الآن</small><b id="gradeName"></b></div>
+          <button class="btn btn-sm btn-ghost" id="gradeEnd" type="button">إنهاء</button>
+        </div>
+        <p>قيّم التسميع:</p>
+        <div class="grade-btns">
+          <button type="button" data-grade="excellent" class="g-excellent"><span>⭐⭐⭐</span>ممتاز</button>
+          <button type="button" data-grade="vgood" class="g-vgood"><span>⭐⭐</span>جيد جداً</button>
+          <button type="button" data-grade="good" class="g-good"><span>⭐</span>جيد</button>
+          <button type="button" data-grade="review" class="g-review"><span>📖</span>مراجعة</button>
+        </div>
+      </div>
       <div class="invite-card" id="inviteCard" hidden>
         <button class="icon-btn invite-close" id="inviteClose" aria-label="إغلاق"><svg class="i"><use href="#i-close"/></svg></button>
         <h3>حلقتك جاهزة</h3>
@@ -821,6 +1035,10 @@ input[type="datetime-local"] { color-scheme: dark; }
           </form>
         </div>
         <div class="panel-body" data-pane="people" hidden>
+          <div class="queue" id="queue" hidden>
+            <h4><span>✋</span>طابور التسميع <span class="qcount" id="queueCount">0</span></h4>
+            <ol id="queueList"></ol>
+          </div>
           <ul class="people" id="people"></ul>
         </div>
       </aside>
@@ -850,7 +1068,7 @@ input[type="datetime-local"] { color-scheme: dark; }
       <div class="bar-side">
         <button class="ctrl ctrl-flat" id="settingsBtn" title="الأجهزة"><svg class="i"><use href="#i-sliders"/></svg></button>
         <button class="ctrl ctrl-flat" id="copyBtn" title="نسخ رابط الحلقة"><svg class="i"><use href="#i-link"/></svg></button>
-        <button class="ctrl ctrl-flat" id="peopleBtn" title="الحضور"><svg class="i"><use href="#i-users"/></svg></button>
+        <button class="ctrl ctrl-flat" id="peopleBtn" title="الحضور وطابور التسميع"><svg class="i"><use href="#i-users"/></svg><span class="count-badge" id="handCount" hidden>0</span></button>
         <button class="ctrl ctrl-flat" id="chatBtn" title="الدردشة"><svg class="i"><use href="#i-chat"/></svg><span class="dot" id="chatDot" hidden></span></button>
       </div>
     </footer>
@@ -862,6 +1080,7 @@ input[type="datetime-local"] { color-scheme: dark; }
       <span class="left-icon"><svg class="i"><use href="#i-check"/></svg></span>
       <h2>غادرت الحلقة</h2>
       <p class="lead" id="leftSummary"></p>
+      <div class="left-stars" id="leftStars" hidden><span>⭐</span><b id="leftStarsCount">0</b><small>نجمة جمعتها في هذه الحلقة</small></div>
       <div class="home-actions center">
         <button class="btn btn-lg" id="rejoinBtn">العودة للحلقة</button>
         <button class="btn btn-primary btn-lg" id="goHomeBtn">الصفحة الرئيسية</button>
@@ -927,6 +1146,16 @@ input[type="datetime-local"] { color-scheme: dark; }
     </div>
   </div>
 
+  <!-- احتفال التقييم -->
+  <div class="celebrate" id="celebrate" hidden>
+    <div class="confetti" id="confetti"></div>
+    <div class="cel-card">
+      <div class="cel-stars" id="celStars"></div>
+      <h2 id="celTitle"></h2>
+      <p id="celNote"></p>
+    </div>
+  </div>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script>window.HALAQATI_DEMO = true;</script>
   <script>
@@ -939,6 +1168,12 @@ const ICE_CONFIG = {
 const CODE_RE = /[a-z]{3}-[a-z]{4}-[a-z]{3}/;
 const COLORS = ["#5b8cff", "#10b981", "#f59e0b", "#8b5cf6", "#06b6d4", "#ec4899", "#f97316", "#64748b"];
 const REACTIONS = ["👍", "👏", "🤲", "❤️", "🌟", "✅"];
+const GRADES = {
+  excellent: { label: "ممتاز", stars: 3, title: "ما شاء الله! تسميع ممتاز", note: "أتقنت الحفظ، بارك الله فيك" },
+  vgood: { label: "جيد جداً", stars: 2, title: "أحسنت! جيد جداً", note: "قريب من الإتقان، واصل" },
+  good: { label: "جيد", stars: 1, title: "جيد، واصل التقدّم", note: "راجع المقطع مرة أخرى" },
+  review: { label: "يحتاج مراجعة", stars: 0, title: "تحتاج مراجعة", note: "لا بأس، راجع وستتقنه بإذن الله" },
+};
 
 const $ = (id) => document.getElementById(id);
 
@@ -956,6 +1191,10 @@ const state = {
   hand: false,
   role: "student", // student | teacher
   pinned: null, // معرّف البلاطة المثبتة، أو "none" لإلغاء التثبيت التلقائي
+  handAt: 0, // وقت رفع اليد — لترتيب طابور التسميع
+  reciter: null, // معرّف الطالب الذي يُسمّع الآن
+  stars: {}, // نجوم كل طالب في هذه الحلقة: { معرّف: عدد }
+  sessionStars: 0,
   es: null,
   peers: new Map(), // id -> { id, name, pc, stream, pendingIce, mic, cam, hand, screen, tile }
   localTile: null,
@@ -1105,6 +1344,21 @@ setInterval(() => {
   $("roomClock").textContent = timeNow();
   if (state.joinedAt) $("roomElapsed").textContent = elapsed(Date.now() - state.joinedAt);
 }, 1000);
+
+// آية اليوم: تتغيّر كل يوم
+const DAILY = [
+  { text: "وَلَقَدْ يَسَّرْنَا الْقُرْآنَ لِلذِّكْرِ فَهَلْ مِن مُّدَّكِرٍ", ref: "سورة القمر: ١٧", ayah: true },
+  { text: "إِنَّ هَٰذَا الْقُرْآنَ يَهْدِي لِلَّتِي هِيَ أَقْوَمُ", ref: "سورة الإسراء: ٩", ayah: true },
+  { text: "وَرَتِّلِ الْقُرْآنَ تَرْتِيلًا", ref: "سورة المزمل: ٤", ayah: true },
+  { text: "خيرُكم من تعلَّم القرآنَ وعلَّمه", ref: "رواه البخاري", ayah: false },
+  { text: "اقرؤوا القرآنَ فإنه يأتي يومَ القيامة شفيعاً لأصحابه", ref: "رواه مسلم", ayah: false },
+];
+{
+  const d = DAILY[Math.floor(Date.now() / 86400000) % DAILY.length];
+  $("ayahCard").querySelector("figcaption").textContent = d.ayah ? "آية اليوم" : "حديث اليوم";
+  $("ayahText").textContent = d.ayah ? `﴿ ${d.text} ﴾` : `« ${d.text} »`;
+  $("ayahRef").textContent = d.ref;
+}
 
 $("joinCode").addEventListener("input", () => {
   $("joinBtn").disabled = !$("joinCode").value.trim();
@@ -1357,6 +1611,7 @@ function myStatus() {
     screen: !!state.screenStream,
     recording: !!state.recorder,
     role: state.role,
+    handAt: state.handAt,
   };
 }
 
@@ -1448,7 +1703,12 @@ async function handleSignal({ from, type, data }) {
       break;
     case "state":
       if (!peer) return;
-      if (data.hand && !peer.hand) toast(`✋ ${data.name} يرفع يده`);
+      if (data.hand && !peer.hand) {
+        peer.handAt = Date.now();
+        const pos = handQueue().length + 1;
+        toast(state.role === "teacher" ? `✋ ${data.name} يرفع يده — رقم ${pos} في الطابور` : `✋ ${data.name} يرفع يده`);
+      }
+      if (!data.hand) peer.handAt = 0;
       Object.assign(peer, {
         name: String(data.name || peer.name).slice(0, 40),
         mic: !!data.mic,
@@ -1468,6 +1728,14 @@ async function handleSignal({ from, type, data }) {
       break;
     case "reaction":
       if (peer) floatReaction(peer.tile, data.emoji);
+      break;
+    case "recite":
+      if (peer?.role !== "teacher") return;
+      setReciter(typeof data.id === "string" ? data.id : null);
+      break;
+    case "grade":
+      if (peer?.role !== "teacher" || !GRADES[data.grade]) return;
+      receiveGrade(String(data.to), data.grade, Math.max(0, Number(data.total) || 0));
       break;
   }
 }
@@ -1551,6 +1819,7 @@ function removePeer(id, silent) {
   state.meters.delete(peer.tile);
   peer.tile.remove();
   state.peers.delete(id);
+  if (state.reciter === id) setReciter(null);
   if (!silent) {
     renderPeople();
     layoutGrid();
@@ -1577,7 +1846,8 @@ function createTile(id, isLocal) {
     <div class="avatar"></div>
     <span class="hand-badge">${icon("hand")}يرفع يده</span>
     <button class="pin-btn" type="button" title="تثبيت في الوسط">${icon("pin")}</button>
-    <div class="label">${icon("mic-off", "mic-off")}<span class="name"></span><span class="role-tag" hidden>المعلّم</span></div>`;
+    <span class="recite-tag">${icon("book")}يُسمّع الآن</span>
+    <div class="label">${icon("mic-off", "mic-off")}<span class="name"></span><span class="role-tag" hidden>المعلّم</span><span class="stars-tag" hidden></span></div>`;
   tile.querySelector(".pin-btn").addEventListener("click", () => togglePin(id));
   $("grid").appendChild(tile);
   return tile;
@@ -1593,6 +1863,12 @@ function paintTile(tile, { name, mic, cam, hand, screen, role }) {
   tile.classList.toggle("muted", !mic);
   tile.classList.toggle("hand", hand);
   tile.querySelector(".role-tag").hidden = role !== "teacher";
+  const id = tile.dataset.id === "local" ? state.myId : tile.dataset.id;
+  const stars = state.stars[id] || 0;
+  const tag = tile.querySelector(".stars-tag");
+  tag.hidden = !stars;
+  tag.textContent = `⭐ ${stars}`;
+  tile.classList.toggle("reciting", !!id && state.reciter === id);
 }
 
 function togglePin(id) {
@@ -1608,6 +1884,10 @@ function effectivePin() {
   state.pinned = null;
   const sharer = [...state.peers.values()].find((p) => p.screen);
   if (sharer) return sharer.id;
+  if (state.reciter) {
+    if (state.reciter === state.myId) return "local";
+    if (state.peers.has(state.reciter)) return state.reciter;
+  }
   if (state.role !== "teacher" && state.peers.size >= 2) {
     const teacher = [...state.peers.values()].find((p) => p.role === "teacher");
     if (teacher) return teacher.id;
@@ -1618,6 +1898,124 @@ function effectivePin() {
 function updatePeerTile(peer) {
   paintTile(peer.tile, peer);
 }
+
+function repaintTiles() {
+  for (const p of state.peers.values()) updatePeerTile(p);
+  updateLocalTile();
+}
+
+/* ---------- طابور التسميع والتقييم ---------- */
+
+// الطلاب الرافعون أيديهم مرتّبين حسب أسبقية الرفع
+function handQueue() {
+  return [...state.peers.values()].filter((p) => p.hand && p.role !== "teacher").sort((a, b) => a.handAt - b.handAt);
+}
+
+function nameOf(id) {
+  if (id === state.myId) return state.name;
+  return state.peers.get(id)?.name || "طالب";
+}
+
+function setReciter(id) {
+  const was = state.reciter;
+  state.reciter = id;
+  if (id && id === state.myId && was !== id) {
+    // دوري الآن: أُنزل يدي وأنبّه نفسي
+    if (state.hand) {
+      state.hand = false;
+      state.handAt = 0;
+      syncToggleButtons();
+      broadcastState();
+    }
+    toast(state.micOn ? "🎙️ دورك الآن في التسميع، بالتوفيق" : "🎙️ دورك الآن — افتح الميكروفون وابدأ التسميع");
+  }
+  updateReciteUI();
+  repaintTiles();
+  layoutGrid();
+  renderPeople();
+}
+
+function startRecite(id) {
+  if (state.role !== "teacher") return;
+  setReciter(id);
+  signal("recite", { id });
+}
+
+function endRecite() {
+  setReciter(null);
+  signal("recite", { id: null });
+}
+
+function gradeReciter(grade) {
+  const id = state.reciter;
+  if (!id || state.role !== "teacher") return;
+  const total = (state.stars[id] || 0) + GRADES[grade].stars;
+  state.stars[id] = total;
+  signal("grade", { to: id, grade, total });
+  toast(`${GRADES[grade].stars ? "⭐" : "📖"} ${nameOf(id)}: ${GRADES[grade].label}`);
+  endRecite();
+}
+
+function receiveGrade(to, grade, total) {
+  const gained = total - (state.stars[to] || 0);
+  state.stars[to] = total;
+  if (to === state.myId) {
+    state.sessionStars += Math.max(0, gained);
+    celebrate(grade, total);
+  } else {
+    toast(`${GRADES[grade].stars ? "⭐" : "📖"} ${nameOf(to)}: ${GRADES[grade].label}`);
+  }
+  if (state.reciter === to) setReciter(null);
+  else repaintTiles();
+}
+
+function updateReciteUI() {
+  const id = state.reciter;
+  const isTeacher = state.role === "teacher";
+  $("gradeCard").hidden = !id || !isTeacher;
+  $("reciteBanner").hidden = !id || isTeacher;
+  if (!id) return;
+  if (isTeacher) {
+    $("gradeName").textContent = nameOf(id);
+  } else {
+    const mine = id === state.myId;
+    $("reciteBanner").classList.toggle("mine", mine);
+    $("reciteText").textContent = mine ? "دورك الآن في التسميع" : `يُسمّع الآن: ${nameOf(id)}`;
+  }
+}
+
+for (const btn of document.querySelectorAll("#gradeCard [data-grade]")) {
+  btn.addEventListener("click", () => gradeReciter(btn.dataset.grade));
+}
+$("gradeEnd").addEventListener("click", endRecite);
+
+// احتفال عند التقييم: نجوم ونثار ملوّن
+function celebrate(grade, total) {
+  const g = GRADES[grade];
+  const box = $("celebrate");
+  box.className = `celebrate g-${grade}`;
+  $("celStars").innerHTML = g.stars
+    ? Array.from({ length: g.stars }, (_, i) => `<span style="--d:${i * 0.15}s">⭐</span>`).join("")
+    : '<span>📖</span>';
+  $("celTitle").textContent = g.title;
+  $("celNote").textContent = total ? `${g.note} — مجموع نجومك: ${total}` : g.note;
+  const confetti = $("confetti");
+  confetti.innerHTML = "";
+  if (g.stars >= 2) {
+    const colors = ["#5b8cff", "#8b5cf6", "#2dd4bf", "#f59e0b", "#ec4899", "#fde047"];
+    for (let i = 0; i < 70; i++) {
+      const c = document.createElement("i");
+      c.style.cssText = `left:${Math.random() * 100}%;background:${colors[i % colors.length]};` +
+        `animation-delay:${Math.random() * 0.6}s;animation-duration:${2.2 + Math.random() * 1.6}s;` +
+        `transform:rotate(${Math.random() * 360}deg);width:${6 + Math.random() * 6}px`;
+      confetti.appendChild(c);
+    }
+  }
+  box.hidden = false;
+  clearTimeout(celebrate.t);
+  celebrate.t = setTimeout(() => (box.hidden = true), 4200);
+}
+$("celebrate").addEventListener("click", () => ($("celebrate").hidden = true));
 
 function updateLocalTile() {
   if (!state.localTile) return;
@@ -1707,6 +2105,7 @@ function enterRoom() {
   $("messages").innerHTML = '<p class="hint">الرسائل تظهر فقط للحاضرين في الحلقة الآن</p>';
   state.pinned = null;
   state.inviteDismissed = false;
+  state.sessionStars = 0;
   $("inviteLink").textContent = meetingLink().replace(/^https?:\/\//, "");
   $("roomElapsed").textContent = "00:00";
   state.localTile = createTile("local", true);
@@ -1719,7 +2118,11 @@ function enterRoom() {
 }
 
 function leave(navigate = true) {
-  if (state.joinedAt) $("leftSummary").textContent = `مدة حضورك: ${formatDuration(Date.now() - state.joinedAt)}`;
+  if (state.joinedAt) {
+    $("leftSummary").textContent = `مدة حضورك: ${formatDuration(Date.now() - state.joinedAt)}`;
+    $("leftStars").hidden = !state.sessionStars;
+    $("leftStarsCount").textContent = state.sessionStars;
+  }
   stopRecording();
   state.es?.close();
   state.es = null;
@@ -1729,7 +2132,12 @@ function leave(navigate = true) {
   state.myId = null;
   state.joinedAt = 0;
   state.hand = false;
+  state.handAt = 0;
+  state.reciter = null;
+  state.stars = {};
   state.localTile = null;
+  $("gradeCard").hidden = true;
+  $("reciteBanner").hidden = true;
   $("panel").hidden = true;
   $("recBanner").hidden = true;
   $("inviteCard").hidden = true;
@@ -1744,6 +2152,8 @@ $("goHomeBtn").addEventListener("click", () => goTo(null));
 
 $("handBtn").addEventListener("click", () => {
   state.hand = !state.hand;
+  state.handAt = state.hand ? Date.now() : 0;
+  if (state.hand) toast("✋ رفعت يدك — سينادي المعلّم دورك");
   syncToggleButtons();
   updateLocalTile();
   broadcastState();
@@ -1867,23 +2277,49 @@ $("chatForm").addEventListener("submit", (e) => {
 });
 
 function renderPeople() {
+  const isTeacher = state.role === "teacher";
+  const queue = handQueue();
+
+  // طابور التسميع (يراه الجميع، والمعلّم يستطيع مناداة الطالب)
+  const qbox = $("queue");
+  qbox.hidden = queue.length === 0;
+  $("queueCount").textContent = queue.length;
+  const qlist = $("queueList");
+  qlist.innerHTML = "";
+  queue.forEach((p, i) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<span class="qnum">${i + 1}</span><span class="pn"></span>${isTeacher ? `<button class="btn btn-sm btn-primary" type="button">${icon("book")}ابدأ تسميعه</button>` : ""}`;
+    li.querySelector(".pn").textContent = p.name;
+    li.querySelector("button")?.addEventListener("click", () => startRecite(p.id));
+    qlist.appendChild(li);
+  });
+  $("handCount").hidden = !isTeacher || !queue.length;
+  $("handCount").textContent = queue.length;
+
   const list = $("people");
   list.innerHTML = "";
-  const everyone = [{ ...myStatus(), id: "local", name: `${state.name} (أنت)` }, ...state.peers.values()];
-  // المعلّم أولاً، ثم من رفع يده
-  everyone.sort((a, b) => (b.role === "teacher") - (a.role === "teacher") || b.hand - a.hand);
+  const me = { ...myStatus(), id: "local", sid: state.myId, name: `${state.name} (أنت)` };
+  const everyone = [me, ...[...state.peers.values()].map((p) => ({ ...p, sid: p.id }))];
+  everyone.sort((a, b) => (b.role === "teacher") - (a.role === "teacher") || (state.stars[b.sid] || 0) - (state.stars[a.sid] || 0));
   const pin = effectivePin();
   for (const p of everyone) {
+    const stars = state.stars[p.sid] || 0;
+    const canRecite = isTeacher && p.id !== "local" && p.role !== "teacher";
+    const reciting = state.reciter && state.reciter === p.sid;
     const li = document.createElement("li");
+    li.classList.toggle("reciting", !!reciting);
     li.innerHTML = `
       <span class="mini"></span>
-      <span class="pname"><span class="pn"></span><small${p.role === "teacher" ? "" : " hidden"}>المعلّم</small></span>
+      <span class="pname"><span class="pn"></span><small${p.role === "teacher" ? "" : " hidden"}>المعلّم</small>${reciting ? '<small class="now">يُسمّع الآن</small>' : ""}</span>
+      ${stars ? `<span class="pstars">⭐ ${stars}</span>` : ""}
       <span class="icons">${p.hand ? icon("hand", "hand") : ""}${p.mic ? icon("mic") : icon("mic-off", "muted-i")}</span>
-      <button class="icon-btn${pin === p.id ? " active" : ""}" type="button" title="${pin === p.id ? "إلغاء التثبيت" : "تثبيت في الوسط"}">${icon("pin")}</button>`;
+      ${canRecite ? `<button class="icon-btn recite-btn" type="button" title="ابدأ تسميعه">${icon("book")}</button>` : ""}
+      <button class="icon-btn pin${pin === p.id ? " active" : ""}" type="button" title="${pin === p.id ? "إلغاء التثبيت" : "تثبيت في الوسط"}">${icon("pin")}</button>`;
     li.querySelector(".mini").textContent = initial(p.name);
     li.querySelector(".mini").style.background = colorFor(p.name.replace(" (أنت)", ""));
     li.querySelector(".pn").textContent = p.name;
-    li.querySelector("button").addEventListener("click", () => togglePin(p.id));
+    li.querySelector(".pin").addEventListener("click", () => togglePin(p.id));
+    li.querySelector(".recite-btn")?.addEventListener("click", () => startRecite(p.id));
     list.appendChild(li);
   }
   $("peopleCount").textContent = everyone.length;

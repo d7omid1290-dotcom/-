@@ -83,6 +83,12 @@
           <li><svg class="i"><use href="#i-check"/></svg>حتى 12 مشاركاً في الحلقة</li>
         </ul>
 
+        <figure class="ayah-card" id="ayahCard">
+          <figcaption>آية اليوم</figcaption>
+          <blockquote id="ayahText"></blockquote>
+          <cite id="ayahRef"></cite>
+        </figure>
+
         <div class="upcoming" id="upcoming" hidden>
           <h3>الحلقات القادمة</h3>
           <ul id="upcomingList"></ul>
@@ -112,6 +118,29 @@
         <div class="float-card fc-chat"><span class="fc-av" style="background:#f59e0b">أ</span><div><b>أحمد</b><small>السلام عليكم يا شيخ</small></div></div>
       </div>
     </main>
+
+    <section class="showcase" aria-label="لمن حلقتي">
+      <article class="show-card teacher-card">
+        <span class="show-badge">للمعلّم</span>
+        <h2>أدِر حلقتك بسهولة</h2>
+        <ul>
+          <li><span class="sc-icon">🙋</span><div><b>طابور التسميع</b><small>الطلاب يرفعون أيديهم بالترتيب، وتنادي التالي بضغطة</small></div></li>
+          <li><span class="sc-icon">⭐</span><div><b>تقييم فوري بالنجوم</b><small>ممتاز، جيد جداً، جيد، أو يحتاج مراجعة</small></div></li>
+          <li><span class="sc-icon">📌</span><div><b>الطالب في الوسط</b><small>من يُسمّع يظهر كبيراً للجميع تلقائياً</small></div></li>
+          <li><span class="sc-icon">⏺️</span><div><b>تسجيل الحلقة</b><small>احفظ الحلقة للمراجعة لاحقاً</small></div></li>
+        </ul>
+      </article>
+      <article class="show-card student-card">
+        <span class="show-badge">للطالب</span>
+        <h2>سمّع واجمع النجوم</h2>
+        <ul>
+          <li><span class="sc-icon">✋</span><div><b>ارفع يدك</b><small>واعرف رقمك في طابور التسميع</small></div></li>
+          <li><span class="sc-icon">🎉</span><div><b>احتفال عند الإتقان</b><small>نجوم ونثار ملوّن إذا كان تسميعك ممتازاً</small></div></li>
+          <li><span class="sc-icon">🏅</span><div><b>نجومك أمام الجميع</b><small>تظهر بجانب اسمك طوال الحلقة</small></div></li>
+          <li><span class="sc-icon">📱</span><div><b>من جوالك</b><small>ادخل بالرابط فقط، بدون تطبيق</small></div></li>
+        </ul>
+      </article>
+    </section>
   </section>
 
   <!-- شاشة ما قبل الدخول -->
@@ -159,9 +188,24 @@
 
   <!-- غرفة الحلقة -->
   <section id="room" class="view room" hidden>
+    <div class="recite-banner" id="reciteBanner" hidden><svg class="i"><use href="#i-book"/></svg><span id="reciteText"></span></div>
     <div class="rec-banner" id="recBanner" hidden><span class="rec-dot"></span><span id="recText">يتم تسجيل هذه الحلقة</span></div>
     <div class="stage">
       <div class="grid" id="grid"></div>
+      <div class="grade-card" id="gradeCard" hidden>
+        <div class="grade-head">
+          <span class="grade-live"><svg class="i"><use href="#i-book"/></svg></span>
+          <div><small>يُسمّع الآن</small><b id="gradeName"></b></div>
+          <button class="btn btn-sm btn-ghost" id="gradeEnd" type="button">إنهاء</button>
+        </div>
+        <p>قيّم التسميع:</p>
+        <div class="grade-btns">
+          <button type="button" data-grade="excellent" class="g-excellent"><span>⭐⭐⭐</span>ممتاز</button>
+          <button type="button" data-grade="vgood" class="g-vgood"><span>⭐⭐</span>جيد جداً</button>
+          <button type="button" data-grade="good" class="g-good"><span>⭐</span>جيد</button>
+          <button type="button" data-grade="review" class="g-review"><span>📖</span>مراجعة</button>
+        </div>
+      </div>
       <div class="invite-card" id="inviteCard" hidden>
         <button class="icon-btn invite-close" id="inviteClose" aria-label="إغلاق"><svg class="i"><use href="#i-close"/></svg></button>
         <h3>حلقتك جاهزة</h3>
@@ -184,6 +228,10 @@
           </form>
         </div>
         <div class="panel-body" data-pane="people" hidden>
+          <div class="queue" id="queue" hidden>
+            <h4><span>✋</span>طابور التسميع <span class="qcount" id="queueCount">0</span></h4>
+            <ol id="queueList"></ol>
+          </div>
           <ul class="people" id="people"></ul>
         </div>
       </aside>
@@ -213,7 +261,7 @@
       <div class="bar-side">
         <button class="ctrl ctrl-flat" id="settingsBtn" title="الأجهزة"><svg class="i"><use href="#i-sliders"/></svg></button>
         <button class="ctrl ctrl-flat" id="copyBtn" title="نسخ رابط الحلقة"><svg class="i"><use href="#i-link"/></svg></button>
-        <button class="ctrl ctrl-flat" id="peopleBtn" title="الحضور"><svg class="i"><use href="#i-users"/></svg></button>
+        <button class="ctrl ctrl-flat" id="peopleBtn" title="الحضور وطابور التسميع"><svg class="i"><use href="#i-users"/></svg><span class="count-badge" id="handCount" hidden>0</span></button>
         <button class="ctrl ctrl-flat" id="chatBtn" title="الدردشة"><svg class="i"><use href="#i-chat"/></svg><span class="dot" id="chatDot" hidden></span></button>
       </div>
     </footer>
@@ -225,6 +273,7 @@
       <span class="left-icon"><svg class="i"><use href="#i-check"/></svg></span>
       <h2>غادرت الحلقة</h2>
       <p class="lead" id="leftSummary"></p>
+      <div class="left-stars" id="leftStars" hidden><span>⭐</span><b id="leftStarsCount">0</b><small>نجمة جمعتها في هذه الحلقة</small></div>
       <div class="home-actions center">
         <button class="btn btn-lg" id="rejoinBtn">العودة للحلقة</button>
         <button class="btn btn-primary btn-lg" id="goHomeBtn">الصفحة الرئيسية</button>
@@ -287,6 +336,16 @@
         <label><span class="field-label">الكاميرا</span><select class="dev-select" data-kind="videoinput"></select></label>
       </div>
       <button class="btn btn-primary btn-lg btn-block" data-close>تم</button>
+    </div>
+  </div>
+
+  <!-- احتفال التقييم -->
+  <div class="celebrate" id="celebrate" hidden>
+    <div class="confetti" id="confetti"></div>
+    <div class="cel-card">
+      <div class="cel-stars" id="celStars"></div>
+      <h2 id="celTitle"></h2>
+      <p id="celNote"></p>
     </div>
   </div>
 

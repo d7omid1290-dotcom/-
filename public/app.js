@@ -7,6 +7,12 @@ const ICE_CONFIG = {
 const CODE_RE = /[a-z]{3}-[a-z]{4}-[a-z]{3}/;
 const COLORS = ["#5b8cff", "#10b981", "#f59e0b", "#8b5cf6", "#06b6d4", "#ec4899", "#f97316", "#64748b"];
 const REACTIONS = ["👍", "👏", "🤲", "❤️", "🌟", "✅"];
+const GRADES = {
+  excellent: { label: "ممتاز", stars: 3, title: "ما شاء الله! تسميع ممتاز", note: "أتقنت الحفظ، بارك الله فيك" },
+  vgood: { label: "جيد جداً", stars: 2, title: "أحسنت! جيد جداً", note: "قريب من الإتقان، واصل" },
+  good: { label: "جيد", stars: 1, title: "جيد، واصل التقدّم", note: "راجع المقطع مرة أخرى" },
+  review: { label: "يحتاج مراجعة", stars: 0, title: "تحتاج مراجعة", note: "لا بأس، راجع وستتقنه بإذن الله" },
+};
 
 const $ = (id) => document.getElementById(id);
 
@@ -24,6 +30,10 @@ const state = {
   hand: false,
   role: "student", // student | teacher
   pinned: null, // معرّف البلاطة المثبتة، أو "none" لإلغاء التثبيت التلقائي
+  handAt: 0, // وقت رفع اليد — لترتيب طابور التسميع
+  reciter: null, // معرّف الطالب الذي يُسمّع الآن
+  stars: {}, // نجوم كل طالب في هذه الحلقة: { معرّف: عدد }
+  sessionStars: 0,
   es: null,
   peers: new Map(), // id -> { id, name, pc, stream, pendingIce, mic, cam, hand, screen, tile }
   localTile: null,
@@ -173,6 +183,21 @@ setInterval(() => {
   $("roomClock").textContent = timeNow();
   if (state.joinedAt) $("roomElapsed").textContent = elapsed(Date.now() - state.joinedAt);
 }, 1000);
+
+// آية اليوم: تتغيّر كل يوم
+const DAILY = [
+  { text: "وَلَقَدْ يَسَّرْنَا الْقُرْآنَ لِلذِّكْرِ فَهَلْ مِن مُّدَّكِرٍ", ref: "سورة القمر: ١٧", ayah: true },
+  { text: "إِنَّ هَٰذَا الْقُرْآنَ يَهْدِي لِلَّتِي هِيَ أَقْوَمُ", ref: "سورة الإسراء: ٩", ayah: true },
+  { text: "وَرَتِّلِ الْقُرْآنَ تَرْتِيلًا", ref: "سورة المزمل: ٤", ayah: true },
+  { text: "خيرُكم من تعلَّم القرآنَ وعلَّمه", ref: "رواه البخاري", ayah: false },
+  { text: "اقرؤوا القرآنَ فإنه يأتي يومَ القيامة شفيعاً لأصحابه", ref: "رواه مسلم", ayah: false },
+];
+{
+  const d = DAILY[Math.floor(Date.now() / 86400000) % DAILY.length];
+  $("ayahCard").querySelector("figcaption").textContent = d.ayah ? "آية اليوم" : "حديث اليوم";
+  $("ayahText").textContent = d.ayah ? `﴿ ${d.text} ﴾` : `« ${d.text} »`;
+  $("ayahRef").textContent = d.ref;
+}
 
 $("joinCode").addEventListener("input", () => {
   $("joinBtn").disabled = !$("joinCode").value.trim();
@@ -425,6 +450,7 @@ function myStatus() {
     screen: !!state.screenStream,
     recording: !!state.recorder,
     role: state.role,
+    handAt: state.handAt,
   };
 }
 
@@ -516,7 +542,12 @@ async function handleSignal({ from, type, data }) {
       break;
     case "state":
       if (!peer) return;
-      if (data.hand && !peer.hand) toast(`✋ ${data.name} يرفع يده`);
+      if (data.hand && !peer.hand) {
+        peer.handAt = Date.now();
+        const pos = handQueue().length + 1;
+        toast(state.role === "teacher" ? `✋ ${data.name} يرفع يده — رقم ${pos} في الطابور` : `✋ ${data.name} يرفع يده`);
+      }
+      if (!data.hand) peer.handAt = 0;
       Object.assign(peer, {
         name: String(data.name || peer.name).slice(0, 40),
         mic: !!data.mic,
@@ -536,6 +567,14 @@ async function handleSignal({ from, type, data }) {
       break;
     case "reaction":
       if (peer) floatReaction(peer.tile, data.emoji);
+      break;
+    case "recite":
+      if (peer?.role !== "teacher") return;
+      setReciter(typeof data.id === "string" ? data.id : null);
+      break;
+    case "grade":
+      if (peer?.role !== "teacher" || !GRADES[data.grade]) return;
+      receiveGrade(String(data.to), data.grade, Math.max(0, Number(data.total) || 0));
       break;
   }
 }
@@ -619,6 +658,7 @@ function removePeer(id, silent) {
   state.meters.delete(peer.tile);
   peer.tile.remove();
   state.peers.delete(id);
+  if (state.reciter === id) setReciter(null);
   if (!silent) {
     renderPeople();
     layoutGrid();
@@ -645,7 +685,8 @@ function createTile(id, isLocal) {
     <div class="avatar"></div>
     <span class="hand-badge">${icon("hand")}يرفع يده</span>
     <button class="pin-btn" type="button" title="تثبيت في الوسط">${icon("pin")}</button>
-    <div class="label">${icon("mic-off", "mic-off")}<span class="name"></span><span class="role-tag" hidden>المعلّم</span></div>`;
+    <span class="recite-tag">${icon("book")}يُسمّع الآن</span>
+    <div class="label">${icon("mic-off", "mic-off")}<span class="name"></span><span class="role-tag" hidden>المعلّم</span><span class="stars-tag" hidden></span></div>`;
   tile.querySelector(".pin-btn").addEventListener("click", () => togglePin(id));
   $("grid").appendChild(tile);
   return tile;
@@ -661,6 +702,12 @@ function paintTile(tile, { name, mic, cam, hand, screen, role }) {
   tile.classList.toggle("muted", !mic);
   tile.classList.toggle("hand", hand);
   tile.querySelector(".role-tag").hidden = role !== "teacher";
+  const id = tile.dataset.id === "local" ? state.myId : tile.dataset.id;
+  const stars = state.stars[id] || 0;
+  const tag = tile.querySelector(".stars-tag");
+  tag.hidden = !stars;
+  tag.textContent = `⭐ ${stars}`;
+  tile.classList.toggle("reciting", !!id && state.reciter === id);
 }
 
 function togglePin(id) {
@@ -676,6 +723,10 @@ function effectivePin() {
   state.pinned = null;
   const sharer = [...state.peers.values()].find((p) => p.screen);
   if (sharer) return sharer.id;
+  if (state.reciter) {
+    if (state.reciter === state.myId) return "local";
+    if (state.peers.has(state.reciter)) return state.reciter;
+  }
   if (state.role !== "teacher" && state.peers.size >= 2) {
     const teacher = [...state.peers.values()].find((p) => p.role === "teacher");
     if (teacher) return teacher.id;
@@ -686,6 +737,124 @@ function effectivePin() {
 function updatePeerTile(peer) {
   paintTile(peer.tile, peer);
 }
+
+function repaintTiles() {
+  for (const p of state.peers.values()) updatePeerTile(p);
+  updateLocalTile();
+}
+
+/* ---------- طابور التسميع والتقييم ---------- */
+
+// الطلاب الرافعون أيديهم مرتّبين حسب أسبقية الرفع
+function handQueue() {
+  return [...state.peers.values()].filter((p) => p.hand && p.role !== "teacher").sort((a, b) => a.handAt - b.handAt);
+}
+
+function nameOf(id) {
+  if (id === state.myId) return state.name;
+  return state.peers.get(id)?.name || "طالب";
+}
+
+function setReciter(id) {
+  const was = state.reciter;
+  state.reciter = id;
+  if (id && id === state.myId && was !== id) {
+    // دوري الآن: أُنزل يدي وأنبّه نفسي
+    if (state.hand) {
+      state.hand = false;
+      state.handAt = 0;
+      syncToggleButtons();
+      broadcastState();
+    }
+    toast(state.micOn ? "🎙️ دورك الآن في التسميع، بالتوفيق" : "🎙️ دورك الآن — افتح الميكروفون وابدأ التسميع");
+  }
+  updateReciteUI();
+  repaintTiles();
+  layoutGrid();
+  renderPeople();
+}
+
+function startRecite(id) {
+  if (state.role !== "teacher") return;
+  setReciter(id);
+  signal("recite", { id });
+}
+
+function endRecite() {
+  setReciter(null);
+  signal("recite", { id: null });
+}
+
+function gradeReciter(grade) {
+  const id = state.reciter;
+  if (!id || state.role !== "teacher") return;
+  const total = (state.stars[id] || 0) + GRADES[grade].stars;
+  state.stars[id] = total;
+  signal("grade", { to: id, grade, total });
+  toast(`${GRADES[grade].stars ? "⭐" : "📖"} ${nameOf(id)}: ${GRADES[grade].label}`);
+  endRecite();
+}
+
+function receiveGrade(to, grade, total) {
+  const gained = total - (state.stars[to] || 0);
+  state.stars[to] = total;
+  if (to === state.myId) {
+    state.sessionStars += Math.max(0, gained);
+    celebrate(grade, total);
+  } else {
+    toast(`${GRADES[grade].stars ? "⭐" : "📖"} ${nameOf(to)}: ${GRADES[grade].label}`);
+  }
+  if (state.reciter === to) setReciter(null);
+  else repaintTiles();
+}
+
+function updateReciteUI() {
+  const id = state.reciter;
+  const isTeacher = state.role === "teacher";
+  $("gradeCard").hidden = !id || !isTeacher;
+  $("reciteBanner").hidden = !id || isTeacher;
+  if (!id) return;
+  if (isTeacher) {
+    $("gradeName").textContent = nameOf(id);
+  } else {
+    const mine = id === state.myId;
+    $("reciteBanner").classList.toggle("mine", mine);
+    $("reciteText").textContent = mine ? "دورك الآن في التسميع" : `يُسمّع الآن: ${nameOf(id)}`;
+  }
+}
+
+for (const btn of document.querySelectorAll("#gradeCard [data-grade]")) {
+  btn.addEventListener("click", () => gradeReciter(btn.dataset.grade));
+}
+$("gradeEnd").addEventListener("click", endRecite);
+
+// احتفال عند التقييم: نجوم ونثار ملوّن
+function celebrate(grade, total) {
+  const g = GRADES[grade];
+  const box = $("celebrate");
+  box.className = `celebrate g-${grade}`;
+  $("celStars").innerHTML = g.stars
+    ? Array.from({ length: g.stars }, (_, i) => `<span style="--d:${i * 0.15}s">⭐</span>`).join("")
+    : '<span>📖</span>';
+  $("celTitle").textContent = g.title;
+  $("celNote").textContent = total ? `${g.note} — مجموع نجومك: ${total}` : g.note;
+  const confetti = $("confetti");
+  confetti.innerHTML = "";
+  if (g.stars >= 2) {
+    const colors = ["#5b8cff", "#8b5cf6", "#2dd4bf", "#f59e0b", "#ec4899", "#fde047"];
+    for (let i = 0; i < 70; i++) {
+      const c = document.createElement("i");
+      c.style.cssText = `left:${Math.random() * 100}%;background:${colors[i % colors.length]};` +
+        `animation-delay:${Math.random() * 0.6}s;animation-duration:${2.2 + Math.random() * 1.6}s;` +
+        `transform:rotate(${Math.random() * 360}deg);width:${6 + Math.random() * 6}px`;
+      confetti.appendChild(c);
+    }
+  }
+  box.hidden = false;
+  clearTimeout(celebrate.t);
+  celebrate.t = setTimeout(() => (box.hidden = true), 4200);
+}
+$("celebrate").addEventListener("click", () => ($("celebrate").hidden = true));
 
 function updateLocalTile() {
   if (!state.localTile) return;
@@ -775,6 +944,7 @@ function enterRoom() {
   $("messages").innerHTML = '<p class="hint">الرسائل تظهر فقط للحاضرين في الحلقة الآن</p>';
   state.pinned = null;
   state.inviteDismissed = false;
+  state.sessionStars = 0;
   $("inviteLink").textContent = meetingLink().replace(/^https?:\/\//, "");
   $("roomElapsed").textContent = "00:00";
   state.localTile = createTile("local", true);
@@ -787,7 +957,11 @@ function enterRoom() {
 }
 
 function leave(navigate = true) {
-  if (state.joinedAt) $("leftSummary").textContent = `مدة حضورك: ${formatDuration(Date.now() - state.joinedAt)}`;
+  if (state.joinedAt) {
+    $("leftSummary").textContent = `مدة حضورك: ${formatDuration(Date.now() - state.joinedAt)}`;
+    $("leftStars").hidden = !state.sessionStars;
+    $("leftStarsCount").textContent = state.sessionStars;
+  }
   stopRecording();
   state.es?.close();
   state.es = null;
@@ -797,7 +971,12 @@ function leave(navigate = true) {
   state.myId = null;
   state.joinedAt = 0;
   state.hand = false;
+  state.handAt = 0;
+  state.reciter = null;
+  state.stars = {};
   state.localTile = null;
+  $("gradeCard").hidden = true;
+  $("reciteBanner").hidden = true;
   $("panel").hidden = true;
   $("recBanner").hidden = true;
   $("inviteCard").hidden = true;
@@ -812,6 +991,8 @@ $("goHomeBtn").addEventListener("click", () => goTo(null));
 
 $("handBtn").addEventListener("click", () => {
   state.hand = !state.hand;
+  state.handAt = state.hand ? Date.now() : 0;
+  if (state.hand) toast("✋ رفعت يدك — سينادي المعلّم دورك");
   syncToggleButtons();
   updateLocalTile();
   broadcastState();
@@ -935,23 +1116,49 @@ $("chatForm").addEventListener("submit", (e) => {
 });
 
 function renderPeople() {
+  const isTeacher = state.role === "teacher";
+  const queue = handQueue();
+
+  // طابور التسميع (يراه الجميع، والمعلّم يستطيع مناداة الطالب)
+  const qbox = $("queue");
+  qbox.hidden = queue.length === 0;
+  $("queueCount").textContent = queue.length;
+  const qlist = $("queueList");
+  qlist.innerHTML = "";
+  queue.forEach((p, i) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<span class="qnum">${i + 1}</span><span class="pn"></span>${isTeacher ? `<button class="btn btn-sm btn-primary" type="button">${icon("book")}ابدأ تسميعه</button>` : ""}`;
+    li.querySelector(".pn").textContent = p.name;
+    li.querySelector("button")?.addEventListener("click", () => startRecite(p.id));
+    qlist.appendChild(li);
+  });
+  $("handCount").hidden = !isTeacher || !queue.length;
+  $("handCount").textContent = queue.length;
+
   const list = $("people");
   list.innerHTML = "";
-  const everyone = [{ ...myStatus(), id: "local", name: `${state.name} (أنت)` }, ...state.peers.values()];
-  // المعلّم أولاً، ثم من رفع يده
-  everyone.sort((a, b) => (b.role === "teacher") - (a.role === "teacher") || b.hand - a.hand);
+  const me = { ...myStatus(), id: "local", sid: state.myId, name: `${state.name} (أنت)` };
+  const everyone = [me, ...[...state.peers.values()].map((p) => ({ ...p, sid: p.id }))];
+  everyone.sort((a, b) => (b.role === "teacher") - (a.role === "teacher") || (state.stars[b.sid] || 0) - (state.stars[a.sid] || 0));
   const pin = effectivePin();
   for (const p of everyone) {
+    const stars = state.stars[p.sid] || 0;
+    const canRecite = isTeacher && p.id !== "local" && p.role !== "teacher";
+    const reciting = state.reciter && state.reciter === p.sid;
     const li = document.createElement("li");
+    li.classList.toggle("reciting", !!reciting);
     li.innerHTML = `
       <span class="mini"></span>
-      <span class="pname"><span class="pn"></span><small${p.role === "teacher" ? "" : " hidden"}>المعلّم</small></span>
+      <span class="pname"><span class="pn"></span><small${p.role === "teacher" ? "" : " hidden"}>المعلّم</small>${reciting ? '<small class="now">يُسمّع الآن</small>' : ""}</span>
+      ${stars ? `<span class="pstars">⭐ ${stars}</span>` : ""}
       <span class="icons">${p.hand ? icon("hand", "hand") : ""}${p.mic ? icon("mic") : icon("mic-off", "muted-i")}</span>
-      <button class="icon-btn${pin === p.id ? " active" : ""}" type="button" title="${pin === p.id ? "إلغاء التثبيت" : "تثبيت في الوسط"}">${icon("pin")}</button>`;
+      ${canRecite ? `<button class="icon-btn recite-btn" type="button" title="ابدأ تسميعه">${icon("book")}</button>` : ""}
+      <button class="icon-btn pin${pin === p.id ? " active" : ""}" type="button" title="${pin === p.id ? "إلغاء التثبيت" : "تثبيت في الوسط"}">${icon("pin")}</button>`;
     li.querySelector(".mini").textContent = initial(p.name);
     li.querySelector(".mini").style.background = colorFor(p.name.replace(" (أنت)", ""));
     li.querySelector(".pn").textContent = p.name;
-    li.querySelector("button").addEventListener("click", () => togglePin(p.id));
+    li.querySelector(".pin").addEventListener("click", () => togglePin(p.id));
+    li.querySelector(".recite-btn")?.addEventListener("click", () => startRecite(p.id));
     list.appendChild(li);
   }
   $("peopleCount").textContent = everyone.length;
