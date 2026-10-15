@@ -1117,3 +1117,22 @@ input[type="time"], input[type="date"] { color-scheme: dark; }
   background: linear-gradient(90deg, #f59e0b, #f97316); color: #1c1203;
 }
 .demo-bar b { font-weight: 700; }
+
+/* ===== حالة الاتصال بكل مشارك ===== */
+.conn-overlay {
+  position: absolute; inset: 0; z-index: 3; display: none; place-items: center; text-align: center; padding: 12px;
+  background: rgba(7, 11, 26, .55); backdrop-filter: blur(3px); font-size: .88rem;
+}
+.tile.conn-pending .conn-overlay, .tile.conn-failed .conn-overlay { display: grid; }
+.conn-wait, .conn-fail { display: none; }
+.tile.conn-pending .conn-wait { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); }
+.tile.conn-failed .conn-fail { display: grid; justify-items: center; gap: 4px; }
+.conn-fail b { color: #fecdd3; }
+.conn-fail small { color: var(--muted); font-size: .78rem; max-width: 220px; line-height: 1.5; }
+.conn-fail .btn { margin-top: 6px; }
+.spinner {
+  width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .2); border-top-color: var(--blue);
+  animation: spin .8s linear infinite;
+}
+.grid.many .conn-fail small { display: none; }
+.tile.conn-pending .label, .tile.conn-failed .label { z-index: 4; }

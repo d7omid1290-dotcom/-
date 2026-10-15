@@ -1,9 +1,21 @@
 // وصل — منطق الواجهة واتصالات WebRTC (شبكة نظير-لنظير بين كل المشاركين)
 "use strict";
 
-const ICE_CONFIG = {
+// خوادم الاتصال: تُحدَّث من الخادم (/api/config) لتشمل TURN إن ضُبط في إعدادات النشر
+let ICE_CONFIG = {
   iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }],
 };
+const CONNECT_TIMEOUT = 20000; // بعدها نعرض «تعذر الاتصال» مع زر إعادة المحاولة
+
+async function loadIceConfig() {
+  try {
+    const r = await fetch("/api/config");
+    if (r.ok) {
+      const c = await r.json();
+      if (Array.isArray(c.iceServers) && c.iceServers.length) ICE_CONFIG = { iceServers: c.iceServers };
+    }
+  } catch {}
+}
 // رمز الحلقة: عشوائي (abc-defg-hij) أو اسم غرفة ثابتة (sahaba-juz-amma) — مطابق لما في الخادم
 const ROOM_RE = /^(?!.*-r[1-9]$)(?!(?:api|healthz)$)[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/;
 const COLORS = ["#5b8cff", "#10b981", "#f59e0b", "#8b5cf6", "#06b6d4", "#ec4899", "#f97316", "#64748b"];
@@ -552,7 +564,7 @@ function join() {
 
   $("joinNowBtn").disabled = true;
   state.room = state.code;
-  connect(state.room);
+  loadIceConfig().then(() => connect(state.room));
 }
 
 // الاتصال بغرفة (الرئيسية أو فرعية) عبر قناة الأحداث
@@ -693,7 +705,7 @@ function createPeer(id, name, initiator, cid, role) {
   if (state.peers.has(id)) return state.peers.get(id);
   const pc = new RTCPeerConnection(ICE_CONFIG);
   const peer = {
-    id, cid: cid || id, name, pc, initiator,
+    id, cid: cid || id, name, pc, initiator, restarts: 0, connTimer: 0,
     stream: new MediaStream(),
     pendingIce: [],
     mic: true, cam: false, hand: false, screen: false, role: role || "student",
@@ -717,8 +729,23 @@ function createPeer(id, name, initiator, cid, role) {
     if (e.candidate) signal("ice", e.candidate, id);
   };
   pc.onconnectionstatechange = () => {
-    if (pc.connectionState === "failed" && peer.initiator) makeOffer(peer, true);
+    const st = pc.connectionState;
+    if (st === "connected") {
+      setConn(peer, "ok");
+    } else if (st === "failed") {
+      // نحاول إعادة الاتصال تلقائياً مرتين، ثم نعرض زر إعادة المحاولة
+      if (peer.restarts < 2) {
+        peer.restarts++;
+        setConn(peer, "pending");
+        if (peer.initiator) makeOffer(peer, true);
+      } else {
+        setConn(peer, "failed");
+      }
+    } else if (st === "disconnected") {
+      setConn(peer, "pending");
+    }
   };
+  setConn(peer, "pending");
 
   if (initiator) {
     for (const kind of ["audio", "video"]) {
@@ -770,6 +797,7 @@ function flushIce(peer) {
 function removePeer(id, silent) {
   const peer = state.peers.get(id);
   if (!peer) return;
+  clearTimeout(peer.connTimer);
   disposeTile(peer.tile);
   peer.pc.close();
   state.peers.delete(id);
@@ -781,6 +809,32 @@ function removePeer(id, silent) {
     layoutGrid();
     updateRecBanner();
   }
+}
+
+// حالة الاتصال بمشارك: pending (جارٍ) / ok / failed (تعذر، مع زر إعادة المحاولة)
+function setConn(peer, status) {
+  const tile = peer.tile;
+  if (!tile) return;
+  clearTimeout(peer.connTimer);
+  tile.classList.toggle("conn-pending", status === "pending");
+  tile.classList.toggle("conn-failed", status === "failed");
+  if (status === "ok") peer.restarts = 0;
+  if (status === "pending") {
+    peer.connTimer = setTimeout(() => {
+      if (!isClosed(peer) && peer.pc.connectionState !== "connected") setConn(peer, "failed");
+    }, CONNECT_TIMEOUT);
+  }
+}
+
+function retryPeer(peer) {
+  if (isClosed(peer)) return;
+  peer.restarts = 0;
+  setConn(peer, "pending");
+  makeOffer(peer, true); // إعادة تفاوض الاتصال من جهتنا
+  // إن بقي الاتصال قائماً أثناء إعادة التفاوض فلن يصل حدث «connected» جديد
+  setTimeout(() => {
+    if (!isClosed(peer) && peer.pc.connectionState === "connected") setConn(peer, "ok");
+  }, 2500);
 }
 
 function replaceOutgoingVideo() {
@@ -851,8 +905,16 @@ function createTile(id, isLocal) {
     <span class="hand-badge">${icon("hand")}يرفع يده</span>
     <button class="pin-btn" type="button" title="تثبيت في الوسط">${icon("pin")}</button>
     <span class="recite-tag">${icon("book")}يُسمّع الآن</span>
+    ${isLocal ? "" : `<div class="conn-overlay">
+      <span class="conn-wait"><span class="spinner"></span>جارٍ الاتصال…</span>
+      <span class="conn-fail"><b>تعذر الاتصال</b><small>قد تكون شبكة أحدكما تمنع الاتصال المباشر</small><button type="button" class="btn btn-sm btn-primary conn-retry">إعادة المحاولة</button></span>
+    </div>`}
     <div class="label">${icon("mic-off", "mic-off")}<span class="name"></span><span class="role-tag" hidden>المعلّم</span><span class="stars-tag" hidden></span></div>`;
   tile.querySelector(".pin-btn").addEventListener("click", () => togglePin(id));
+  tile.querySelector(".conn-retry")?.addEventListener("click", () => {
+    const peer = state.peers.get(id);
+    if (peer) retryPeer(peer);
+  });
   $("grid").appendChild(tile);
   return tile;
 }

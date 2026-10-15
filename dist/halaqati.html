@@ -7,6 +7,10 @@
   <meta name="description" content="وصل — بالقرآن نتّصل: حلقات تحفيظ القرآن الكريم عن بُعد — مدرسة جامع الصحابة لتحفيظ القرآن الكريم بحي غبيراء.">
   <meta name="theme-color" content="#070b1a">
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%235b8cff%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%238b5cf6%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%229%22%20fill%3D%22url(%23g)%22%2F%3E%3Cg%20fill%3D%22%23fff%22%3E%3Ccircle%20cx%3D%2224%22%20cy%3D%2216%22%20r%3D%222.6%22%2F%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%2222.9%22%20r%3D%222.6%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2222.9%22%20r%3D%222.6%22%2F%3E%3Ccircle%20cx%3D%228%22%20cy%3D%2216%22%20r%3D%222.6%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%229.1%22%20r%3D%222.6%22%2F%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%229.1%22%20r%3D%222.6%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E" type="image/svg+xml">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="وصل">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -1130,6 +1134,25 @@ input[type="time"], input[type="date"] { color-scheme: dark; }
   background: linear-gradient(90deg, #f59e0b, #f97316); color: #1c1203;
 }
 .demo-bar b { font-weight: 700; }
+
+/* ===== حالة الاتصال بكل مشارك ===== */
+.conn-overlay {
+  position: absolute; inset: 0; z-index: 3; display: none; place-items: center; text-align: center; padding: 12px;
+  background: rgba(7, 11, 26, .55); backdrop-filter: blur(3px); font-size: .88rem;
+}
+.tile.conn-pending .conn-overlay, .tile.conn-failed .conn-overlay { display: grid; }
+.conn-wait, .conn-fail { display: none; }
+.tile.conn-pending .conn-wait { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); }
+.tile.conn-failed .conn-fail { display: grid; justify-items: center; gap: 4px; }
+.conn-fail b { color: #fecdd3; }
+.conn-fail small { color: var(--muted); font-size: .78rem; max-width: 220px; line-height: 1.5; }
+.conn-fail .btn { margin-top: 6px; }
+.spinner {
+  width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .2); border-top-color: var(--blue);
+  animation: spin .8s linear infinite;
+}
+.grid.many .conn-fail small { display: none; }
+.tile.conn-pending .label, .tile.conn-failed .label { z-index: 4; }
 </style>
   <script>
     // نطبّق الوضع (نهاري/ليلي) قبل ظهور الصفحة حتى لا تومض
@@ -1615,9 +1638,21 @@ input[type="time"], input[type="date"] { color-scheme: dark; }
 // وصل — منطق الواجهة واتصالات WebRTC (شبكة نظير-لنظير بين كل المشاركين)
 "use strict";
 
-const ICE_CONFIG = {
+// خوادم الاتصال: تُحدَّث من الخادم (/api/config) لتشمل TURN إن ضُبط في إعدادات النشر
+let ICE_CONFIG = {
   iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }],
 };
+const CONNECT_TIMEOUT = 20000; // بعدها نعرض «تعذر الاتصال» مع زر إعادة المحاولة
+
+async function loadIceConfig() {
+  try {
+    const r = await fetch("/api/config");
+    if (r.ok) {
+      const c = await r.json();
+      if (Array.isArray(c.iceServers) && c.iceServers.length) ICE_CONFIG = { iceServers: c.iceServers };
+    }
+  } catch {}
+}
 // رمز الحلقة: عشوائي (abc-defg-hij) أو اسم غرفة ثابتة (sahaba-juz-amma) — مطابق لما في الخادم
 const ROOM_RE = /^(?!.*-r[1-9]$)(?!(?:api|healthz)$)[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/;
 const COLORS = ["#5b8cff", "#10b981", "#f59e0b", "#8b5cf6", "#06b6d4", "#ec4899", "#f97316", "#64748b"];
@@ -2166,7 +2201,7 @@ function join() {
 
   $("joinNowBtn").disabled = true;
   state.room = state.code;
-  connect(state.room);
+  loadIceConfig().then(() => connect(state.room));
 }
 
 // الاتصال بغرفة (الرئيسية أو فرعية) عبر قناة الأحداث
@@ -2307,7 +2342,7 @@ function createPeer(id, name, initiator, cid, role) {
   if (state.peers.has(id)) return state.peers.get(id);
   const pc = new RTCPeerConnection(ICE_CONFIG);
   const peer = {
-    id, cid: cid || id, name, pc, initiator,
+    id, cid: cid || id, name, pc, initiator, restarts: 0, connTimer: 0,
     stream: new MediaStream(),
     pendingIce: [],
     mic: true, cam: false, hand: false, screen: false, role: role || "student",
@@ -2331,8 +2366,23 @@ function createPeer(id, name, initiator, cid, role) {
     if (e.candidate) signal("ice", e.candidate, id);
   };
   pc.onconnectionstatechange = () => {
-    if (pc.connectionState === "failed" && peer.initiator) makeOffer(peer, true);
+    const st = pc.connectionState;
+    if (st === "connected") {
+      setConn(peer, "ok");
+    } else if (st === "failed") {
+      // نحاول إعادة الاتصال تلقائياً مرتين، ثم نعرض زر إعادة المحاولة
+      if (peer.restarts < 2) {
+        peer.restarts++;
+        setConn(peer, "pending");
+        if (peer.initiator) makeOffer(peer, true);
+      } else {
+        setConn(peer, "failed");
+      }
+    } else if (st === "disconnected") {
+      setConn(peer, "pending");
+    }
   };
+  setConn(peer, "pending");
 
   if (initiator) {
     for (const kind of ["audio", "video"]) {
@@ -2384,6 +2434,7 @@ function flushIce(peer) {
 function removePeer(id, silent) {
   const peer = state.peers.get(id);
   if (!peer) return;
+  clearTimeout(peer.connTimer);
   disposeTile(peer.tile);
   peer.pc.close();
   state.peers.delete(id);
@@ -2395,6 +2446,32 @@ function removePeer(id, silent) {
     layoutGrid();
     updateRecBanner();
   }
+}
+
+// حالة الاتصال بمشارك: pending (جارٍ) / ok / failed (تعذر، مع زر إعادة المحاولة)
+function setConn(peer, status) {
+  const tile = peer.tile;
+  if (!tile) return;
+  clearTimeout(peer.connTimer);
+  tile.classList.toggle("conn-pending", status === "pending");
+  tile.classList.toggle("conn-failed", status === "failed");
+  if (status === "ok") peer.restarts = 0;
+  if (status === "pending") {
+    peer.connTimer = setTimeout(() => {
+      if (!isClosed(peer) && peer.pc.connectionState !== "connected") setConn(peer, "failed");
+    }, CONNECT_TIMEOUT);
+  }
+}
+
+function retryPeer(peer) {
+  if (isClosed(peer)) return;
+  peer.restarts = 0;
+  setConn(peer, "pending");
+  makeOffer(peer, true); // إعادة تفاوض الاتصال من جهتنا
+  // إن بقي الاتصال قائماً أثناء إعادة التفاوض فلن يصل حدث «connected» جديد
+  setTimeout(() => {
+    if (!isClosed(peer) && peer.pc.connectionState === "connected") setConn(peer, "ok");
+  }, 2500);
 }
 
 function replaceOutgoingVideo() {
@@ -2465,8 +2542,16 @@ function createTile(id, isLocal) {
     <span class="hand-badge">${icon("hand")}يرفع يده</span>
     <button class="pin-btn" type="button" title="تثبيت في الوسط">${icon("pin")}</button>
     <span class="recite-tag">${icon("book")}يُسمّع الآن</span>
+    ${isLocal ? "" : `<div class="conn-overlay">
+      <span class="conn-wait"><span class="spinner"></span>جارٍ الاتصال…</span>
+      <span class="conn-fail"><b>تعذر الاتصال</b><small>قد تكون شبكة أحدكما تمنع الاتصال المباشر</small><button type="button" class="btn btn-sm btn-primary conn-retry">إعادة المحاولة</button></span>
+    </div>`}
     <div class="label">${icon("mic-off", "mic-off")}<span class="name"></span><span class="role-tag" hidden>المعلّم</span><span class="stars-tag" hidden></span></div>`;
   tile.querySelector(".pin-btn").addEventListener("click", () => togglePin(id));
+  tile.querySelector(".conn-retry")?.addEventListener("click", () => {
+    const peer = state.peers.get(id);
+    if (peer) retryPeer(peer);
+  });
   $("grid").appendChild(tile);
   return tile;
 }

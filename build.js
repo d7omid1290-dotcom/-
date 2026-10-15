@@ -6,6 +6,8 @@ const pub = (f) => fs.readFileSync(path.join(__dirname, "public", f), "utf8");
 const favicon = "data:image/svg+xml," + encodeURIComponent(pub("favicon.svg").trim());
 
 const html = pub("index.html")
+  // ملفات تثبيت التطبيق تحتاج الموقع المنشور، فلا نضمّنها في الملف التجريبي
+  .replace(/\n\s*<link rel="(?:manifest|apple-touch-icon)"[^>]*>/g, "")
   .replace('href="favicon.svg"', `href="${favicon}"`)
   .replace('<link rel="stylesheet" href="/styles.css">', () => `<style>\n${pub("styles.css")}</style>`)
   .replace(

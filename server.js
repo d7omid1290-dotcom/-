@@ -28,6 +28,17 @@ function isHostKey(code, key) {
   return given.length === expected.length && crypto.timingSafeEqual(given, expected);
 }
 const STAFF = new Set(["teacher", "admin"]);
+
+// خوادم الاتصال (ICE): STUN افتراضياً، ويمكن إضافة خادم TURN من متغيرات البيئة دون تعديل الكود
+// TURN_URLS مثل: turn:example.com:3478,turns:example.com:443?transport=tcp
+function iceServers() {
+  const list = [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }];
+  const urls = (process.env.TURN_URLS || "").split(",").map((u) => u.trim()).filter(Boolean);
+  if (urls.length) {
+    list.push({ urls, username: process.env.TURN_USERNAME || "", credential: process.env.TURN_CREDENTIAL || "" });
+  }
+  return list;
+}
 const MAX_PEERS = 25;
 const MAX_BODY = 64 * 1024;
 
@@ -39,6 +50,7 @@ const MIME = {
   ".png": "image/png",
   ".ico": "image/x-icon",
   ".json": "application/json",
+  ".webmanifest": "application/manifest+json",
 };
 
 // roomId -> Map(peerId -> { id, cid, name, role, res })
@@ -256,6 +268,9 @@ function serveStatic(req, res, pathname) {
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+  if (url.pathname === "/api/config" && req.method === "GET") {
+    return json(res, 200, { iceServers: iceServers(), turn: !!process.env.TURN_URLS });
+  }
   if (url.pathname === "/healthz") {
     let peers = 0;
     for (const room of rooms.values()) peers += room.size;
