@@ -32,6 +32,17 @@ const $ = (id) => document.getElementById(id);
 // وضع العرض: ملف HTML واحد يعمل بدون خادم (لا يمكن للآخرين الانضمام)
 const DEMO = !!window.HALAQATI_DEMO;
 
+// معرّف المشارك محفوظ لهذه النافذة فقط: يبقى بعد التحديث (فلا يعود من أُخرج بالتحديث)، ويختلف بين النوافذ
+function tabCid() {
+  try {
+    let id = sessionStorage.getItem("wasl:cid");
+    if (!id) sessionStorage.setItem("wasl:cid", (id = uid()));
+    return id;
+  } catch {
+    return uid();
+  }
+}
+
 function uid() {
   return crypto.randomUUID ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
 }
@@ -39,7 +50,7 @@ function uid() {
 const state = {
   code: null, // رمز الحلقة الرئيسية
   room: null, // الغرفة الحالية: الحلقة الرئيسية أو إحدى غرفها الفرعية (abc-defg-hij-r2)
-  cid: uid(), // معرّف ثابت لهذا المشارك يبقى عند التنقل بين الغرف
+  cid: tabCid(), // معرّف ثابت لهذا المشارك يبقى عند التنقل بين الغرف وتحديث الصفحة
   breakout: null, // حالة الغرف الفرعية المفتوحة
   name: "",
   myId: null,
@@ -87,9 +98,9 @@ function setTip(el, text) {
 
 // المعلّم والمشرف لهم صلاحيات إدارة الحلقة
 const isStaff = (role) => role === "teacher" || role === "admin";
-const ROLE_LABEL = { teacher: "المعلّم", admin: "مشرف" };
+const ROLE_LABEL = { teacher: "المعلّم", admin: "أدمن" };
 // في القوائم نوضّح أن المعلّم هو المستضيف
-const ROLE_LONG = { teacher: "المعلّم / المستضيف", admin: "مشرف" };
+const ROLE_LONG = { teacher: "المعلّم / المستضيف", admin: "أدمن / مشرف" };
 
 // مفاتيح المعلّم للغرف التي أنشأتها على هذا الجهاز
 const KEYS = "wasl:keys";
@@ -582,11 +593,12 @@ function connect(roomId) {
   const es = ch;
 
   on("welcome", (e) => {
-    const { id, role, peers, breakout } = JSON.parse(e.data);
+    const { id, role, peers, breakout, controls } = JSON.parse(e.data);
     // عند إعادة الاتصال التلقائي نبدأ من جديد
     for (const p of [...state.peers.values()]) removePeer(p.id, true);
     state.myId = id;
     state.role = role;
+    state.controls = controls || { locked: false, chatOff: false };
     if (!state.joinedAt) enterRoom();
     applyRole();
     if (applyBreakout(breakout)) return; // انتقلنا لغرفة أخرى
@@ -609,8 +621,8 @@ function connect(roomId) {
       const was = state.role;
       state.role = role;
       applyRole();
-      if (role === "admin" && was !== "admin") toast("🛡️ عيّنك المعلّم مشرفاً في هذه الحلقة");
-      if (role === "student" && was === "admin") toast("أُلغي إشرافك، عدت طالباً");
+      if (role === "admin" && was !== "admin") toast("عيّنك المعلّم أدمن: تقدر تكتم الطلاب وتخرجهم وتقفل الحلقة وتدير التسميع والغرف");
+      if (role === "student" && was === "admin") toast("أُلغيت صلاحية الأدمن، عدت طالباً");
     } else {
       for (const p of state.peers.values()) if (p.cid === cid) p.role = role;
       repaintTiles();
@@ -618,6 +630,34 @@ function connect(roomId) {
       layoutGrid();
     }
   });
+  // أوامر المعلّم أو الأدمن لي
+  on("moderate", (e) => {
+    const { action, by } = JSON.parse(e.data);
+    if (action === "mute" && state.micOn) {
+      setMic(false);
+      toast(`كتم ${by} الميكروفون`);
+    } else if (action === "camOff" && state.camOn) {
+      setCam(false);
+      toast(`أوقف ${by} الكاميرا`);
+    } else if (action === "lowerHand" && state.hand) {
+      setHand(false);
+      toast(`أنزل ${by} يدك`);
+    }
+  });
+  on("kicked", (e) => {
+    const { by } = JSON.parse(e.data);
+    leave();
+    $("leftSummary").textContent = `أخرجك ${by} من الحلقة`;
+  });
+  on("controls", (e) => {
+    const c = JSON.parse(e.data);
+    const was = state.controls || {};
+    state.controls = { locked: !!c.locked, chatOff: !!c.chatOff };
+    if (was.locked !== c.locked) toast(c.locked ? `قفل ${c.by} الحلقة أمام القادمين الجدد` : `فتح ${c.by} الحلقة`);
+    if (was.chatOff !== c.chatOff) toast(c.chatOff ? `أوقف ${c.by} دردشة الطلاب` : `فعّل ${c.by} الدردشة`);
+    applyControls();
+  });
+  on("notice", (e) => toast(JSON.parse(e.data).text));
   on("announce", (e) => {
     const { text, name } = JSON.parse(e.data);
     showAnnounce(name, text);
@@ -663,7 +703,7 @@ function sseChannel(roomId, params, handlers) {
     connect(roomId);
   };
   const timer = setTimeout(fallback, WELCOME_TIMEOUT);
-  for (const name of ["welcome", "peer-joined", "peer-left", "signal", "breakout", "role", "announce"]) {
+  for (const name of ["welcome", "peer-joined", "peer-left", "signal", "breakout", "role", "announce", "moderate", "kicked", "controls", "notice"]) {
     es.addEventListener(name, (e) => {
       if (name === "welcome") {
         welcomed = true;
@@ -740,6 +780,8 @@ function pollChannel(roomId, params, handlers) {
 async function explainJoinError(reason) {
   let msg = "تعذر الاتصال بالخادم، أو أن الحلقة ممتلئة.";
   if (reason === "room_full") msg = "الحلقة ممتلئة (25 مشاركاً).";
+  else if (reason === "locked") msg = "الحلقة مقفلة الآن، اطلب من المعلّم فتحها.";
+  else if (reason === "kicked") msg = "أُخرجت من هذه الحلقة.";
   else {
     const ok = await fetch("/healthz", { cache: "no-store" })
       .then((r) => r.json())
@@ -1347,6 +1389,8 @@ function leave(navigate = true) {
   state.hand = false;
   state.handAt = 0;
   state.reciter = null;
+  state.controls = null;
+  closePersonMenu();
   state.stars = {};
   state.localTile = null;
   $("gradeCard").hidden = true;
@@ -1368,14 +1412,17 @@ $("leaveBtn").addEventListener("click", () => leave());
 $("rejoinBtn").addEventListener("click", () => openLobby());
 $("goHomeBtn").addEventListener("click", () => goTo(null));
 
-$("handBtn").addEventListener("click", () => {
-  state.hand = !state.hand;
-  state.handAt = state.hand ? Date.now() : 0;
-  if (state.hand) toast("✋ رفعت يدك — سينادي المعلّم دورك");
+function setHand(on) {
+  state.hand = on;
+  state.handAt = on ? Date.now() : 0;
   syncToggleButtons();
   updateLocalTile();
   broadcastState();
   renderPeople();
+}
+$("handBtn").addEventListener("click", () => {
+  setHand(!state.hand);
+  if (state.hand) toast("✋ رفعت يدك — سينادي المعلّم دورك");
 });
 
 $("shareBtn").addEventListener("click", async () => {
@@ -1488,7 +1535,7 @@ function addMessage(author, text, mine = false) {
 $("chatForm").addEventListener("submit", (e) => {
   e.preventDefault();
   const text = $("chatInput").value.trim();
-  if (!text) return;
+  if (!text || chatLocked()) return;
   addMessage("أنت", text, true);
   signal("chat", { text });
   $("chatInput").value = "";
@@ -1497,9 +1544,93 @@ $("chatForm").addEventListener("submit", (e) => {
 // يحدّث الواجهة حسب دوري (معلّم/مشرف/طالب)
 function applyRole() {
   $("breakoutBtn").hidden = !isStaff(state.role) || DEMO;
+  applyControls(false);
   updateReciteUI();
   updateLocalTile();
   renderPeople();
+}
+
+/* ---------- أدوات الأدمن ---------- */
+
+const chatLocked = () => !!state.controls?.chatOff && !isStaff(state.role);
+
+// يحدّث أزرار الإدارة وحالة الدردشة حسب إعدادات الحلقة
+function applyControls(repaint = true) {
+  const c = state.controls || {};
+  const staff = isStaff(state.role) && !DEMO;
+  $("adminTools").hidden = !staff;
+  $("lockBtn").classList.toggle("on", !!c.locked);
+  $("lockBtn").querySelector("span").textContent = c.locked ? "فتح الحلقة" : "قفل الحلقة";
+  $("chatOffBtn").classList.toggle("on", !!c.chatOff);
+  $("chatOffBtn").querySelector("span").textContent = c.chatOff ? "تفعيل الدردشة" : "إيقاف الدردشة";
+  $("lockBadge").hidden = !c.locked;
+  const off = chatLocked();
+  $("chatInput").disabled = off;
+  $("chatInput").placeholder = off ? "الدردشة موقفة من المعلّم" : "اكتب رسالة للحلقة…";
+  if (repaint) renderPeople();
+}
+
+async function moderate(action, extra = {}) {
+  try {
+    const r = await fetch(`/api/rooms/${state.room}/moderate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ from: state.myId, action, ...extra }),
+    });
+    if (!r.ok) throw new Error();
+    return true;
+  } catch {
+    toast("تعذر تنفيذ الأمر، حاول مرة أخرى");
+    return false;
+  }
+}
+
+$("muteAllBtn").addEventListener("click", async () => {
+  if (await moderate("muteAll")) toast("كُتم ميكروفون جميع الطلاب");
+});
+$("lockBtn").addEventListener("click", () => moderate("lock", { on: !state.controls?.locked }));
+$("chatOffBtn").addEventListener("click", () => moderate("chat", { on: !!state.controls?.chatOff }));
+
+// قائمة إدارة مشارك واحد
+function openPersonMenu(btn, p) {
+  closePersonMenu();
+  const menu = document.createElement("div");
+  menu.className = "pmenu";
+  menu.id = "pmenu";
+  const items = [
+    ["mute", "mic-off", "كتم الميكروفون", p.mic],
+    ["camOff", "cam-off", "إيقاف الكاميرا", p.cam],
+    ["lowerHand", "hand", "إنزال اليد", p.hand],
+    ["kick", "end", "إخراج من الحلقة", true],
+  ];
+  for (const [action, ic, label, enabled] of items) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = action === "kick" ? "danger" : "";
+    b.disabled = !enabled;
+    b.innerHTML = `${icon(ic)}<span>${label}</span>`;
+    b.addEventListener("click", async () => {
+      closePersonMenu();
+      if (action === "kick" && !confirm(`إخراج ${p.name} من الحلقة؟`)) return;
+      if (await moderate(action, { target: p.id })) {
+        if (action === "kick") toast(`أُخرج ${p.name}`);
+        else if (action === "mute") toast(`كُتم ${p.name}`);
+      }
+    });
+    menu.appendChild(b);
+  }
+  // القائمة تُعرض فوق كل شيء بجانب الزر، وتنفتح للأعلى إن لم يتسع لها المكان
+  document.body.appendChild(menu);
+  const r = btn.getBoundingClientRect();
+  const h = menu.offsetHeight;
+  const w = menu.offsetWidth;
+  menu.style.top = `${r.bottom + 6 + h > innerHeight ? Math.max(8, r.top - h - 6) : r.bottom + 6}px`;
+  menu.style.left = `${Math.min(Math.max(8, r.left), innerWidth - w - 8)}px`;
+  setTimeout(() => document.addEventListener("click", closePersonMenu, { once: true }));
+}
+window.addEventListener("resize", () => closePersonMenu());
+function closePersonMenu() {
+  $("pmenu")?.remove();
 }
 
 async function setAdmin(cid, admin) {
@@ -1547,6 +1678,8 @@ function renderPeople() {
     const stars = state.stars[p.skey] || 0;
     const canRecite = isTeacher && p.id !== "local" && !isStaff(p.role);
     const canPromote = isHost && p.id !== "local" && p.role !== "teacher";
+    // الأدمن يدير الطلاب، والمعلّم يدير الطلاب والأدمن
+    const canManage = isTeacher && !DEMO && p.id !== "local" && p.role !== "teacher" && (isHost || p.role === "student");
     const reciting = state.reciter && state.reciter === p.sid;
     const li = document.createElement("li");
     li.classList.toggle("reciting", !!reciting);
@@ -1556,14 +1689,19 @@ function renderPeople() {
       ${stars ? `<span class="pstars">⭐ ${stars}</span>` : ""}
       <span class="icons">${p.hand ? icon("hand", "hand") : ""}${p.mic ? icon("mic") : icon("mic-off", "muted-i")}</span>
       ${canRecite ? `<button class="icon-btn recite-btn" type="button" title="ابدأ تسميعه">${icon("book")}</button>` : ""}
-      ${canPromote ? `<button class="icon-btn admin-btn${p.role === "admin" ? " active" : ""}" type="button" title="${p.role === "admin" ? "إلغاء الإشراف" : "تعيينه مشرفاً"}">${icon("shield")}</button>` : ""}
-      <button class="icon-btn pin${pin === p.id ? " active" : ""}" type="button" title="${pin === p.id ? "إلغاء التثبيت" : "تثبيت في الوسط"}">${icon("pin")}</button>`;
+      ${canPromote ? `<button class="icon-btn admin-btn${p.role === "admin" ? " active" : ""}" type="button" title="${p.role === "admin" ? "إلغاء صلاحية الأدمن" : "تعيينه أدمن"}">${icon("shield")}</button>` : ""}
+      <button class="icon-btn pin${pin === p.id ? " active" : ""}" type="button" title="${pin === p.id ? "إلغاء التثبيت" : "تثبيت في الوسط"}">${icon("pin")}</button>
+      ${canManage ? `<button class="icon-btn manage-btn" type="button" title="إدارة المشارك" aria-label="إدارة المشارك">${icon("more")}</button>` : ""}`;
     li.querySelector(".mini").textContent = initial(p.name);
     li.querySelector(".mini").style.background = colorFor(p.name.replace(" (أنت)", ""));
     li.querySelector(".pn").textContent = p.name;
     li.querySelector(".pin").addEventListener("click", () => togglePin(p.id));
     li.querySelector(".recite-btn")?.addEventListener("click", () => startRecite(p.id));
     li.querySelector(".admin-btn")?.addEventListener("click", () => setAdmin(p.cid, p.role !== "admin"));
+    li.querySelector(".manage-btn")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openPersonMenu(e.currentTarget, p);
+    });
     list.appendChild(li);
   }
   $("peopleCount").textContent = everyone.length;

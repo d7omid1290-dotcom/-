@@ -1025,7 +1025,7 @@ input[type="time"], input[type="date"] { color-scheme: dark; }
   color-scheme: light;
 }
 /* غرفة الحلقة والاحتفال يبقيان داكنين في الوضعين (أفضل للفيديو) */
-:root[data-theme="light"] :is(.room, .celebrate) {
+:root[data-theme="light"] :is(.room, .celebrate, .pmenu) {
   --bg: #0a110e; --bg-2: #0f1814;
   --glass: rgba(255, 255, 255, .055); --glass-2: rgba(255, 255, 255, .09); --glass-border: rgba(255, 255, 255, .12);
   --text: #eef2ef; --muted: #9aaba3; --faint: #6b7d75;
@@ -1231,3 +1231,34 @@ body::after { background: radial-gradient(circle, rgba(29, 92, 70, .18), transpa
 .op:not(.main) i .i { color: var(--amber); }
 :root[data-theme="light"] .op:not(.main) i { background: #fff; border-color: rgba(111, 191, 152, .5); box-shadow: 0 6px 16px rgba(15, 23, 42, .08); }
 :root[data-theme="light"] .op:not(.main) i .i { color: #2f8f6b; }
+
+/* ===== أدوات الأدمن ===== */
+.admin-tools { margin-bottom: 14px; padding: 12px; border-radius: 16px; background: var(--glass); border: 1px solid var(--glass-border); }
+.admin-tools h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: .92rem; }
+.admin-tools h4 .i { width: 17px; height: 17px; color: var(--teal); }
+.admin-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.adm {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 9px 4px; min-width: 0;
+  border-radius: 12px; border: 1px solid var(--glass-border); background: var(--ctrl-bg); color: var(--text);
+  font: inherit; font-size: .76rem; font-weight: 600; cursor: pointer; transition: background .15s;
+}
+.adm span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.adm .i { width: 18px; height: 18px; }
+.adm:hover { background: var(--ctrl-hover); }
+.adm.on { background: rgba(111, 191, 152, .18); border-color: rgba(111, 191, 152, .5); color: var(--teal); }
+.pmenu {
+  position: fixed; z-index: 60; min-width: 190px; padding: 6px;
+  border-radius: 14px; background: var(--bg-2); border: 1px solid var(--glass-border); box-shadow: 0 16px 40px rgba(0, 0, 0, .45);
+  display: grid; gap: 2px;
+}
+.pmenu button {
+  display: flex; align-items: center; gap: 10px; padding: 9px 10px; border: 0; border-radius: 10px;
+  background: none; color: var(--text); font: inherit; font-size: .88rem; cursor: pointer; text-align: start;
+}
+.pmenu button .i { width: 17px; height: 17px; color: var(--muted); }
+.pmenu button:hover:not(:disabled) { background: var(--ctrl-hover); }
+.pmenu button:disabled { opacity: .4; cursor: default; }
+.pmenu button.danger, .pmenu button.danger .i { color: #fb7185; }
+.lock-badge { display: inline-flex; align-items: center; gap: 4px; color: var(--teal); font-size: .82rem; }
+.lock-badge .i { width: 14px; height: 14px; }
+.chat-form input:disabled { opacity: .6; cursor: not-allowed; }

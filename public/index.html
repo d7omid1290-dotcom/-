@@ -51,6 +51,8 @@
       <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
       <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></symbol>
       <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6.5C10.5 5 8 4.5 3.5 4.5v14c4.5 0 7 .5 8.5 2 1.5-1.5 4-2 8.5-2v-14c-4.5 0-7 .5-8.5 2zM12 6.5v14"/></symbol>
+      <symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="5.5" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="18.5" r="1.4" fill="currentColor"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"/></symbol>
       <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7.5 3v6c0 4.6-3.2 7.8-7.5 9-4.3-1.2-7.5-4.4-7.5-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
       <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></symbol>
       <symbol id="i-google" viewBox="0 0 24 24"><path d="M20.5 12.2c0-.6-.1-1.2-.2-1.7H12v3.3h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.6-3.9 2.6-6.5zM12 21c2.4 0 4.5-.8 5.9-2.2L15 16.5c-.8.5-1.8.9-3 .9-2.3 0-4.3-1.6-5-3.7H4v2.3A9 9 0 0 0 12 21zM7 13.7a5.4 5.4 0 0 1 0-3.4V8H4a9 9 0 0 0 0 8.1zM12 6.6c1.3 0 2.5.5 3.4 1.3L18 5.4A9 9 0 0 0 4 8l3 2.3c.7-2.1 2.7-3.7 5-3.7z" fill="currentColor" stroke="none"/></symbol>
@@ -284,6 +286,14 @@
           </form>
         </div>
         <div class="panel-body" data-pane="people" hidden>
+          <div class="admin-tools" id="adminTools" hidden>
+            <h4><svg class="i"><use href="#i-shield"/></svg>أدوات الإدارة</h4>
+            <div class="admin-row">
+              <button class="adm" id="muteAllBtn" type="button"><svg class="i"><use href="#i-mic-off"/></svg><span>كتم الجميع</span></button>
+              <button class="adm" id="lockBtn" type="button"><svg class="i"><use href="#i-lock"/></svg><span>قفل الحلقة</span></button>
+              <button class="adm" id="chatOffBtn" type="button"><svg class="i"><use href="#i-chat"/></svg><span>إيقاف الدردشة</span></button>
+            </div>
+          </div>
           <div class="queue" id="queue" hidden>
             <h4><span>✋</span>طابور التسميع <span class="qcount" id="queueCount">0</span></h4>
             <ol id="queueList"></ol>
@@ -298,6 +308,7 @@
         <span id="roomClock"></span>
         <span class="sep"></span>
         <span id="roomCode" dir="ltr"></span>
+        <span class="lock-badge" id="lockBadge" hidden><svg class="i"><use href="#i-lock"/></svg>مقفلة</span>
         <span class="elapsed" id="roomElapsed"></span>
       </div>
       <div class="bar-controls">
