@@ -62,6 +62,12 @@
     </defs>
   </svg>
 
+  <!-- تنبيه النسخة التجريبية (ملف HTML بدون خادم) -->
+  <div class="demo-bar" id="demoBar" hidden>
+    <b>نسخة تجريبية من ملف:</b> كل جهاز يفتح الغرفة وحده ولن تلتقوا فيها حتى بنفس الرابط.
+    لتجتمعوا في غرفة واحدة يجب نشر الموقع على الإنترنت.
+  </div>
+
   <!-- الصفحة الرئيسية -->
   <section id="home" class="view home">
     <header class="topbar">
@@ -199,10 +205,10 @@
         <div class="in-room" id="inRoom"><span class="avatars" id="inRoomAvatars"></span><span id="inRoomText">لا يوجد أحد في الحلقة بعد</span></div>
         <button class="code-chip" id="lobbyCopy" title="نسخ رابط الحلقة"><span id="lobbyCode" dir="ltr"></span><svg class="i"><use href="#i-copy"/></svg></button>
         <label for="nameInput" class="field-label">اسمك</label>
-        <input id="nameInput" placeholder="اكتب اسمك كما يعرفك المعلّم" maxlength="40" autocomplete="name">
+        <input id="nameInput" placeholder="اكتب اسمك" maxlength="40" autocomplete="name">
         <div class="host-badge" id="hostBadge" hidden>
           <svg class="i"><use href="#i-shield"/></svg>
-          <div><b>ستدخل كمعلّم</b><small>أنت منشئ هذه الغرفة</small></div>
+          <div><b>ستدخل كمعلّم / مستضيف</b><small>أنت منشئ هذه الغرفة</small></div>
           <button class="btn btn-sm" type="button" id="hostLinkBtn" title="لفتح الغرفة كمعلّم من جهاز آخر">نسخ رابط المعلّم</button>
         </div>
         <button class="btn btn-primary btn-lg btn-block" id="joinNowBtn">دخول الحلقة</button>

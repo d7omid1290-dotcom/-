@@ -76,6 +76,8 @@ function setTip(el, text) {
 // المعلّم والمشرف لهم صلاحيات إدارة الحلقة
 const isStaff = (role) => role === "teacher" || role === "admin";
 const ROLE_LABEL = { teacher: "المعلّم", admin: "مشرف" };
+// في القوائم نوضّح أن المعلّم هو المستضيف
+const ROLE_LONG = { teacher: "المعلّم / المستضيف", admin: "مشرف" };
 
 // مفاتيح المعلّم للغرف التي أنشأتها على هذا الجهاز
 const KEYS = "wasl:keys";
@@ -1380,7 +1382,7 @@ function renderPeople() {
     li.classList.toggle("reciting", !!reciting);
     li.innerHTML = `
       <span class="mini"></span>
-      <span class="pname"><span class="pn"></span><small class="r-${p.role}"${isStaff(p.role) ? "" : " hidden"}>${ROLE_LABEL[p.role] || ""}</small>${reciting ? '<small class="now">يُسمّع الآن</small>' : ""}</span>
+      <span class="pname"><span class="pn"></span><small class="r-${p.role}"${isStaff(p.role) ? "" : " hidden"}>${ROLE_LONG[p.role] || ""}</small>${reciting ? '<small class="now">يُسمّع الآن</small>' : ""}</span>
       ${stars ? `<span class="pstars">⭐ ${stars}</span>` : ""}
       <span class="icons">${p.hand ? icon("hand", "hand") : ""}${p.mic ? icon("mic") : icon("mic-off", "muted-i")}</span>
       ${canRecite ? `<button class="icon-btn recite-btn" type="button" title="ابدأ تسميعه">${icon("book")}</button>` : ""}
@@ -2098,6 +2100,7 @@ function applyTheme(theme) {
   }
 }
 applyTheme(document.documentElement.dataset.theme === "light" ? "light" : "dark");
+$("demoBar").hidden = !DEMO;
 for (const b of document.querySelectorAll("[data-theme-toggle]")) {
   b.addEventListener("click", () => {
     const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";

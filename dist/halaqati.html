@@ -1123,6 +1123,13 @@ input[type="time"], input[type="date"] { color-scheme: dark; }
 .people .admin-btn { color: var(--faint); }
 .people .admin-btn.active { color: #fff; background: linear-gradient(135deg, #14b8a6, #0d9488); }
 .tile.admin .role-tag { background: linear-gradient(135deg, #14b8a6, #0d9488); }
+
+/* تنبيه النسخة التجريبية */
+.demo-bar {
+  position: sticky; top: 0; z-index: 40; text-align: center; padding: 8px 16px; font-size: .88rem; line-height: 1.6;
+  background: linear-gradient(90deg, #f59e0b, #f97316); color: #1c1203;
+}
+.demo-bar b { font-weight: 700; }
 </style>
   <script>
     // نطبّق الوضع (نهاري/ليلي) قبل ظهور الصفحة حتى لا تومض
@@ -1174,6 +1181,12 @@ input[type="time"], input[type="date"] { color-scheme: dark; }
       </symbol>
     </defs>
   </svg>
+
+  <!-- تنبيه النسخة التجريبية (ملف HTML بدون خادم) -->
+  <div class="demo-bar" id="demoBar" hidden>
+    <b>نسخة تجريبية من ملف:</b> كل جهاز يفتح الغرفة وحده ولن تلتقوا فيها حتى بنفس الرابط.
+    لتجتمعوا في غرفة واحدة يجب نشر الموقع على الإنترنت.
+  </div>
 
   <!-- الصفحة الرئيسية -->
   <section id="home" class="view home">
@@ -1312,10 +1325,10 @@ input[type="time"], input[type="date"] { color-scheme: dark; }
         <div class="in-room" id="inRoom"><span class="avatars" id="inRoomAvatars"></span><span id="inRoomText">لا يوجد أحد في الحلقة بعد</span></div>
         <button class="code-chip" id="lobbyCopy" title="نسخ رابط الحلقة"><span id="lobbyCode" dir="ltr"></span><svg class="i"><use href="#i-copy"/></svg></button>
         <label for="nameInput" class="field-label">اسمك</label>
-        <input id="nameInput" placeholder="اكتب اسمك كما يعرفك المعلّم" maxlength="40" autocomplete="name">
+        <input id="nameInput" placeholder="اكتب اسمك" maxlength="40" autocomplete="name">
         <div class="host-badge" id="hostBadge" hidden>
           <svg class="i"><use href="#i-shield"/></svg>
-          <div><b>ستدخل كمعلّم</b><small>أنت منشئ هذه الغرفة</small></div>
+          <div><b>ستدخل كمعلّم / مستضيف</b><small>أنت منشئ هذه الغرفة</small></div>
           <button class="btn btn-sm" type="button" id="hostLinkBtn" title="لفتح الغرفة كمعلّم من جهاز آخر">نسخ رابط المعلّم</button>
         </div>
         <button class="btn btn-primary btn-lg btn-block" id="joinNowBtn">دخول الحلقة</button>
@@ -1677,6 +1690,8 @@ function setTip(el, text) {
 // المعلّم والمشرف لهم صلاحيات إدارة الحلقة
 const isStaff = (role) => role === "teacher" || role === "admin";
 const ROLE_LABEL = { teacher: "المعلّم", admin: "مشرف" };
+// في القوائم نوضّح أن المعلّم هو المستضيف
+const ROLE_LONG = { teacher: "المعلّم / المستضيف", admin: "مشرف" };
 
 // مفاتيح المعلّم للغرف التي أنشأتها على هذا الجهاز
 const KEYS = "wasl:keys";
@@ -2981,7 +2996,7 @@ function renderPeople() {
     li.classList.toggle("reciting", !!reciting);
     li.innerHTML = `
       <span class="mini"></span>
-      <span class="pname"><span class="pn"></span><small class="r-${p.role}"${isStaff(p.role) ? "" : " hidden"}>${ROLE_LABEL[p.role] || ""}</small>${reciting ? '<small class="now">يُسمّع الآن</small>' : ""}</span>
+      <span class="pname"><span class="pn"></span><small class="r-${p.role}"${isStaff(p.role) ? "" : " hidden"}>${ROLE_LONG[p.role] || ""}</small>${reciting ? '<small class="now">يُسمّع الآن</small>' : ""}</span>
       ${stars ? `<span class="pstars">⭐ ${stars}</span>` : ""}
       <span class="icons">${p.hand ? icon("hand", "hand") : ""}${p.mic ? icon("mic") : icon("mic-off", "muted-i")}</span>
       ${canRecite ? `<button class="icon-btn recite-btn" type="button" title="ابدأ تسميعه">${icon("book")}</button>` : ""}
@@ -3699,6 +3714,7 @@ function applyTheme(theme) {
   }
 }
 applyTheme(document.documentElement.dataset.theme === "light" ? "light" : "dark");
+$("demoBar").hidden = !DEMO;
 for (const b of document.querySelectorAll("[data-theme-toggle]")) {
   b.addEventListener("click", () => {
     const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
