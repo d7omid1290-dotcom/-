@@ -635,16 +635,6 @@ input[type="datetime-local"] { color-scheme: dark; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 
-/* ===== آية اليوم ===== */
-.ayah-card {
-  margin: 28px 0 0; max-width: 480px; padding: 16px 20px; border-radius: var(--radius);
-  background: linear-gradient(135deg, rgba(245, 158, 11, .1), rgba(139, 92, 246, .08));
-  border: 1px solid rgba(245, 158, 11, .22);
-}
-.ayah-card figcaption { color: #fbbf24; font-size: .8rem; font-weight: 600; margin-bottom: 4px; }
-.ayah-card blockquote { margin: 0; font-size: 1.2rem; font-weight: 600; line-height: 1.9; }
-.ayah-card cite { color: var(--muted); font-style: normal; font-size: .82rem; }
-
 /* ===== للمعلّم وللطالب ===== */
 .showcase {
   max-width: 1280px; margin: 0 auto; padding: 0 32px 80px;
@@ -795,7 +785,6 @@ input[type="datetime-local"] { color-scheme: dark; }
 
 @media (max-width: 960px) {
   .showcase { grid-template-columns: 1fr; }
-  .ayah-card { margin-inline: auto; }
 }
 @media (max-width: 640px) {
   .showcase { padding: 0 16px 48px; }

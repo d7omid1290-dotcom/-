@@ -191,21 +191,6 @@ setInterval(() => {
   if (state.joinedAt) $("roomElapsed").textContent = elapsed(Date.now() - state.joinedAt);
 }, 1000);
 
-// آية اليوم: تتغيّر كل يوم
-const DAILY = [
-  { text: "وَلَقَدْ يَسَّرْنَا الْقُرْآنَ لِلذِّكْرِ فَهَلْ مِن مُّدَّكِرٍ", ref: "سورة القمر: ١٧", ayah: true },
-  { text: "إِنَّ هَٰذَا الْقُرْآنَ يَهْدِي لِلَّتِي هِيَ أَقْوَمُ", ref: "سورة الإسراء: ٩", ayah: true },
-  { text: "وَرَتِّلِ الْقُرْآنَ تَرْتِيلًا", ref: "سورة المزمل: ٤", ayah: true },
-  { text: "خيرُكم من تعلَّم القرآنَ وعلَّمه", ref: "رواه البخاري", ayah: false },
-  { text: "اقرؤوا القرآنَ فإنه يأتي يومَ القيامة شفيعاً لأصحابه", ref: "رواه مسلم", ayah: false },
-];
-{
-  const d = DAILY[Math.floor(Date.now() / 86400000) % DAILY.length];
-  $("ayahCard").querySelector("figcaption").textContent = d.ayah ? "آية اليوم" : "حديث اليوم";
-  $("ayahText").textContent = d.ayah ? `﴿ ${d.text} ﴾` : `« ${d.text} »`;
-  $("ayahRef").textContent = d.ref;
-}
-
 $("joinCode").addEventListener("input", () => {
   $("joinBtn").disabled = !$("joinCode").value.trim();
 });
