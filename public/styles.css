@@ -804,3 +804,11 @@ input[type="datetime-local"] { color-scheme: dark; }
   .grade-card { inset-inline: 8px; top: 8px; width: auto; }
   .grade-btns button { font-size: .74rem; }
 }
+
+/* حلقات كبيرة (حتى 25): بلاطات أصغر */
+.grid.many .tile .label { font-size: .75rem; padding: 2px 8px; bottom: 6px; inset-inline-start: 6px; }
+.grid.many .tile .hand-badge { font-size: 0; padding: 5px; gap: 0; top: 6px; inset-inline-start: 6px; }
+.grid.many .tile .role-tag, .grid.many .tile .stars-tag { font-size: .65rem; }
+.grid.many { gap: 6px; }
+.grid.many .tile .avatar { width: auto; height: 46%; min-height: 28px; max-height: 96px; font-size: clamp(.9rem, 2.4vw, 1.8rem); }
+.grid.many .tile .label { max-width: calc(100% - 12px); }

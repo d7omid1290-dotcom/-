@@ -8,7 +8,7 @@ const crypto = require("crypto");
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, "public");
 const ROOM_RE = /^[a-z]{3}-[a-z]{4}-[a-z]{3}$/;
-const MAX_PEERS = 12;
+const MAX_PEERS = 25;
 const MAX_BODY = 64 * 1024;
 
 const MIME = {

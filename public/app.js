@@ -628,6 +628,7 @@ async function makeOffer(peer, iceRestart = false) {
     const offer = await peer.pc.createOffer({ iceRestart });
     await peer.pc.setLocalDescription(offer);
     signal("offer", peer.pc.localDescription, peer.id);
+    tuneSenders();
   } catch (err) {
     console.error("offer failed", err);
   }
@@ -645,6 +646,7 @@ async function onOffer(peer, sdp) {
   await pc.setLocalDescription(answer);
   signal("answer", pc.localDescription, peer.id);
   flushIce(peer);
+  tuneSenders();
 }
 
 function flushIce(peer) {
@@ -659,6 +661,7 @@ function removePeer(id, silent) {
   peer.tile.remove();
   state.peers.delete(id);
   if (state.reciter === id) setReciter(null);
+  tuneSenders();
   if (!silent) {
     renderPeople();
     layoutGrid();
@@ -671,6 +674,41 @@ function replaceOutgoingVideo() {
   for (const { pc } of state.peers.values()) {
     const t = pc.getTransceivers().find((x) => x.receiver.track.kind === "video");
     t?.sender.replaceTrack(track).catch(() => {});
+  }
+  tuneSenders();
+}
+
+// كل مشارك يرسل نسخة من صورته لكل الآخرين، فكلما زاد العدد خفّضنا جودة كل نسخة
+// حتى يبقى مجموع ما يرفعه الجهاز معقولاً (حتى 25 مشاركاً)
+function videoEncoding(remotes) {
+  let enc;
+  if (remotes <= 3) enc = { maxBitrate: 1200000, scaleResolutionDownBy: 1, maxFramerate: 30 };
+  else if (remotes <= 7) enc = { maxBitrate: 450000, scaleResolutionDownBy: 1.5, maxFramerate: 24 };
+  else if (remotes <= 14) enc = { maxBitrate: 220000, scaleResolutionDownBy: 2, maxFramerate: 20 };
+  else enc = { maxBitrate: 130000, scaleResolutionDownBy: 3, maxFramerate: 15 };
+  // الجميع يشاهد المعلّم كبيراً، فنعطيه جودة أعلى
+  if (state.role === "teacher") {
+    enc.maxBitrate *= 2;
+    enc.scaleResolutionDownBy = Math.max(1, enc.scaleResolutionDownBy / 1.5);
+  }
+  // مشاركة الشاشة تحتاج وضوحاً للنص
+  if (state.screenStream) {
+    enc.maxBitrate = Math.max(enc.maxBitrate, 800000);
+    enc.scaleResolutionDownBy = 1;
+    enc.maxFramerate = 15;
+  }
+  return enc;
+}
+
+function tuneSenders() {
+  const enc = videoEncoding(state.peers.size);
+  for (const { pc } of state.peers.values()) {
+    const sender = pc.getTransceivers().find((x) => x.receiver.track.kind === "video")?.sender;
+    if (!sender?.getParameters) continue;
+    const params = sender.getParameters();
+    if (!params.encodings?.length) continue; // قبل اكتمال التفاوض
+    Object.assign(params.encodings[0], enc);
+    sender.setParameters(params).catch(() => {});
   }
 }
 
@@ -875,11 +913,14 @@ function layoutGrid() {
     t.querySelector(".pin-btn").title = t.dataset.id === pin ? "إلغاء التثبيت" : "تثبيت في الوسط";
   }
   grid.classList.toggle("spotlight", !!pin);
+  grid.classList.toggle("many", n > 9);
   if (pin) {
-    grid.style.setProperty("--rows", Math.min(Math.max(n - 1, 1), 4));
+    grid.style.setProperty("--rows", Math.min(Math.max(n - 1, 1), n > 9 ? 6 : 4));
   } else {
     const narrow = window.innerWidth < 640;
-    const cols = narrow ? (n <= 2 ? 1 : 2) : n <= 1 ? 1 : n <= 4 ? 2 : n <= 9 ? 3 : 4;
+    const cols = narrow
+      ? (n <= 2 ? 1 : n <= 8 ? 2 : 3)
+      : n <= 1 ? 1 : n <= 4 ? 2 : n <= 9 ? 3 : n <= 16 ? 4 : 5;
     grid.style.setProperty("--cols", cols);
   }
   $("peopleCount").textContent = state.peers.size + 1;
