@@ -1730,7 +1730,10 @@ function applyBreakout(b) {
   const main = state.code;
   let target = state.room;
   if (isStaff(state.role)) {
-    if (!state.breakout && state.room !== main) target = main;
+    // المعلّم يبقى حيث هو، إلا إذا أُغلقت الغرفة التي هو فيها
+    const rid = state.room?.slice(main.length + 1);
+    const stillOpen = state.breakout?.rooms.some((r) => r.id === rid);
+    if (state.room !== main && !stillOpen) target = main;
   } else if (state.breakout) {
     const mine = state.breakout.rooms.find((r) => r.members.includes(state.cid));
     target = mine ? `${main}-${mine.id}` : main;
@@ -1883,16 +1886,20 @@ function renderBreakoutLive() {
     const here = state.room === target;
     const card = document.createElement("div");
     card.className = "bo-room live" + (here ? " here" : "") + (r.id ? "" : " main");
-    card.style.setProperty("--c", r.id ? COLORS[(i - 1) % COLORS.length] : "#94a3b8");
+    // لون ثابت لكل غرفة حسب رقمها، حتى لا تتغير الألوان عند إغلاق غرفة
+    card.style.setProperty("--c", r.id ? COLORS[(Number(r.id.slice(1)) - 1) % COLORS.length] : "#94a3b8");
     card.innerHTML = `
-      <div class="bo-room-head"><span class="bo-dot"></span><b></b>${r.id ? `<span class="bo-n">${r.names.length}</span>` : ""}</div>
+      <div class="bo-room-head"><span class="bo-dot"></span><b></b>${r.id ? `<span class="bo-n">${r.names.length}</span><button class="icon-btn bo-close" type="button" title="إغلاق هذه الغرفة وإعادة طلابها">${icon("close")}</button>` : ""}</div>
       <div class="bo-names"></div>
       <button class="btn btn-sm${here ? "" : " btn-primary"}" type="button"${here ? " disabled" : ""}>${here ? "أنت هنا" : r.id ? "انضم للغرفة" : "عودة للرئيسية"}</button>`;
     card.querySelector("b").textContent = r.name;
     card.querySelector(".bo-names").textContent = r.id ? r.names.join("، ") || "—" : "لمن لم يُوزَّع";
-    card.querySelector("button").addEventListener("click", () => {
+    card.querySelector(".bo-room-head ~ button").addEventListener("click", () => {
       moveTo(target);
       $("breakoutModal").hidden = true;
+    });
+    card.querySelector(".bo-close")?.addEventListener("click", async () => {
+      if (await breakoutAction({ action: "closeRoom", room: r.id })) toast(`أُغلقت «${r.name}» وعاد طلابها للحلقة الرئيسية`);
     });
     box.appendChild(card);
   });
@@ -2163,6 +2170,14 @@ function applyTheme(theme) {
 }
 applyTheme(document.documentElement.dataset.theme === "light" ? "light" : "dark");
 $("demoBar").hidden = !DEMO;
+
+// نوقف دوران المدار حين يخرج من الشاشة أو تُخفى الصفحة، فلا يستهلك الجوال أثناء التمرير
+{
+  const orbit = document.querySelector(".orbit");
+  if (orbit && "IntersectionObserver" in window) {
+    new IntersectionObserver(([e]) => orbit.classList.toggle("paused", !e.isIntersecting)).observe(orbit);
+  }
+}
 for (const b of document.querySelectorAll("[data-theme-toggle]")) {
   b.addEventListener("click", () => {
     const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";

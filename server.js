@@ -175,6 +175,20 @@ function handleBreakout(req, res, roomId) {
     } else if (msg.action === "close") {
       breakouts.delete(main);
       broadcastFamily(main, "breakout", { open: false, rooms: [] });
+    } else if (msg.action === "closeRoom") {
+      // إغلاق غرفة واحدة: طلابها يعودون للحلقة الرئيسية وتبقى الغرف الأخرى مفتوحة
+      const state = breakouts.get(main);
+      if (!state) return json(res, 404, { error: "not_open" });
+      const rooms = state.rooms.filter((r) => r.id !== String(msg.room));
+      if (rooms.length === state.rooms.length) return json(res, 404, { error: "no_room" });
+      if (rooms.length === 0) {
+        breakouts.delete(main);
+        broadcastFamily(main, "breakout", { open: false, rooms: [] });
+      } else {
+        const next = { open: true, rooms };
+        breakouts.set(main, next);
+        broadcastFamily(main, "breakout", next);
+      }
     } else if (msg.action === "announce") {
       const text = String(msg.text || "").trim().slice(0, 200);
       if (!text) return json(res, 400, { error: "empty" });
