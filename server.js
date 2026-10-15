@@ -8,6 +8,9 @@ const crypto = require("crypto");
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, "public");
 const ROOM_RE = /^[a-z]{3}-[a-z]{4}-[a-z]{3}$/;
+// الغرف الفرعية داخل الحلقة: abc-defg-hij-r1 … -r9
+const API_ROOM_RE = /^[a-z]{3}-[a-z]{4}-[a-z]{3}(-r[1-9])?$/;
+const MAX_BREAKOUTS = 9;
 const MAX_PEERS = 25;
 const MAX_BODY = 64 * 1024;
 
@@ -21,8 +24,21 @@ const MIME = {
   ".json": "application/json",
 };
 
-// roomId -> Map(peerId -> { id, name, res })
+// roomId -> Map(peerId -> { id, cid, name, role, res })
 const rooms = new Map();
+// الحلقة الرئيسية -> حالة الغرف الفرعية { open, rooms: [{ id, name, members: [cid], names: [name] }] }
+const breakouts = new Map();
+
+const mainOf = (roomId) => roomId.replace(/-r[1-9]$/, "");
+
+// كل الغرف التابعة لحلقة واحدة: الرئيسية وغرفها الفرعية
+function familyRooms(main) {
+  return [...rooms.entries()].filter(([id]) => mainOf(id) === main).map(([, room]) => room);
+}
+
+function broadcastFamily(main, event, data) {
+  for (const room of familyRooms(main)) broadcast(room, event, data);
+}
 
 function send(res, event, data) {
   res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
@@ -53,6 +69,8 @@ function handleEvents(req, res, roomId, url) {
 
   const id = crypto.randomUUID();
   const name = cleanName(url.searchParams.get("name"));
+  const cid = String(url.searchParams.get("cid") || id).slice(0, 64);
+  const role = url.searchParams.get("role") === "teacher" ? "teacher" : "student";
 
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
@@ -62,10 +80,10 @@ function handleEvents(req, res, roomId, url) {
   });
   res.write("retry: 3000\n\n");
 
-  const peers = [...room.values()].map((p) => ({ id: p.id, name: p.name }));
-  room.set(id, { id, name, res });
-  send(res, "welcome", { id, peers });
-  broadcast(room, "peer-joined", { id, name }, id);
+  const peers = [...room.values()].map((p) => ({ id: p.id, cid: p.cid, name: p.name }));
+  room.set(id, { id, cid, name, role, res });
+  send(res, "welcome", { id, peers, breakout: breakouts.get(mainOf(roomId)) || null });
+  broadcast(room, "peer-joined", { id, cid, name }, id);
 
   const heartbeat = setInterval(() => res.write(": ping\n\n"), 20000);
 
@@ -74,10 +92,13 @@ function handleEvents(req, res, roomId, url) {
     room.delete(id);
     broadcast(room, "peer-left", { id });
     if (room.size === 0) rooms.delete(roomId);
+    // إذا فرغت الحلقة كلها نحذف حالة غرفها
+    const main = mainOf(roomId);
+    if (familyRooms(main).length === 0) breakouts.delete(main);
   });
 }
 
-function handleSignal(req, res, roomId) {
+function readJson(req, res, done) {
   let body = "";
   req.on("data", (chunk) => {
     body += chunk;
@@ -90,6 +111,48 @@ function handleSignal(req, res, roomId) {
     } catch {
       return json(res, 400, { error: "bad_json" });
     }
+    if (!msg || typeof msg !== "object") return json(res, 400, { error: "bad_json" });
+    done(msg);
+  });
+}
+
+// أوامر المعلّم للغرف الفرعية: فتح، إغلاق، رسالة لكل الغرف
+function handleBreakout(req, res, roomId) {
+  readJson(req, res, (msg) => {
+    const sender = rooms.get(roomId)?.get(msg.from);
+    if (!sender) return json(res, 404, { error: "not_in_room" });
+    if (sender.role !== "teacher") return json(res, 403, { error: "teacher_only" });
+    const main = mainOf(roomId);
+
+    if (msg.action === "open") {
+      const list = Array.isArray(msg.rooms) ? msg.rooms.slice(0, MAX_BREAKOUTS) : [];
+      if (list.length < 1) return json(res, 400, { error: "no_rooms" });
+      const state = {
+        open: true,
+        rooms: list.map((r, i) => {
+          const members = (Array.isArray(r.members) ? r.members : []).slice(0, 25).map((c) => String(c).slice(0, 64));
+          const names = (Array.isArray(r.names) ? r.names : []).slice(0, 25).map(cleanName);
+          return { id: `r${i + 1}`, name: String(r.name || "").trim().slice(0, 30) || `غرفة ${i + 1}`, members, names };
+        }),
+      };
+      breakouts.set(main, state);
+      broadcastFamily(main, "breakout", state);
+    } else if (msg.action === "close") {
+      breakouts.delete(main);
+      broadcastFamily(main, "breakout", { open: false, rooms: [] });
+    } else if (msg.action === "announce") {
+      const text = String(msg.text || "").trim().slice(0, 200);
+      if (!text) return json(res, 400, { error: "empty" });
+      broadcastFamily(main, "announce", { text, name: sender.name });
+    } else {
+      return json(res, 400, { error: "bad_action" });
+    }
+    json(res, 200, { ok: true });
+  });
+}
+
+function handleSignal(req, res, roomId) {
+  readJson(req, res, (msg) => {
     const room = rooms.get(roomId);
     if (!room || !room.has(msg.from)) return json(res, 404, { error: "not_in_room" });
     const allowed = ["offer", "answer", "ice", "chat", "state", "reaction", "recite", "grade"];
@@ -131,12 +194,13 @@ const server = http.createServer((req, res) => {
     for (const room of rooms.values()) peers += room.size;
     return json(res, 200, { ok: true, rooms: rooms.size, peers });
   }
-  const m = url.pathname.match(/^\/api\/rooms\/([^/]+)\/(events|signal|peers)$/);
+  const m = url.pathname.match(/^\/api\/rooms\/([^/]+)\/(events|signal|peers|breakout)$/);
   if (m) {
     const [, roomId, action] = m;
-    if (!ROOM_RE.test(roomId)) return json(res, 400, { error: "bad_room" });
+    if (!API_ROOM_RE.test(roomId)) return json(res, 400, { error: "bad_room" });
     if (action === "events" && req.method === "GET") return handleEvents(req, res, roomId, url);
     if (action === "signal" && req.method === "POST") return handleSignal(req, res, roomId);
+    if (action === "breakout" && req.method === "POST") return handleBreakout(req, res, roomId);
     if (action === "peers" && req.method === "GET") {
       // من في الحلقة الآن — لعرضه في شاشة ما قبل الدخول
       const room = rooms.get(roomId);

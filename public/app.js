@@ -19,8 +19,15 @@ const $ = (id) => document.getElementById(id);
 // وضع العرض: ملف HTML واحد يعمل بدون خادم (لا يمكن للآخرين الانضمام)
 const DEMO = !!window.HALAQATI_DEMO;
 
+function uid() {
+  return crypto.randomUUID ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 const state = {
-  code: null,
+  code: null, // رمز الحلقة الرئيسية
+  room: null, // الغرفة الحالية: الحلقة الرئيسية أو إحدى غرفها الفرعية (abc-defg-hij-r2)
+  cid: uid(), // معرّف ثابت لهذا المشارك يبقى عند التنقل بين الغرف
+  breakout: null, // حالة الغرف الفرعية المفتوحة
   name: "",
   myId: null,
   stream: null, // الكاميرا والميكروفون
@@ -434,7 +441,7 @@ $("joinNowBtn").addEventListener("click", join);
 
 function signal(type, data, to) {
   if (!state.myId || DEMO) return;
-  fetch(`/api/rooms/${state.code}/signal`, {
+  fetch(`/api/rooms/${state.room}/signal`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ from: state.myId, to, type, data }),
@@ -475,30 +482,46 @@ function join() {
 
   if (DEMO) {
     state.myId = "demo";
+    state.room = state.code;
     enterRoom();
     toast("وضع العرض: انشر الموقع حتى ينضم الطلاب");
     return;
   }
 
   $("joinNowBtn").disabled = true;
-  const es = new EventSource(`/api/rooms/${state.code}/events?name=${encodeURIComponent(state.name)}`);
+  state.room = state.code;
+  connect(state.room);
+}
+
+// الاتصال بغرفة (الرئيسية أو فرعية) عبر قناة الأحداث
+function connect(roomId) {
+  const params = new URLSearchParams({ name: state.name, cid: state.cid, role: state.role });
+  const es = new EventSource(`/api/rooms/${roomId}/events?${params}`);
   state.es = es;
 
   es.addEventListener("welcome", (e) => {
-    const { id, peers } = JSON.parse(e.data);
+    const { id, peers, breakout } = JSON.parse(e.data);
     // عند إعادة الاتصال التلقائي نبدأ من جديد
     for (const p of [...state.peers.values()]) removePeer(p.id, true);
     state.myId = id;
     if (!state.joinedAt) enterRoom();
-    for (const p of peers) createPeer(p.id, p.name, true);
+    if (applyBreakout(breakout)) return; // انتقلنا لغرفة أخرى
+    for (const p of peers) createPeer(p.id, p.name, true, p.cid);
     broadcastState();
+    layoutGrid();
   });
 
   es.addEventListener("peer-joined", (e) => {
-    const { id, name } = JSON.parse(e.data);
-    createPeer(id, name, false);
+    const { id, name, cid } = JSON.parse(e.data);
+    createPeer(id, name, false, cid);
     broadcastState(id);
     toast(`انضم ${name}`);
+  });
+
+  es.addEventListener("breakout", (e) => applyBreakout(JSON.parse(e.data)));
+  es.addEventListener("announce", (e) => {
+    const { text, name } = JSON.parse(e.data);
+    showAnnounce(name, text);
   });
 
   es.addEventListener("peer-left", (e) => {
@@ -511,6 +534,7 @@ function join() {
   es.addEventListener("signal", (e) => handleSignal(JSON.parse(e.data)));
 
   es.onerror = () => {
+    if (es !== state.es) return;
     if (!state.joinedAt) {
       es.close();
       state.es = null;
@@ -574,18 +598,18 @@ async function handleSignal({ from, type, data }) {
       break;
     case "grade":
       if (peer?.role !== "teacher" || !GRADES[data.grade]) return;
-      receiveGrade(String(data.to), data.grade, Math.max(0, Number(data.total) || 0));
+      receiveGrade(String(data.to), String(data.cid || ""), data.grade, Math.max(0, Number(data.total) || 0));
       break;
   }
 }
 
 /* ---------- اتصالات WebRTC ---------- */
 
-function createPeer(id, name, initiator) {
+function createPeer(id, name, initiator, cid) {
   if (state.peers.has(id)) return state.peers.get(id);
   const pc = new RTCPeerConnection(ICE_CONFIG);
   const peer = {
-    id, name, pc, initiator,
+    id, cid: cid || id, name, pc, initiator,
     stream: new MediaStream(),
     pendingIce: [],
     mic: true, cam: false, hand: false, screen: false, role: "student",
@@ -741,7 +765,7 @@ function paintTile(tile, { name, mic, cam, hand, screen, role }) {
   tile.classList.toggle("hand", hand);
   tile.querySelector(".role-tag").hidden = role !== "teacher";
   const id = tile.dataset.id === "local" ? state.myId : tile.dataset.id;
-  const stars = state.stars[id] || 0;
+  const stars = state.stars[cidOf(id)] || 0;
   const tag = tile.querySelector(".stars-tag");
   tag.hidden = !stars;
   tag.textContent = `⭐ ${stars}`;
@@ -788,6 +812,12 @@ function handQueue() {
   return [...state.peers.values()].filter((p) => p.hand && p.role !== "teacher").sort((a, b) => a.handAt - b.handAt);
 }
 
+// النجوم تُحفظ بالمعرّف الثابت حتى لا تضيع عند التنقل بين الغرف
+function cidOf(id) {
+  if (id === state.myId) return state.cid;
+  return state.peers.get(id)?.cid || id;
+}
+
 function nameOf(id) {
   if (id === state.myId) return state.name;
   return state.peers.get(id)?.name || "طالب";
@@ -826,16 +856,18 @@ function endRecite() {
 function gradeReciter(grade) {
   const id = state.reciter;
   if (!id || state.role !== "teacher") return;
-  const total = (state.stars[id] || 0) + GRADES[grade].stars;
-  state.stars[id] = total;
-  signal("grade", { to: id, grade, total });
+  const key = cidOf(id);
+  const total = (state.stars[key] || 0) + GRADES[grade].stars;
+  state.stars[key] = total;
+  signal("grade", { to: id, cid: key, grade, total });
   toast(`${GRADES[grade].stars ? "⭐" : "📖"} ${nameOf(id)}: ${GRADES[grade].label}`);
   endRecite();
 }
 
-function receiveGrade(to, grade, total) {
-  const gained = total - (state.stars[to] || 0);
-  state.stars[to] = total;
+function receiveGrade(to, cid, grade, total) {
+  const key = cid || cidOf(to);
+  const gained = total - (state.stars[key] || 0);
+  state.stars[key] = total;
   if (to === state.myId) {
     state.sessionStars += Math.max(0, gained);
     celebrate(grade, total);
@@ -924,7 +956,7 @@ function layoutGrid() {
     grid.style.setProperty("--cols", cols);
   }
   $("peopleCount").textContent = state.peers.size + 1;
-  $("inviteCard").hidden = !state.joinedAt || state.peers.size > 0 || state.inviteDismissed;
+  $("inviteCard").hidden = !state.joinedAt || state.peers.size > 0 || state.inviteDismissed || state.room !== state.code;
 }
 window.addEventListener("resize", layoutGrid);
 
@@ -986,6 +1018,8 @@ function enterRoom() {
   state.pinned = null;
   state.inviteDismissed = false;
   state.sessionStars = 0;
+  $("breakoutBtn").hidden = state.role !== "teacher" || DEMO;
+  updateRoomUI();
   $("inviteLink").textContent = meetingLink().replace(/^https?:\/\//, "");
   $("roomElapsed").textContent = "00:00";
   state.localTile = createTile("local", true);
@@ -1018,6 +1052,11 @@ function leave(navigate = true) {
   state.localTile = null;
   $("gradeCard").hidden = true;
   $("reciteBanner").hidden = true;
+  state.room = null;
+  state.breakout = null;
+  $("breakoutModal").hidden = true;
+  $("roomBanner").hidden = true;
+  $("announce").hidden = true;
   $("panel").hidden = true;
   $("recBanner").hidden = true;
   $("inviteCard").hidden = true;
@@ -1178,12 +1217,12 @@ function renderPeople() {
 
   const list = $("people");
   list.innerHTML = "";
-  const me = { ...myStatus(), id: "local", sid: state.myId, name: `${state.name} (أنت)` };
-  const everyone = [me, ...[...state.peers.values()].map((p) => ({ ...p, sid: p.id }))];
-  everyone.sort((a, b) => (b.role === "teacher") - (a.role === "teacher") || (state.stars[b.sid] || 0) - (state.stars[a.sid] || 0));
+  const me = { ...myStatus(), id: "local", sid: state.myId, skey: state.cid, name: `${state.name} (أنت)` };
+  const everyone = [me, ...[...state.peers.values()].map((p) => ({ ...p, sid: p.id, skey: p.cid }))];
+  everyone.sort((a, b) => (b.role === "teacher") - (a.role === "teacher") || (state.stars[b.skey] || 0) - (state.stars[a.skey] || 0));
   const pin = effectivePin();
   for (const p of everyone) {
-    const stars = state.stars[p.sid] || 0;
+    const stars = state.stars[p.skey] || 0;
     const canRecite = isTeacher && p.id !== "local" && p.role !== "teacher";
     const reciting = state.reciter && state.reciter === p.sid;
     const li = document.createElement("li");
@@ -1398,6 +1437,7 @@ document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
   if (!$("scheduleModal").hidden) closeSchedule();
   $("settingsModal").hidden = true;
+  $("breakoutModal").hidden = true;
 });
 
 $("scheduleForm").addEventListener("submit", (e) => {
@@ -1447,6 +1487,227 @@ $("sIcs").addEventListener("click", () => {
 setInterval(() => {
   if (!$("home").hidden) renderUpcoming();
 }, 60000);
+
+/* ---------- الغرف الفرعية داخل الحلقة ---------- */
+
+const MAX_BREAKOUTS = 9;
+const bo = { count: 2, names: [], assign: new Map() }; // إعداد المعلّم قبل الفتح
+
+function roomLabel(roomId) {
+  if (!roomId || roomId === state.code) return "الحلقة الرئيسية";
+  const rid = roomId.slice(state.code.length + 1);
+  return state.breakout?.rooms.find((r) => r.id === rid)?.name || "غرفة";
+}
+
+// يطبّق حالة الغرف القادمة من الخادم، ويُرجع true إذا انتقلنا لغرفة أخرى
+function applyBreakout(b) {
+  state.breakout = b?.open ? b : null;
+  const main = state.code;
+  let target = state.room;
+  if (state.role === "teacher") {
+    if (!state.breakout && state.room !== main) target = main;
+  } else if (state.breakout) {
+    const mine = state.breakout.rooms.find((r) => r.members.includes(state.cid));
+    target = mine ? `${main}-${mine.id}` : main;
+  } else {
+    target = main;
+  }
+  updateRoomUI();
+  if (target && target !== state.room) {
+    moveTo(target);
+    return true;
+  }
+  return false;
+}
+
+function moveTo(target) {
+  for (const id of [...state.peers.keys()]) removePeer(id, true);
+  state.es?.close();
+  state.reciter = null;
+  state.pinned = null;
+  state.hand = false;
+  state.handAt = 0;
+  state.room = target;
+  syncToggleButtons();
+  updateReciteUI();
+  updateLocalTile();
+  layoutGrid();
+  renderPeople();
+  updateRoomUI();
+  const label = roomLabel(target);
+  addNote(`انتقلت إلى ${label}`);
+  toast(target === state.code ? "عدت إلى الحلقة الرئيسية" : `🚪 انتقلت إلى ${label}`);
+  connect(target);
+}
+
+function addNote(text) {
+  const p = document.createElement("p");
+  p.className = "hint";
+  p.textContent = `— ${text} —`;
+  $("messages").appendChild(p);
+}
+
+function updateRoomUI() {
+  if (!state.room) return;
+  const inSub = state.room !== state.code;
+  $("roomBanner").hidden = !inSub;
+  $("roomBannerText").textContent = roomLabel(state.room);
+  $("roomCode").textContent = inSub ? `${state.code} · ${roomLabel(state.room)}` : state.code;
+  $("breakoutBtn").classList.toggle("on", !!state.breakout);
+  if (!$("breakoutModal").hidden) renderBreakout();
+}
+
+let announceTimer;
+function showAnnounce(name, text) {
+  $("announceFrom").textContent = name;
+  $("announceText").textContent = text;
+  $("announce").hidden = false;
+  clearTimeout(announceTimer);
+  announceTimer = setTimeout(() => ($("announce").hidden = true), 12000);
+}
+$("announceClose").addEventListener("click", () => ($("announce").hidden = true));
+
+async function breakoutAction(body) {
+  try {
+    const r = await fetch(`/api/rooms/${state.room}/breakout`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ from: state.myId, ...body }),
+    });
+    if (!r.ok) throw new Error();
+    return true;
+  } catch {
+    toast("تعذر تنفيذ الأمر، حاول مرة أخرى");
+    return false;
+  }
+}
+
+function boStudents() {
+  return [...state.peers.values()].filter((p) => p.role !== "teacher");
+}
+
+function autoAssign() {
+  const list = boStudents().sort(() => Math.random() - 0.5);
+  bo.assign.clear();
+  list.forEach((p, i) => bo.assign.set(p.cid, i % bo.count));
+  renderBreakout();
+}
+
+function renderBreakout() {
+  const live = !!state.breakout;
+  $("boSetup").hidden = live;
+  $("boLive").hidden = !live;
+  if (live) return renderBreakoutLive();
+
+  $("boCountVal").textContent = bo.count;
+  for (let i = 0; i < bo.count; i++) bo.names[i] ||= `غرفة ${i + 1}`;
+  const students = boStudents();
+  // الطالب الجديد أو من خرج رقم غرفته عن العدد يوضع في أقل غرفة عدداً
+  for (const p of students) {
+    if (!bo.assign.has(p.cid) || bo.assign.get(p.cid) >= bo.count) {
+      const sizes = Array.from({ length: bo.count }, (_, i) => [...bo.assign.values()].filter((v) => v === i).length);
+      bo.assign.set(p.cid, sizes.indexOf(Math.min(...sizes)));
+    }
+  }
+
+  const roomsBox = $("boRooms");
+  roomsBox.innerHTML = "";
+  for (let i = 0; i < bo.count; i++) {
+    const members = students.filter((p) => bo.assign.get(p.cid) === i);
+    const card = document.createElement("div");
+    card.className = "bo-room";
+    card.style.setProperty("--c", COLORS[i % COLORS.length]);
+    card.innerHTML = `<div class="bo-room-head"><span class="bo-dot"></span><input maxlength="30" aria-label="اسم الغرفة"><span class="bo-n">${members.length}</span></div><div class="bo-chips"></div>`;
+    const input = card.querySelector("input");
+    input.value = bo.names[i];
+    input.addEventListener("input", () => (bo.names[i] = input.value));
+    const chips = card.querySelector(".bo-chips");
+    if (!members.length) chips.innerHTML = '<span class="bo-empty">لا يوجد طلاب</span>';
+    for (const p of members) {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "bo-chip";
+      chip.title = "اضغط لنقله إلى الغرفة التالية";
+      chip.textContent = p.name;
+      chip.addEventListener("click", () => {
+        bo.assign.set(p.cid, (bo.assign.get(p.cid) + 1) % bo.count);
+        renderBreakout();
+      });
+      chips.appendChild(chip);
+    }
+    roomsBox.appendChild(card);
+  }
+  $("boHint").textContent = students.length
+    ? "اضغط على اسم الطالب لنقله إلى الغرفة التالية"
+    : "لا يوجد طلاب في الحلقة الآن";
+  $("boOpen").disabled = !students.length;
+}
+
+function renderBreakoutLive() {
+  const box = $("boLiveRooms");
+  box.innerHTML = "";
+  const cards = [{ id: null, name: "الحلقة الرئيسية", names: [] }, ...state.breakout.rooms];
+  cards.forEach((r, i) => {
+    const target = r.id ? `${state.code}-${r.id}` : state.code;
+    const here = state.room === target;
+    const card = document.createElement("div");
+    card.className = "bo-room live" + (here ? " here" : "") + (r.id ? "" : " main");
+    card.style.setProperty("--c", r.id ? COLORS[(i - 1) % COLORS.length] : "#94a3b8");
+    card.innerHTML = `
+      <div class="bo-room-head"><span class="bo-dot"></span><b></b>${r.id ? `<span class="bo-n">${r.names.length}</span>` : ""}</div>
+      <div class="bo-names"></div>
+      <button class="btn btn-sm${here ? "" : " btn-primary"}" type="button"${here ? " disabled" : ""}>${here ? "أنت هنا" : r.id ? "انضم للغرفة" : "عودة للرئيسية"}</button>`;
+    card.querySelector("b").textContent = r.name;
+    card.querySelector(".bo-names").textContent = r.id ? r.names.join("، ") || "—" : "لمن لم يُوزَّع";
+    card.querySelector("button").addEventListener("click", () => {
+      moveTo(target);
+      $("breakoutModal").hidden = true;
+    });
+    box.appendChild(card);
+  });
+}
+
+$("breakoutBtn").addEventListener("click", () => {
+  renderBreakout();
+  $("breakoutModal").hidden = false;
+});
+for (const el of document.querySelectorAll("#breakoutModal [data-close]")) {
+  el.addEventListener("click", () => ($("breakoutModal").hidden = true));
+}
+$("boMinus").addEventListener("click", () => {
+  bo.count = Math.max(2, bo.count - 1);
+  renderBreakout();
+});
+$("boPlus").addEventListener("click", () => {
+  bo.count = Math.min(MAX_BREAKOUTS, bo.count + 1);
+  renderBreakout();
+});
+$("boAuto").addEventListener("click", autoAssign);
+$("boOpen").addEventListener("click", async () => {
+  const students = boStudents();
+  const rooms = Array.from({ length: bo.count }, (_, i) => {
+    const members = students.filter((p) => bo.assign.get(p.cid) === i);
+    return { name: bo.names[i].trim() || `غرفة ${i + 1}`, members: members.map((p) => p.cid), names: members.map((p) => p.name) };
+  });
+  $("boOpen").disabled = true;
+  if (await breakoutAction({ action: "open", rooms })) toast("🚪 فُتحت الغرف وانتقل الطلاب إليها");
+  $("boOpen").disabled = false;
+});
+$("boClose").addEventListener("click", async () => {
+  if (await breakoutAction({ action: "close" })) {
+    toast("أُغلقت الغرف وعاد الجميع للحلقة الرئيسية");
+    $("breakoutModal").hidden = true;
+  }
+});
+$("boAnnounce").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const text = $("boMsg").value.trim();
+  if (!text) return;
+  if (await breakoutAction({ action: "announce", text })) {
+    $("boMsg").value = "";
+    toast("📢 أُرسلت الرسالة لكل الغرف");
+  }
+});
 
 window.addEventListener("beforeunload", () => state.es?.close());
 
