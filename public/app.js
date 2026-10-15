@@ -1732,42 +1732,150 @@ function pickMimeType() {
   return types.find((t) => MediaRecorder.isTypeSupported(t)) || "";
 }
 
+// صورة التسجيل في الجوال (ولكل متصفح لا يدعم التقاط الشاشة): نرسم بلاطات المشاركين على لوحة بأنفسنا
+function canvasCapture() {
+  const W = 1280;
+  const H = 720;
+  const FPS = 20;
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  const font = getComputedStyle(document.body).fontFamily;
+
+  const drawTile = (tile, x, y, w, h) => {
+    const g = 4;
+    x += g; y += g; w -= g * 2; h -= g * 2;
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(x, y, w, h, 14) : ctx.rect(x, y, w, h);
+    ctx.clip();
+    ctx.fillStyle = "#121c18";
+    ctx.fillRect(x, y, w, h);
+    const v = tile.querySelector("video");
+    const name = (tile.querySelector(".name")?.textContent || "").replace(" (أنت)", "");
+    if (v && v.videoWidth && !tile.classList.contains("cam-off")) {
+      // ملء المربع مع قصّ الأطراف (مثل object-fit: cover)، وصورتي معكوسة كما أراها
+      const scale = Math.max(w / v.videoWidth, h / v.videoHeight);
+      const vw = v.videoWidth * scale;
+      const vh = v.videoHeight * scale;
+      if (tile.classList.contains("local") && !tile.classList.contains("screen")) {
+        ctx.translate(x + w, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(v, (w - vw) / 2, y + (h - vh) / 2, vw, vh);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+      } else {
+        ctx.drawImage(v, x + (w - vw) / 2, y + (h - vh) / 2, vw, vh);
+      }
+    } else {
+      const r = Math.min(w, h) * 0.16;
+      ctx.fillStyle = "#2f8f6b";
+      ctx.beginPath();
+      ctx.arc(x + w / 2, y + h / 2, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.font = `600 ${Math.round(r)}px ${font}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(initial(name), x + w / 2, y + h / 2);
+    }
+    if (name) {
+      ctx.font = `600 ${Math.max(13, Math.round(Math.min(w, h) / 16))}px ${font}`;
+      ctx.direction = "rtl";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+      const tw = ctx.measureText(name).width;
+      const lh = Math.max(24, Math.min(w, h) / 10);
+      ctx.fillStyle = "rgba(0, 0, 0, .55)";
+      ctx.fillRect(x + w - tw - 26, y + h - lh - 10, tw + 18, lh);
+      ctx.fillStyle = "#fff";
+      ctx.fillText(name, x + w - 17, y + h - 10 - lh / 2);
+    }
+    ctx.restore();
+  };
+
+  const draw = () => {
+    ctx.fillStyle = "#0a110e";
+    ctx.fillRect(0, 0, W, H);
+    const tiles = [...$("grid").querySelectorAll(".tile")];
+    if (!tiles.length) return;
+    const pin = effectivePin();
+    const big = pin && tiles.length > 1 ? tiles.find((t) => t.dataset.id === pin) : null;
+    if (big) {
+      // المثبّت كبيراً، والبقية في عمود جانبي
+      const rest = tiles.filter((t) => t !== big).slice(0, 5);
+      const side = W * 0.24;
+      drawTile(big, side, 0, W - side, H);
+      const h = H / Math.max(rest.length, 3);
+      rest.forEach((t, i) => drawTile(t, 0, i * h, side, h));
+      return;
+    }
+    const n = tiles.length;
+    const cols = Math.ceil(Math.sqrt(n));
+    const rows = Math.ceil(n / cols);
+    const w = W / cols;
+    const h = H / rows;
+    // من اليمين لليسار مثل الواجهة
+    tiles.forEach((t, i) => drawTile(t, W - ((i % cols) + 1) * w, Math.floor(i / cols) * h, w, h));
+  };
+  draw();
+  const timer = setInterval(draw, 1000 / FPS);
+  const stream = canvas.captureStream(FPS);
+  return { stream, stop: () => clearInterval(timer) };
+}
+
+const canCaptureCanvas = () => !!HTMLCanvasElement.prototype.captureStream;
+
 async function startRecording() {
-  if (!window.MediaRecorder || !navigator.mediaDevices?.getDisplayMedia || !state.audioCtx) {
-    return toast("التسجيل غير مدعوم في هذا المتصفح. جرّب Chrome أو Edge على الكمبيوتر");
+  const tabCapture = !!navigator.mediaDevices?.getDisplayMedia && !matchMedia("(hover: none)").matches;
+  if (!window.MediaRecorder || !state.audioCtx || (!tabCapture && !canCaptureCanvas())) {
+    return toast("التسجيل غير مدعوم في هذا المتصفح. حدّث المتصفح أو جرّب Chrome أو Safari");
   }
-  let display;
-  try {
-    // نلتقط تبويب الاجتماع نفسه (الصورة) ونمزج كل الأصوات بأنفسنا
-    display = await navigator.mediaDevices.getDisplayMedia({
-      video: { displaySurface: "browser", frameRate: 30 },
-      audio: false,
-      preferCurrentTab: true,
-      selfBrowserSurface: "include",
-    });
-  } catch {
-    return;
+  // الكمبيوتر: نلتقط تبويب الحلقة نفسه. الجوال: نرسم الحلقة على لوحة ونسجّلها
+  let video;
+  if (tabCapture) {
+    try {
+      const display = await navigator.mediaDevices.getDisplayMedia({
+        video: { displaySurface: "browser", frameRate: 30 },
+        audio: false,
+        preferCurrentTab: true,
+        selfBrowserSurface: "include",
+      });
+      video = { stream: display, stop: () => display.getTracks().forEach((t) => t.stop()) };
+      display.getVideoTracks()[0].onended = stopRecording;
+    } catch {
+      return; // ألغى اختيار الشاشة
+    }
+  } else {
+    video = canvasCapture();
   }
+  await state.audioCtx.resume?.().catch(() => {});
   state.recDest = state.audioCtx.createMediaStreamDestination();
   addToRecording(state.stream);
   for (const p of state.peers.values()) addToRecording(p.stream);
 
-  const mixed = new MediaStream([...display.getVideoTracks(), ...state.recDest.stream.getAudioTracks()]);
+  const mixed = new MediaStream([...video.stream.getVideoTracks(), ...state.recDest.stream.getAudioTracks()]);
   const mimeType = pickMimeType();
-  const recorder = new MediaRecorder(mixed, mimeType ? { mimeType } : undefined);
+  let recorder;
+  try {
+    recorder = new MediaRecorder(mixed, mimeType ? { mimeType } : undefined);
+  } catch {
+    video.stop();
+    state.recDest = null;
+    return toast("تعذر بدء التسجيل على هذا الجهاز");
+  }
   const chunks = [];
   const startedAt = new Date();
   recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
   recorder.onstop = () => {
-    display.getTracks().forEach((t) => t.stop());
-    const type = recorder.mimeType || "video/webm";
+    video.stop();
+    const type = recorder.mimeType || mimeType || "video/webm";
     const blob = new Blob(chunks, { type });
     const ext = type.includes("mp4") ? "mp4" : "webm";
     const stamp = startedAt.toISOString().slice(0, 16).replace(/[:T]/g, "-");
-    downloadBlob(blob, `halaqati-${state.code || "meeting"}-${stamp}.${ext}`);
+    downloadBlob(blob, `wasl-${state.code || "halaqa"}-${stamp}.${ext}`);
     toast("تم حفظ التسجيل على جهازك");
   };
-  display.getVideoTracks()[0].onended = stopRecording;
   recorder.start(1000);
   state.recorder = recorder;
   updateRecBanner();
