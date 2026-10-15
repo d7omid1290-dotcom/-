@@ -57,22 +57,22 @@
       <div class="brand">
         <svg class="mark"><use href="#mark"/></svg>
         <span class="wordmark"><b>وصل</b><em>بالقرآن نتّصل</em></span>
-        <span class="school"><img class="logo-img" src="logo.png" alt=""><span>مدرسة جامع الصحابة</span></span>
       </div>
       <span class="clock" id="homeClock"></span>
     </header>
 
     <main class="home-main">
       <div class="home-text">
-        <span class="eyebrow"><span class="live-dot"></span>وصل — بالقرآن نتّصل</span>
+        <span class="eyebrow"><img class="logo-img" src="logo.png" alt=""><span class="live-dot"></span>مدرسة جامع الصحابة لتحفيظ القرآن الكريم</span>
         <h1>حلقات القرآن الكريم، <br><span class="grad">من أي مكان</span></h1>
         <p class="lead">اتصال بالصوت والصورة يجمع المعلّم بطلابه للتسميع والمراجعة، من المتصفح مباشرة.</p>
         <div class="home-actions">
           <button class="btn btn-primary btn-lg" id="newMeetingBtn"><svg class="i"><use href="#i-plus"/></svg>حلقة جديدة</button>
           <form class="join-form" id="joinForm">
             <label for="joinCode" class="sr-only">رمز الحلقة</label>
-            <span class="join-field"><svg class="i"><use href="#i-link"/></svg><input id="joinCode" placeholder="أدخل رمز الحلقة" autocomplete="off" dir="auto"></span>
-            <button class="btn btn-text" type="submit" id="joinBtn" disabled>دخول</button>
+            <svg class="i"><use href="#i-link"/></svg>
+            <input id="joinCode" placeholder="أدخل رمز الحلقة" autocomplete="off" dir="auto">
+            <button class="join-go" type="submit" id="joinBtn" disabled>دخول</button>
           </form>
         </div>
         <p class="error" id="homeError" role="alert"></p>
@@ -108,9 +108,9 @@
             <span class="op" style="--a:270deg;--c:#f97316"><i>م</i></span>
             <span class="op" style="--a:315deg;--c:#64748b"><i>ف</i></span>
           </div>
+          <div class="float-card fc-chat"><span class="fc-av" style="background:#f59e0b">أ</span><div><b>أحمد</b><small>السلام عليكم يا شيخ</small></div></div>
+          <div class="float-card fc-hand"><span class="fc-icon">✋</span><div><b>يوسف يرفع يده</b><small>جاهز للتسميع</small></div></div>
         </div>
-        <div class="float-card fc-hand"><span class="fc-icon">✋</span><div><b>يوسف يرفع يده</b><small>جاهز للتسميع</small></div></div>
-        <div class="float-card fc-chat"><span class="fc-av" style="background:#f59e0b">أ</span><div><b>أحمد</b><small>السلام عليكم يا شيخ</small></div></div>
       </div>
     </main>
 
@@ -136,6 +136,11 @@
         </ul>
       </article>
     </section>
+
+    <footer class="site-footer">
+      <span>مدرسة جامع الصحابة لتحفيظ القرآن الكريم — حي غبيراء</span>
+      <span class="footer-brand"><svg class="mark"><use href="#mark"/></svg>وصل</span>
+    </footer>
   </section>
 
   <!-- شاشة ما قبل الدخول -->

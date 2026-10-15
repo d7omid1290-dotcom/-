@@ -891,3 +891,86 @@ input[type="datetime-local"] { color-scheme: dark; }
 }
 @media (max-width: 640px) { .wordmark em { font-size: .8rem; } }
 @media (max-width: 380px) { .wordmark em { display: none; } }
+
+/* ===== ترتيب وتنظيم ===== */
+/* الشارة فوق العنوان */
+.eyebrow .logo-img { height: 22px; width: auto; filter: invert(1) brightness(1.4); margin-inline-end: 2px; }
+
+/* حقل الانضمام: الرمز والزر في حقل واحد */
+.home-actions { gap: 14px; align-items: stretch; }
+.join-form {
+  display: flex; align-items: center; gap: 6px; height: 54px; padding: 0 6px 0 6px; padding-inline-start: 14px;
+  flex: 1; min-width: 260px; max-width: 380px;
+  background: rgba(255, 255, 255, .04); border: 1px solid var(--glass-border); border-radius: 14px;
+  transition: border-color .2s, box-shadow .2s, background .2s;
+}
+.join-form:hover { border-color: rgba(255, 255, 255, .22); }
+.join-form:focus-within { border-color: var(--blue); background: rgba(91, 140, 255, .06); box-shadow: 0 0 0 4px rgba(91, 140, 255, .18); }
+.join-form > .i { width: 20px; height: 20px; color: var(--faint); }
+.join-form input { flex: 1; min-width: 0; height: 100%; border: 0; background: transparent; padding: 0 4px; }
+.join-form input:focus { box-shadow: none; background: transparent; }
+.join-go {
+  height: 42px; padding: 0 18px; border: 0; border-radius: 10px; cursor: pointer; flex-shrink: 0;
+  font: inherit; font-weight: 600; color: #fff; background: rgba(255, 255, 255, .1); transition: background .2s, opacity .2s;
+}
+.join-go:not(:disabled) { background: var(--grad); }
+.join-go:disabled { opacity: .45; cursor: default; }
+.home-text .link-btn { margin-top: 16px; }
+
+/* المزايا كشارات صغيرة */
+.perks { gap: 8px; margin-top: 26px; }
+.perks li {
+  padding: 5px 12px 5px 14px; border-radius: 999px; font-size: .86rem;
+  background: rgba(255, 255, 255, .04); border: 1px solid var(--glass-border);
+}
+.perks .i { width: 16px; height: 16px; }
+
+/* البطاقات العائمة في زوايا المدار الفارغة */
+.orbit .float-card { z-index: 2; }
+.orbit .fc-chat { top: 1%; right: -6%; left: auto; bottom: auto; }
+.orbit .fc-hand { bottom: 1%; left: -6%; right: auto; top: auto; }
+
+/* إيقاع موحّد للأقسام */
+.home-main { padding-bottom: 48px; }
+.showcase { padding-bottom: 56px; }
+.show-card h2 { font-size: 1.45rem; }
+
+/* تذييل الصفحة */
+.site-footer {
+  max-width: 1280px; margin: 0 auto; padding: 22px 32px 28px;
+  display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+  color: var(--faint); font-size: .86rem; border-top: 1px solid rgba(255, 255, 255, .06);
+}
+.footer-brand { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-weight: 700; }
+.footer-brand .mark { width: 22px; height: 22px; filter: none; }
+
+/* شاشة الدخول: محاذاة البطاقة مع المعاينة */
+.lobby { align-items: start; padding-top: 32px; }
+.lobby-side { margin-top: 0; }
+.devices label { background: rgba(255, 255, 255, .04); border: 1px solid var(--glass-border); border-radius: 12px; padding-inline-start: 12px; }
+.devices label .i { width: 18px; height: 18px; flex-shrink: 0; }
+.devices select { border: 0; background: transparent; height: 42px; padding-inline-start: 4px; }
+.devices select:focus { box-shadow: none; background: transparent; }
+.devices label:focus-within { border-color: var(--blue); }
+
+/* شريط الحلقة: مجموعات متناسقة */
+.bar-info, .bar-side {
+  justify-self: start; padding: 0 16px; height: 50px; border-radius: 18px;
+  background: rgba(20, 26, 51, .55); border: 1px solid var(--glass-border);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+}
+.bar-side { justify-self: end; padding: 0 6px; align-items: center; }
+.bar-side .ctrl { width: 42px; height: 42px; border-radius: 13px; }
+.bar-info { color: var(--muted); }
+
+@media (max-width: 960px) {
+  .join-form { max-width: none; }
+  .lobby { align-items: center; }
+}
+@media (max-width: 640px) {
+  .orbit .float-card { display: none; }
+  .eyebrow { font-size: .8rem; }
+  .site-footer { justify-content: center; text-align: center; padding: 20px 16px 24px; }
+  .bar-side { justify-self: center; height: 46px; }
+  .bar-side .ctrl { width: 40px; height: 40px; }
+}
