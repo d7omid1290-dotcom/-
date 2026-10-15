@@ -18,7 +18,7 @@ async function loadIceConfig() {
 }
 // رمز الحلقة: عشوائي (abc-defg-hij) أو اسم غرفة ثابتة (sahaba-juz-amma) — مطابق لما في الخادم
 const ROOM_RE = /^(?!.*-r[1-9]$)(?!(?:api|healthz)$)[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/;
-const COLORS = ["#5b8cff", "#10b981", "#f59e0b", "#8b5cf6", "#06b6d4", "#ec4899", "#f97316", "#64748b"];
+const COLORS = ["#2f8f6b", "#4f6d7a", "#3f6f8f", "#6b7d4a", "#8a5a3c", "#4a7c74", "#7a6a4f", "#5b6770"];
 const REACTIONS = ["👍", "👏", "🤲", "❤️", "🌟", "✅"];
 const GRADES = {
   excellent: { label: "ممتاز", stars: 3, title: "ما شاء الله! تسميع ممتاز", note: "أتقنت الحفظ، بارك الله فيك" },
@@ -1079,7 +1079,7 @@ function celebrate(grade, total) {
   const confetti = $("confetti");
   confetti.innerHTML = "";
   if (g.stars >= 2) {
-    const colors = ["#5b8cff", "#8b5cf6", "#2dd4bf", "#f59e0b", "#ec4899", "#fde047"];
+    const colors = ["#6fbf98", "#a9dcc2", "#2f8f6b", "#6fbf98", "#ffffff"];
     for (let i = 0; i < 70; i++) {
       const c = document.createElement("i");
       c.style.cssText = `left:${Math.random() * 100}%;background:${colors[i % colors.length]};` +
@@ -2161,7 +2161,7 @@ $("tGo").addEventListener("click", () => {
 
 function applyTheme(theme) {
   document.documentElement.dataset.theme = theme;
-  document.querySelector('meta[name="theme-color"]').content = theme === "light" ? "#f6f7fb" : "#070b1a";
+  document.querySelector('meta[name="theme-color"]').content = theme === "light" ? "#f4f3ee" : "#0a110e";
   for (const b of document.querySelectorAll("[data-theme-toggle]")) {
     const label = theme === "light" ? "الوضع الليلي" : "الوضع النهاري";
     b.title = label;
