@@ -1136,3 +1136,94 @@ input[type="time"], input[type="date"] { color-scheme: dark; }
 }
 .grid.many .conn-fail small { display: none; }
 .tile.conn-pending .label, .tile.conn-failed .label { z-index: 4; }
+.bo-close { width: 30px; height: 30px; color: var(--muted); margin-inline-start: -4px; }
+.bo-close .i { width: 16px; height: 16px; }
+.bo-close:hover { color: #fb7185; background: rgba(244, 63, 94, .12); }
+
+/* ===== بطاقتا البدء: حلقة جديدة / غرفة ثابتة ===== */
+.start-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 560px; }
+.start-card {
+  display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 18px; cursor: pointer;
+  font: inherit; color: var(--text); text-align: start;
+  background: var(--glass); border: 1px solid var(--glass-border);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  transition: transform .15s, box-shadow .2s, border-color .2s, background .2s;
+}
+.start-card:hover { transform: translateY(-2px); border-color: rgba(91, 140, 255, .55); box-shadow: 0 12px 32px rgba(91, 140, 255, .18); }
+.start-card:active { transform: translateY(0) scale(.99); }
+.start-card:disabled { opacity: .6; cursor: progress; }
+.start-card b { display: block; font-size: 1.05rem; font-weight: 700; }
+.start-card small { color: var(--muted); font-size: .84rem; line-height: 1.45; }
+.start-card .sc-ic {
+  flex-shrink: 0; width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center;
+  background: rgba(91, 140, 255, .14); color: var(--blue);
+}
+.start-card .sc-ic .i { width: 24px; height: 24px; stroke-width: 2; }
+.start-card.primary { background: var(--grad); border-color: transparent; color: #fff; box-shadow: 0 10px 30px rgba(91, 140, 255, .35); }
+.start-card.primary small { color: rgba(255, 255, 255, .85); }
+.start-card.primary .sc-ic { background: rgba(255, 255, 255, .2); color: #fff; }
+.start-card.primary:hover { box-shadow: 0 14px 40px rgba(139, 92, 246, .5); }
+.home-text .join-form { margin-top: 14px; max-width: 560px; }
+.home-text .home-links { margin-top: 10px; }
+
+/* ===== المدار: أيقونات المزايا بدل الحروف ===== */
+.op i .i { width: 26px; height: 26px; color: #fff; stroke-width: 2; }
+.op.main i { width: 72px; height: 72px; margin: -7px; box-shadow: 0 0 0 3px var(--blue), 0 0 32px rgba(91, 140, 255, .7); }
+.op.main i .i { width: 32px; height: 32px; }
+.core b { font-size: 1.15rem; }
+.fc-ic {
+  width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; flex-shrink: 0;
+  background: color-mix(in srgb, var(--c) 18%, transparent); color: var(--c);
+}
+.fc-ic .i { width: 19px; height: 19px; stroke-width: 2; }
+
+/* ===== أيقونات بطاقات المعلّم والطالب ===== */
+.sc-icon .i { width: 21px; height: 21px; stroke-width: 2; }
+.teacher-card .sc-icon { color: var(--blue); background: rgba(91, 140, 255, .12); border-color: rgba(91, 140, 255, .25); }
+.student-card .sc-icon { color: var(--amber); background: rgba(245, 158, 11, .12); border-color: rgba(245, 158, 11, .25); }
+
+:root[data-theme="light"] .start-card:not(.primary) { background: #fff; box-shadow: 0 1px 3px rgba(15, 23, 42, .06); }
+:root[data-theme="light"] .teacher-card .sc-icon { background: rgba(76, 110, 245, .1); }
+:root[data-theme="light"] .student-card .sc-icon { background: rgba(245, 158, 11, .12); color: #b45309; }
+
+@media (max-width: 960px) {
+  .start-cards, .home-text .join-form { margin-inline: auto; }
+}
+@media (max-width: 640px) {
+  .start-cards { grid-template-columns: 1fr; }
+  .start-card { padding: 14px 16px; }
+  .op i .i { width: 18px; height: 18px; }
+  .op.main i { width: 54px; height: 54px; margin: -5px; }
+  .op.main i .i { width: 24px; height: 24px; }
+}
+.home-text h1 .grad { white-space: nowrap; display: inline-block; }
+
+/* ===================================================== */
+/* ===== أداء التمرير على الجوال ===== */
+/* ===================================================== */
+/* أضواء الخلفية: تدرّج ناعم بلا فلتر تمويه ولا حركة (كانا يثقلان التمرير) */
+body::before, body::after { filter: none; animation: none; transform: translateZ(0); }
+body::before { background: radial-gradient(circle, rgba(91, 140, 255, .22), transparent 62%); }
+body::after { background: radial-gradient(circle, rgba(139, 92, 246, .18), transparent 62%); }
+:root[data-theme="light"] body::before { background: radial-gradient(circle, rgba(76, 110, 245, .12), transparent 62%); }
+:root[data-theme="light"] body::after { background: radial-gradient(circle, rgba(124, 58, 237, .09), transparent 62%); }
+
+/* العناصر المتحركة تُرسم مرة واحدة ويحرّكها معالج الرسوميات */
+.spin, .ring.r1, .op i, .float-card { will-change: transform; }
+.orbit.paused .spin, .orbit.paused .op i, .orbit.paused .ring.r1, .orbit.paused .float-card { animation-play-state: paused; }
+
+/* على الأجهزة اللمسية: لا زجاج مموّه للعناصر داخل الصفحة، بل لون ثابت */
+@media (hover: none), (max-width: 960px) {
+  :is(.start-card, .show-card, .upcoming, .lobby-side, .perks li, .float-card, .core, .eyebrow, .devices label, .join-form) {
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+  }
+  .start-card:not(.primary), .show-card, .upcoming, .lobby-side { background: #111733; }
+  .float-card { background: #141a33; }
+  .perks li, .eyebrow { background: #10162e; }
+  .core { background: radial-gradient(circle at 30% 25%, #2a3260, #151b37); }
+  :root[data-theme="light"] :is(.start-card:not(.primary), .show-card, .upcoming, .lobby-side, .float-card, .perks li, .eyebrow) { background: #fff; }
+  :root[data-theme="light"] .core { background: radial-gradient(circle at 30% 25%, #fff, #eef1fb); }
+  .op i { box-shadow: 0 0 0 1px rgba(255, 255, 255, .15), 0 6px 14px rgba(0, 0, 0, .25); }
+  .op.main i { box-shadow: 0 0 0 3px var(--blue), 0 0 18px rgba(91, 140, 255, .55); }
+  .show-card::before { filter: none; opacity: .3; }
+}

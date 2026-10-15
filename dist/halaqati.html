@@ -1153,6 +1153,97 @@ input[type="time"], input[type="date"] { color-scheme: dark; }
 }
 .grid.many .conn-fail small { display: none; }
 .tile.conn-pending .label, .tile.conn-failed .label { z-index: 4; }
+.bo-close { width: 30px; height: 30px; color: var(--muted); margin-inline-start: -4px; }
+.bo-close .i { width: 16px; height: 16px; }
+.bo-close:hover { color: #fb7185; background: rgba(244, 63, 94, .12); }
+
+/* ===== بطاقتا البدء: حلقة جديدة / غرفة ثابتة ===== */
+.start-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 560px; }
+.start-card {
+  display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 18px; cursor: pointer;
+  font: inherit; color: var(--text); text-align: start;
+  background: var(--glass); border: 1px solid var(--glass-border);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  transition: transform .15s, box-shadow .2s, border-color .2s, background .2s;
+}
+.start-card:hover { transform: translateY(-2px); border-color: rgba(91, 140, 255, .55); box-shadow: 0 12px 32px rgba(91, 140, 255, .18); }
+.start-card:active { transform: translateY(0) scale(.99); }
+.start-card:disabled { opacity: .6; cursor: progress; }
+.start-card b { display: block; font-size: 1.05rem; font-weight: 700; }
+.start-card small { color: var(--muted); font-size: .84rem; line-height: 1.45; }
+.start-card .sc-ic {
+  flex-shrink: 0; width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center;
+  background: rgba(91, 140, 255, .14); color: var(--blue);
+}
+.start-card .sc-ic .i { width: 24px; height: 24px; stroke-width: 2; }
+.start-card.primary { background: var(--grad); border-color: transparent; color: #fff; box-shadow: 0 10px 30px rgba(91, 140, 255, .35); }
+.start-card.primary small { color: rgba(255, 255, 255, .85); }
+.start-card.primary .sc-ic { background: rgba(255, 255, 255, .2); color: #fff; }
+.start-card.primary:hover { box-shadow: 0 14px 40px rgba(139, 92, 246, .5); }
+.home-text .join-form { margin-top: 14px; max-width: 560px; }
+.home-text .home-links { margin-top: 10px; }
+
+/* ===== المدار: أيقونات المزايا بدل الحروف ===== */
+.op i .i { width: 26px; height: 26px; color: #fff; stroke-width: 2; }
+.op.main i { width: 72px; height: 72px; margin: -7px; box-shadow: 0 0 0 3px var(--blue), 0 0 32px rgba(91, 140, 255, .7); }
+.op.main i .i { width: 32px; height: 32px; }
+.core b { font-size: 1.15rem; }
+.fc-ic {
+  width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; flex-shrink: 0;
+  background: color-mix(in srgb, var(--c) 18%, transparent); color: var(--c);
+}
+.fc-ic .i { width: 19px; height: 19px; stroke-width: 2; }
+
+/* ===== أيقونات بطاقات المعلّم والطالب ===== */
+.sc-icon .i { width: 21px; height: 21px; stroke-width: 2; }
+.teacher-card .sc-icon { color: var(--blue); background: rgba(91, 140, 255, .12); border-color: rgba(91, 140, 255, .25); }
+.student-card .sc-icon { color: var(--amber); background: rgba(245, 158, 11, .12); border-color: rgba(245, 158, 11, .25); }
+
+:root[data-theme="light"] .start-card:not(.primary) { background: #fff; box-shadow: 0 1px 3px rgba(15, 23, 42, .06); }
+:root[data-theme="light"] .teacher-card .sc-icon { background: rgba(76, 110, 245, .1); }
+:root[data-theme="light"] .student-card .sc-icon { background: rgba(245, 158, 11, .12); color: #b45309; }
+
+@media (max-width: 960px) {
+  .start-cards, .home-text .join-form { margin-inline: auto; }
+}
+@media (max-width: 640px) {
+  .start-cards { grid-template-columns: 1fr; }
+  .start-card { padding: 14px 16px; }
+  .op i .i { width: 18px; height: 18px; }
+  .op.main i { width: 54px; height: 54px; margin: -5px; }
+  .op.main i .i { width: 24px; height: 24px; }
+}
+.home-text h1 .grad { white-space: nowrap; display: inline-block; }
+
+/* ===================================================== */
+/* ===== أداء التمرير على الجوال ===== */
+/* ===================================================== */
+/* أضواء الخلفية: تدرّج ناعم بلا فلتر تمويه ولا حركة (كانا يثقلان التمرير) */
+body::before, body::after { filter: none; animation: none; transform: translateZ(0); }
+body::before { background: radial-gradient(circle, rgba(91, 140, 255, .22), transparent 62%); }
+body::after { background: radial-gradient(circle, rgba(139, 92, 246, .18), transparent 62%); }
+:root[data-theme="light"] body::before { background: radial-gradient(circle, rgba(76, 110, 245, .12), transparent 62%); }
+:root[data-theme="light"] body::after { background: radial-gradient(circle, rgba(124, 58, 237, .09), transparent 62%); }
+
+/* العناصر المتحركة تُرسم مرة واحدة ويحرّكها معالج الرسوميات */
+.spin, .ring.r1, .op i, .float-card { will-change: transform; }
+.orbit.paused .spin, .orbit.paused .op i, .orbit.paused .ring.r1, .orbit.paused .float-card { animation-play-state: paused; }
+
+/* على الأجهزة اللمسية: لا زجاج مموّه للعناصر داخل الصفحة، بل لون ثابت */
+@media (hover: none), (max-width: 960px) {
+  :is(.start-card, .show-card, .upcoming, .lobby-side, .perks li, .float-card, .core, .eyebrow, .devices label, .join-form) {
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+  }
+  .start-card:not(.primary), .show-card, .upcoming, .lobby-side { background: #111733; }
+  .float-card { background: #141a33; }
+  .perks li, .eyebrow { background: #10162e; }
+  .core { background: radial-gradient(circle at 30% 25%, #2a3260, #151b37); }
+  :root[data-theme="light"] :is(.start-card:not(.primary), .show-card, .upcoming, .lobby-side, .float-card, .perks li, .eyebrow) { background: #fff; }
+  :root[data-theme="light"] .core { background: radial-gradient(circle at 30% 25%, #fff, #eef1fb); }
+  .op i { box-shadow: 0 0 0 1px rgba(255, 255, 255, .15), 0 6px 14px rgba(0, 0, 0, .25); }
+  .op.main i { box-shadow: 0 0 0 3px var(--blue), 0 0 18px rgba(91, 140, 255, .55); }
+  .show-card::before { filter: none; opacity: .3; }
+}
 </style>
   <script>
     // نطبّق الوضع (نهاري/ليلي) قبل ظهور الصفحة حتى لا تومض
@@ -1195,6 +1286,9 @@ input[type="time"], input[type="date"] { color-scheme: dark; }
       <symbol id="i-rooms" viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/></symbol>
       <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></symbol>
       <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7z"/></symbol>
+      <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/></symbol>
+      <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></symbol>
+      <symbol id="i-repeat" viewBox="0 0 24 24"><path d="M17 3l3 3-3 3M4 11V9a3 3 0 0 1 3-3h13M7 21l-3-3 3-3M20 13v2a3 3 0 0 1-3 3H4"/></symbol>
       <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
       <!-- علامة وصل: أشخاص متّصلون في حلقة -->
       <linearGradient id="mg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b8cff"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient>
@@ -1227,20 +1321,28 @@ input[type="time"], input[type="date"] { color-scheme: dark; }
     <main class="home-main">
       <div class="home-text">
         <span class="eyebrow"><span class="live-dot"></span>مدرسة جامع الصحابة لتحفيظ القرآن الكريم</span>
-        <h1>حلقات القرآن الكريم، <br><span class="grad">من أي مكان</span></h1>
+        <h1>حلقتك القرآنية، <br><span class="grad">بين يديك</span></h1>
         <p class="lead">اتصال بالصوت والصورة يجمع المعلّم بطلابه للتسميع والمراجعة، من المتصفح مباشرة.</p>
-        <div class="home-actions">
-          <button class="btn btn-primary btn-lg" id="newMeetingBtn"><svg class="i"><use href="#i-plus"/></svg>حلقة جديدة</button>
-          <form class="join-form" id="joinForm">
-            <label for="joinCode" class="sr-only">رمز الحلقة</label>
-            <svg class="i"><use href="#i-link"/></svg>
-            <input id="joinCode" placeholder="أدخل رمز الحلقة" autocomplete="off" dir="auto">
-            <button class="join-go" type="submit" id="joinBtn" disabled>دخول</button>
-          </form>
+
+        <div class="start-cards">
+          <button class="start-card primary" id="newMeetingBtn" type="button">
+            <span class="sc-ic"><svg class="i"><use href="#i-plus"/></svg></span>
+            <span><b>حلقة جديدة</b><small>ابدأ الآن واحصل على رابط فوري</small></span>
+          </button>
+          <button class="start-card" id="termBtn" type="button">
+            <span class="sc-ic"><svg class="i"><use href="#i-repeat"/></svg></span>
+            <span><b>غرفة ثابتة بنفس الرابط</b><small>رابط واحد يدخل منه طلابك كل يوم</small></span>
+          </button>
         </div>
+
+        <form class="join-form" id="joinForm">
+          <label for="joinCode" class="sr-only">رمز الحلقة</label>
+          <svg class="i"><use href="#i-link"/></svg>
+          <input id="joinCode" placeholder="لديك رابط أو رمز؟ ألصقه هنا" autocomplete="off" dir="auto">
+          <button class="join-go" type="submit" id="joinBtn" disabled>دخول</button>
+        </form>
         <p class="error" id="homeError" role="alert"></p>
         <div class="home-links">
-          <button class="link-btn" id="termBtn"><svg class="i"><use href="#i-link"/></svg>غرفة ثابتة بنفس الرابط</button>
           <button class="link-btn" id="scheduleBtn"><svg class="i"><use href="#i-calendar"/></svg>جدولة حلقة لمرة واحدة</button>
         </div>
 
@@ -1266,21 +1368,21 @@ input[type="time"], input[type="date"] { color-scheme: dark; }
           <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div>
           <div class="core">
             <svg class="mark"><use href="#mark"/></svg>
-            <b>حلقة جزء عمّ</b>
-            <small><span class="live-dot"></span>مباشر الآن</small>
+            <b>وصل</b>
+            <small><span class="live-dot"></span>بالقرآن نتّصل</small>
           </div>
           <div class="spin">
-            <span class="op teacher" style="--a:0deg;--c:#5b8cff"><i>ع</i></span>
-            <span class="op" style="--a:45deg;--c:#f59e0b"><i>أ</i></span>
-            <span class="op hand" style="--a:90deg;--c:#10b981"><i>ي</i></span>
-            <span class="op" style="--a:135deg;--c:#ec4899"><i>ع</i></span>
-            <span class="op" style="--a:180deg;--c:#8b5cf6"><i>خ</i></span>
-            <span class="op" style="--a:225deg;--c:#06b6d4"><i>س</i></span>
-            <span class="op" style="--a:270deg;--c:#f97316"><i>م</i></span>
-            <span class="op" style="--a:315deg;--c:#64748b"><i>ف</i></span>
+            <span class="op main" style="--a:0deg;--c:#5b8cff"><i><svg class="i"><use href="#i-book"/></svg></i></span>
+            <span class="op" style="--a:45deg;--c:#f59e0b"><i><svg class="i"><use href="#i-hand"/></svg></i></span>
+            <span class="op" style="--a:90deg;--c:#10b981"><i><svg class="i"><use href="#i-mic"/></svg></i></span>
+            <span class="op" style="--a:135deg;--c:#ec4899"><i><svg class="i"><use href="#i-star"/></svg></i></span>
+            <span class="op" style="--a:180deg;--c:#8b5cf6"><i><svg class="i"><use href="#i-cam"/></svg></i></span>
+            <span class="op" style="--a:225deg;--c:#06b6d4"><i><svg class="i"><use href="#i-chat"/></svg></i></span>
+            <span class="op" style="--a:270deg;--c:#f97316"><i><svg class="i"><use href="#i-rooms"/></svg></i></span>
+            <span class="op" style="--a:315deg;--c:#14b8a6"><i><svg class="i"><use href="#i-calendar"/></svg></i></span>
           </div>
-          <div class="float-card fc-chat"><span class="fc-av" style="background:#f59e0b">أ</span><div><b>أحمد</b><small>السلام عليكم يا شيخ</small></div></div>
-          <div class="float-card fc-hand"><span class="fc-icon">✋</span><div><b>يوسف يرفع يده</b><small>جاهز للتسميع</small></div></div>
+          <div class="float-card fc-chat"><span class="fc-ic" style="--c:#06b6d4"><svg class="i"><use href="#i-chat"/></svg></span><div><b>رسالة من الحلقة</b><small>السلام عليكم يا شيخ</small></div></div>
+          <div class="float-card fc-hand"><span class="fc-ic" style="--c:#f59e0b"><svg class="i"><use href="#i-hand"/></svg></span><div><b>طابور التسميع</b><small>٣ طلاب بانتظار دورهم</small></div></div>
         </div>
       </div>
     </main>
@@ -1290,20 +1392,20 @@ input[type="time"], input[type="date"] { color-scheme: dark; }
         <span class="show-badge">للمعلّم</span>
         <h2>أدِر حلقتك بسهولة</h2>
         <ul>
-          <li><span class="sc-icon">🙋</span><div><b>طابور التسميع</b><small>الطلاب يرفعون أيديهم بالترتيب، وتنادي التالي بضغطة</small></div></li>
-          <li><span class="sc-icon">⭐</span><div><b>تقييم فوري بالنجوم</b><small>ممتاز، جيد جداً، جيد، أو يحتاج مراجعة</small></div></li>
-          <li><span class="sc-icon">📌</span><div><b>الطالب في الوسط</b><small>من يُسمّع يظهر كبيراً للجميع تلقائياً</small></div></li>
-          <li><span class="sc-icon">⏺️</span><div><b>تسجيل الحلقة</b><small>احفظ الحلقة للمراجعة لاحقاً</small></div></li>
+          <li><span class="sc-icon"><svg class="i"><use href="#i-hand"/></svg></span><div><b>طابور التسميع</b><small>الطلاب يرفعون أيديهم بالترتيب، وتنادي التالي بضغطة</small></div></li>
+          <li><span class="sc-icon"><svg class="i"><use href="#i-star"/></svg></span><div><b>تقييم فوري</b><small>ممتاز، جيد جداً، جيد، أو يحتاج مراجعة</small></div></li>
+          <li><span class="sc-icon"><svg class="i"><use href="#i-rooms"/></svg></span><div><b>غرف داخل الحلقة</b><small>قسّم الطلاب لمجموعات صغيرة ثم أعدهم</small></div></li>
+          <li><span class="sc-icon"><svg class="i"><use href="#i-rec"/></svg></span><div><b>تسجيل الحلقة</b><small>احفظ الحلقة للمراجعة لاحقاً</small></div></li>
         </ul>
       </article>
       <article class="show-card student-card">
         <span class="show-badge">للطالب</span>
-        <h2>سمّع واجمع النجوم</h2>
+        <h2>ادخل حلقتك بضغطة</h2>
         <ul>
-          <li><span class="sc-icon">✋</span><div><b>ارفع يدك</b><small>واعرف رقمك في طابور التسميع</small></div></li>
-          <li><span class="sc-icon">🎉</span><div><b>احتفال عند الإتقان</b><small>نجوم ونثار ملوّن إذا كان تسميعك ممتازاً</small></div></li>
-          <li><span class="sc-icon">🏅</span><div><b>نجومك أمام الجميع</b><small>تظهر بجانب اسمك طوال الحلقة</small></div></li>
-          <li><span class="sc-icon">📱</span><div><b>من جوالك</b><small>ادخل بالرابط فقط، بدون تطبيق</small></div></li>
+          <li><span class="sc-icon"><svg class="i"><use href="#i-hand"/></svg></span><div><b>ارفع يدك</b><small>واعرف رقمك في طابور التسميع</small></div></li>
+          <li><span class="sc-icon"><svg class="i"><use href="#i-repeat"/></svg></span><div><b>نفس الرابط كل يوم</b><small>احفظه مرة واحدة وادخل منه دائماً</small></div></li>
+          <li><span class="sc-icon"><svg class="i"><use href="#i-chat"/></svg></span><div><b>دردشة الحلقة</b><small>اسأل معلّمك واكتب لزملائك</small></div></li>
+          <li><span class="sc-icon"><svg class="i"><use href="#i-phone"/></svg></span><div><b>من جوالك</b><small>ادخل بالرابط فقط، بدون تطبيق</small></div></li>
         </ul>
       </article>
     </section>
@@ -3367,7 +3469,10 @@ function applyBreakout(b) {
   const main = state.code;
   let target = state.room;
   if (isStaff(state.role)) {
-    if (!state.breakout && state.room !== main) target = main;
+    // المعلّم يبقى حيث هو، إلا إذا أُغلقت الغرفة التي هو فيها
+    const rid = state.room?.slice(main.length + 1);
+    const stillOpen = state.breakout?.rooms.some((r) => r.id === rid);
+    if (state.room !== main && !stillOpen) target = main;
   } else if (state.breakout) {
     const mine = state.breakout.rooms.find((r) => r.members.includes(state.cid));
     target = mine ? `${main}-${mine.id}` : main;
@@ -3520,16 +3625,20 @@ function renderBreakoutLive() {
     const here = state.room === target;
     const card = document.createElement("div");
     card.className = "bo-room live" + (here ? " here" : "") + (r.id ? "" : " main");
-    card.style.setProperty("--c", r.id ? COLORS[(i - 1) % COLORS.length] : "#94a3b8");
+    // لون ثابت لكل غرفة حسب رقمها، حتى لا تتغير الألوان عند إغلاق غرفة
+    card.style.setProperty("--c", r.id ? COLORS[(Number(r.id.slice(1)) - 1) % COLORS.length] : "#94a3b8");
     card.innerHTML = `
-      <div class="bo-room-head"><span class="bo-dot"></span><b></b>${r.id ? `<span class="bo-n">${r.names.length}</span>` : ""}</div>
+      <div class="bo-room-head"><span class="bo-dot"></span><b></b>${r.id ? `<span class="bo-n">${r.names.length}</span><button class="icon-btn bo-close" type="button" title="إغلاق هذه الغرفة وإعادة طلابها">${icon("close")}</button>` : ""}</div>
       <div class="bo-names"></div>
       <button class="btn btn-sm${here ? "" : " btn-primary"}" type="button"${here ? " disabled" : ""}>${here ? "أنت هنا" : r.id ? "انضم للغرفة" : "عودة للرئيسية"}</button>`;
     card.querySelector("b").textContent = r.name;
     card.querySelector(".bo-names").textContent = r.id ? r.names.join("، ") || "—" : "لمن لم يُوزَّع";
-    card.querySelector("button").addEventListener("click", () => {
+    card.querySelector(".bo-room-head ~ button").addEventListener("click", () => {
       moveTo(target);
       $("breakoutModal").hidden = true;
+    });
+    card.querySelector(".bo-close")?.addEventListener("click", async () => {
+      if (await breakoutAction({ action: "closeRoom", room: r.id })) toast(`أُغلقت «${r.name}» وعاد طلابها للحلقة الرئيسية`);
     });
     box.appendChild(card);
   });
@@ -3800,6 +3909,14 @@ function applyTheme(theme) {
 }
 applyTheme(document.documentElement.dataset.theme === "light" ? "light" : "dark");
 $("demoBar").hidden = !DEMO;
+
+// نوقف دوران المدار حين يخرج من الشاشة أو تُخفى الصفحة، فلا يستهلك الجوال أثناء التمرير
+{
+  const orbit = document.querySelector(".orbit");
+  if (orbit && "IntersectionObserver" in window) {
+    new IntersectionObserver(([e]) => orbit.classList.toggle("paused", !e.isIntersecting)).observe(orbit);
+  }
+}
 for (const b of document.querySelectorAll("[data-theme-toggle]")) {
   b.addEventListener("click", () => {
     const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";

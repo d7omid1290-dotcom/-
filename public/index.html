@@ -58,6 +58,9 @@
       <symbol id="i-rooms" viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/></symbol>
       <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></symbol>
       <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7z"/></symbol>
+      <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/></symbol>
+      <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></symbol>
+      <symbol id="i-repeat" viewBox="0 0 24 24"><path d="M17 3l3 3-3 3M4 11V9a3 3 0 0 1 3-3h13M7 21l-3-3 3-3M20 13v2a3 3 0 0 1-3 3H4"/></symbol>
       <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
       <!-- علامة وصل: أشخاص متّصلون في حلقة -->
       <linearGradient id="mg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b8cff"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient>
@@ -90,20 +93,28 @@
     <main class="home-main">
       <div class="home-text">
         <span class="eyebrow"><span class="live-dot"></span>مدرسة جامع الصحابة لتحفيظ القرآن الكريم</span>
-        <h1>حلقات القرآن الكريم، <br><span class="grad">من أي مكان</span></h1>
+        <h1>حلقتك القرآنية، <br><span class="grad">بين يديك</span></h1>
         <p class="lead">اتصال بالصوت والصورة يجمع المعلّم بطلابه للتسميع والمراجعة، من المتصفح مباشرة.</p>
-        <div class="home-actions">
-          <button class="btn btn-primary btn-lg" id="newMeetingBtn"><svg class="i"><use href="#i-plus"/></svg>حلقة جديدة</button>
-          <form class="join-form" id="joinForm">
-            <label for="joinCode" class="sr-only">رمز الحلقة</label>
-            <svg class="i"><use href="#i-link"/></svg>
-            <input id="joinCode" placeholder="أدخل رمز الحلقة" autocomplete="off" dir="auto">
-            <button class="join-go" type="submit" id="joinBtn" disabled>دخول</button>
-          </form>
+
+        <div class="start-cards">
+          <button class="start-card primary" id="newMeetingBtn" type="button">
+            <span class="sc-ic"><svg class="i"><use href="#i-plus"/></svg></span>
+            <span><b>حلقة جديدة</b><small>ابدأ الآن واحصل على رابط فوري</small></span>
+          </button>
+          <button class="start-card" id="termBtn" type="button">
+            <span class="sc-ic"><svg class="i"><use href="#i-repeat"/></svg></span>
+            <span><b>غرفة ثابتة بنفس الرابط</b><small>رابط واحد يدخل منه طلابك كل يوم</small></span>
+          </button>
         </div>
+
+        <form class="join-form" id="joinForm">
+          <label for="joinCode" class="sr-only">رمز الحلقة</label>
+          <svg class="i"><use href="#i-link"/></svg>
+          <input id="joinCode" placeholder="لديك رابط أو رمز؟ ألصقه هنا" autocomplete="off" dir="auto">
+          <button class="join-go" type="submit" id="joinBtn" disabled>دخول</button>
+        </form>
         <p class="error" id="homeError" role="alert"></p>
         <div class="home-links">
-          <button class="link-btn" id="termBtn"><svg class="i"><use href="#i-link"/></svg>غرفة ثابتة بنفس الرابط</button>
           <button class="link-btn" id="scheduleBtn"><svg class="i"><use href="#i-calendar"/></svg>جدولة حلقة لمرة واحدة</button>
         </div>
 
@@ -129,21 +140,21 @@
           <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div>
           <div class="core">
             <svg class="mark"><use href="#mark"/></svg>
-            <b>حلقة جزء عمّ</b>
-            <small><span class="live-dot"></span>مباشر الآن</small>
+            <b>وصل</b>
+            <small><span class="live-dot"></span>بالقرآن نتّصل</small>
           </div>
           <div class="spin">
-            <span class="op teacher" style="--a:0deg;--c:#5b8cff"><i>ع</i></span>
-            <span class="op" style="--a:45deg;--c:#f59e0b"><i>أ</i></span>
-            <span class="op hand" style="--a:90deg;--c:#10b981"><i>ي</i></span>
-            <span class="op" style="--a:135deg;--c:#ec4899"><i>ع</i></span>
-            <span class="op" style="--a:180deg;--c:#8b5cf6"><i>خ</i></span>
-            <span class="op" style="--a:225deg;--c:#06b6d4"><i>س</i></span>
-            <span class="op" style="--a:270deg;--c:#f97316"><i>م</i></span>
-            <span class="op" style="--a:315deg;--c:#64748b"><i>ف</i></span>
+            <span class="op main" style="--a:0deg;--c:#5b8cff"><i><svg class="i"><use href="#i-book"/></svg></i></span>
+            <span class="op" style="--a:45deg;--c:#f59e0b"><i><svg class="i"><use href="#i-hand"/></svg></i></span>
+            <span class="op" style="--a:90deg;--c:#10b981"><i><svg class="i"><use href="#i-mic"/></svg></i></span>
+            <span class="op" style="--a:135deg;--c:#ec4899"><i><svg class="i"><use href="#i-star"/></svg></i></span>
+            <span class="op" style="--a:180deg;--c:#8b5cf6"><i><svg class="i"><use href="#i-cam"/></svg></i></span>
+            <span class="op" style="--a:225deg;--c:#06b6d4"><i><svg class="i"><use href="#i-chat"/></svg></i></span>
+            <span class="op" style="--a:270deg;--c:#f97316"><i><svg class="i"><use href="#i-rooms"/></svg></i></span>
+            <span class="op" style="--a:315deg;--c:#14b8a6"><i><svg class="i"><use href="#i-calendar"/></svg></i></span>
           </div>
-          <div class="float-card fc-chat"><span class="fc-av" style="background:#f59e0b">أ</span><div><b>أحمد</b><small>السلام عليكم يا شيخ</small></div></div>
-          <div class="float-card fc-hand"><span class="fc-icon">✋</span><div><b>يوسف يرفع يده</b><small>جاهز للتسميع</small></div></div>
+          <div class="float-card fc-chat"><span class="fc-ic" style="--c:#06b6d4"><svg class="i"><use href="#i-chat"/></svg></span><div><b>رسالة من الحلقة</b><small>السلام عليكم يا شيخ</small></div></div>
+          <div class="float-card fc-hand"><span class="fc-ic" style="--c:#f59e0b"><svg class="i"><use href="#i-hand"/></svg></span><div><b>طابور التسميع</b><small>٣ طلاب بانتظار دورهم</small></div></div>
         </div>
       </div>
     </main>
@@ -153,20 +164,20 @@
         <span class="show-badge">للمعلّم</span>
         <h2>أدِر حلقتك بسهولة</h2>
         <ul>
-          <li><span class="sc-icon">🙋</span><div><b>طابور التسميع</b><small>الطلاب يرفعون أيديهم بالترتيب، وتنادي التالي بضغطة</small></div></li>
-          <li><span class="sc-icon">⭐</span><div><b>تقييم فوري بالنجوم</b><small>ممتاز، جيد جداً، جيد، أو يحتاج مراجعة</small></div></li>
-          <li><span class="sc-icon">📌</span><div><b>الطالب في الوسط</b><small>من يُسمّع يظهر كبيراً للجميع تلقائياً</small></div></li>
-          <li><span class="sc-icon">⏺️</span><div><b>تسجيل الحلقة</b><small>احفظ الحلقة للمراجعة لاحقاً</small></div></li>
+          <li><span class="sc-icon"><svg class="i"><use href="#i-hand"/></svg></span><div><b>طابور التسميع</b><small>الطلاب يرفعون أيديهم بالترتيب، وتنادي التالي بضغطة</small></div></li>
+          <li><span class="sc-icon"><svg class="i"><use href="#i-star"/></svg></span><div><b>تقييم فوري</b><small>ممتاز، جيد جداً، جيد، أو يحتاج مراجعة</small></div></li>
+          <li><span class="sc-icon"><svg class="i"><use href="#i-rooms"/></svg></span><div><b>غرف داخل الحلقة</b><small>قسّم الطلاب لمجموعات صغيرة ثم أعدهم</small></div></li>
+          <li><span class="sc-icon"><svg class="i"><use href="#i-rec"/></svg></span><div><b>تسجيل الحلقة</b><small>احفظ الحلقة للمراجعة لاحقاً</small></div></li>
         </ul>
       </article>
       <article class="show-card student-card">
         <span class="show-badge">للطالب</span>
-        <h2>سمّع واجمع النجوم</h2>
+        <h2>ادخل حلقتك بضغطة</h2>
         <ul>
-          <li><span class="sc-icon">✋</span><div><b>ارفع يدك</b><small>واعرف رقمك في طابور التسميع</small></div></li>
-          <li><span class="sc-icon">🎉</span><div><b>احتفال عند الإتقان</b><small>نجوم ونثار ملوّن إذا كان تسميعك ممتازاً</small></div></li>
-          <li><span class="sc-icon">🏅</span><div><b>نجومك أمام الجميع</b><small>تظهر بجانب اسمك طوال الحلقة</small></div></li>
-          <li><span class="sc-icon">📱</span><div><b>من جوالك</b><small>ادخل بالرابط فقط، بدون تطبيق</small></div></li>
+          <li><span class="sc-icon"><svg class="i"><use href="#i-hand"/></svg></span><div><b>ارفع يدك</b><small>واعرف رقمك في طابور التسميع</small></div></li>
+          <li><span class="sc-icon"><svg class="i"><use href="#i-repeat"/></svg></span><div><b>نفس الرابط كل يوم</b><small>احفظه مرة واحدة وادخل منه دائماً</small></div></li>
+          <li><span class="sc-icon"><svg class="i"><use href="#i-chat"/></svg></span><div><b>دردشة الحلقة</b><small>اسأل معلّمك واكتب لزملائك</small></div></li>
+          <li><span class="sc-icon"><svg class="i"><use href="#i-phone"/></svg></span><div><b>من جوالك</b><small>ادخل بالرابط فقط، بدون تطبيق</small></div></li>
         </ul>
       </article>
     </section>
