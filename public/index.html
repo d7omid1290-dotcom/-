@@ -290,6 +290,7 @@
         </div>
         <div class="panel-body" data-pane="chat">
           <div class="messages" id="messages"></div>
+          <div class="dm-chip" id="dmChip" hidden><span>رسالة خاصة إلى <b id="dmName"></b></span><button class="icon-btn" id="dmClose" type="button" aria-label="إلغاء الرسالة الخاصة"><svg class="i"><use href="#i-close"/></svg></button></div>
           <form class="chat-form" id="chatForm">
             <input id="chatInput" placeholder="اكتب رسالة للحلقة…" autocomplete="off" maxlength="500">
             <button class="send-btn" type="submit" aria-label="إرسال"><svg class="i flip"><use href="#i-send"/></svg></button>
@@ -302,6 +303,9 @@
               <button class="adm" id="muteAllBtn" type="button"><svg class="i"><use href="#i-mic-off"/></svg><span>كتم الجميع</span></button>
               <button class="adm" id="lockBtn" type="button"><svg class="i"><use href="#i-lock"/></svg><span>قفل الحلقة</span></button>
               <button class="adm" id="chatOffBtn" type="button"><svg class="i"><use href="#i-chat"/></svg><span>إيقاف الدردشة</span></button>
+              <button class="adm" id="micLockBtn" type="button"><svg class="i"><use href="#i-mic-off"/></svg><span>المايك بإذن</span></button>
+              <button class="adm" id="camLockBtn" type="button"><svg class="i"><use href="#i-cam-off"/></svg><span>الكاميرا بإذن</span></button>
+              <button class="adm" id="autoQueueBtn" type="button"><svg class="i"><use href="#i-book"/></svg><span>تسميع تلقائي</span></button>
             </div>
           </div>
           <div class="queue" id="queue" hidden>
@@ -329,7 +333,9 @@
         <button class="ctrl" id="chatBtn" title="الدردشة"><svg class="i"><use href="#i-chat"/></svg><span class="dot" id="chatDot" hidden></span></button>
         <div class="more-wrap">
           <button class="ctrl" id="moreBtn" title="المزيد" aria-haspopup="menu" aria-expanded="false"><svg class="i"><use href="#i-more"/></svg><span class="dot rec-dot-mini" id="moreDot" hidden></span></button>
+          <div class="sheet-backdrop" id="moreBackdrop" hidden></div>
           <div class="more-menu" id="moreMenu" role="menu" hidden>
+            <div class="sheet-handle" aria-hidden="true"></div>
             <button class="mi" id="breakoutBtn" type="button" role="menuitem" hidden><svg class="i"><use href="#i-rooms"/></svg><span>غرف الحلقة</span></button>
             <button class="mi" id="recBtn" type="button" role="menuitem" hidden><svg class="i"><use href="#i-rec"/></svg><span id="recLabel">تسجيل الحلقة</span></button>
             <button class="mi" id="shareBtn" type="button" role="menuitem"><svg class="i"><use href="#i-screen"/></svg><span id="shareLabel">مشاركة الشاشة</span></button>

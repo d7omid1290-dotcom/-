@@ -350,9 +350,44 @@ function syncToggleButtons() {
   $("shareBtn").classList.toggle("active", !!state.screenStream);
   $("shareLabel").textContent = state.screenStream ? "إيقاف مشاركة الشاشة" : "مشاركة الشاشة";
   $("handBtn").classList.toggle("on", state.hand);
+  if (state.joinedAt) {
+    $("micBtn").classList.toggle("locked", !micAllowed());
+    $("camBtn").classList.toggle("locked", !camAllowed());
+  }
 }
 
-function setMic(on) {
+/* ---------- المايك والكاميرا بإذن ---------- */
+
+// الطالب يفتح المايك أو الكاميرا فقط إن لم يُقفلا، أو أذن له المعلّم، أو كان دوره في التسميع
+const allowed = (kind, cid, id, role) => {
+  const c = state.controls;
+  if (isStaff(role) || !c?.[`${kind}Lock`]) return true;
+  if (c[`${kind}Allow`]?.includes(cid)) return true;
+  return kind === "mic" && !!id && state.reciter === id;
+};
+const micAllowed = () => allowed("mic", state.cid, state.myId, state.role);
+const camAllowed = () => allowed("cam", state.cid, state.myId, state.role);
+
+// نطبّق الأقفال عندي (أغلق ما ليس مسموحاً) وعند الاستقبال (لا نسمع ولا نرى من لم يُؤذن له)
+function enforceLocks() {
+  if (!state.joinedAt) return;
+  if (state.micOn && !micAllowed()) setMic(false, true);
+  if (state.camOn && !camAllowed()) setCam(false, true);
+  for (const p of state.peers.values()) {
+    const mic = allowed("mic", p.cid, p.id, p.role);
+    const cam = allowed("cam", p.cid, p.id, p.role);
+    for (const t of p.stream.getAudioTracks()) t.enabled = mic;
+    for (const t of p.stream.getVideoTracks()) if (!p.screen) t.enabled = cam;
+    p.blockedMic = !mic;
+    p.blockedCam = !cam && !p.screen;
+    updatePeerTile(p);
+  }
+  syncToggleButtons();
+}
+
+function setMic(on, forced) {
+  if (on && !micAllowed()) return toast("المايك بإذن المعلّم — ارفع يدك ليسمح لك أو ينادي دورك");
+  if (forced) toast("أُغلق المايك: الفتح بإذن المعلّم");
   if (on && !micTrack()) return toast("لا يوجد ميكروفون متاح");
   state.micOn = on;
   if (micTrack()) micTrack().enabled = on;
@@ -361,7 +396,9 @@ function setMic(on) {
   broadcastState();
 }
 
-function setCam(on) {
+function setCam(on, forced) {
+  if (on && !camAllowed()) return toast("الكاميرا بإذن المعلّم");
+  if (forced) toast("أُغلقت الكاميرا: الفتح بإذن المعلّم");
   if (on && !camTrack()) return toast("لا توجد كاميرا متاحة");
   state.camOn = on;
   if (camTrack()) camTrack().enabled = on;
@@ -613,6 +650,7 @@ function connect(roomId) {
     state.controls = controls || { locked: false, chatOff: false };
     if (!state.joinedAt) enterRoom();
     applyRole();
+    enforceLocks();
     if (applyBreakout(breakout)) return; // انتقلنا لغرفة أخرى
     for (const p of peers) createPeer(p.id, p.name, true, p.cid, p.role);
     broadcastState();
@@ -665,10 +703,17 @@ function connect(roomId) {
   on("controls", (e) => {
     const c = JSON.parse(e.data);
     const was = state.controls || {};
-    state.controls = { locked: !!c.locked, chatOff: !!c.chatOff };
+    state.controls = c;
     if (was.locked !== c.locked) toast(c.locked ? `قفل ${c.by} الحلقة أمام القادمين الجدد` : `فتح ${c.by} الحلقة`);
     if (was.chatOff !== c.chatOff) toast(c.chatOff ? `أوقف ${c.by} دردشة الطلاب` : `فعّل ${c.by} الدردشة`);
+    if (!!was.micLock !== !!c.micLock) toast(c.micLock ? "المايك صار بإذن المعلّم — ارفع يدك إذا تبي تتكلم" : "صار بإمكان الجميع فتح المايك");
+    if (!!was.camLock !== !!c.camLock) toast(c.camLock ? "الكاميرا صارت بإذن المعلّم" : "صار بإمكان الجميع فتح الكاميرا");
+    if (c.cid === state.cid && (c.changed === "allowMic" || c.changed === "allowCam")) {
+      const what = c.changed === "allowMic" ? "المايك" : "الكاميرا";
+      toast(c.on ? `أذن لك ${c.by} بفتح ${what}` : `سحب ${c.by} إذن ${what}`);
+    }
     applyControls();
+    enforceLocks();
   });
   on("notice", (e) => toast(JSON.parse(e.data).text));
   on("presence", (e) => {
@@ -850,6 +895,7 @@ async function handleSignal({ from, type, data }) {
         toast(isStaff(state.role) ? `✋ ${data.name} يرفع يده — رقم ${pos} في الطابور` : `✋ ${data.name} يرفع يده`);
       }
       if (!data.hand) peer.handAt = 0;
+      if (data.hand && !peer.hand) setTimeout(maybeAutoRecite, 0);
       Object.assign(peer, {
         name: String(data.name || peer.name).slice(0, 40),
         mic: !!data.mic,
@@ -864,7 +910,10 @@ async function handleSignal({ from, type, data }) {
       renderPeople();
       break;
     case "chat":
-      if (peer) addMessage(peer.name, String(data.text || "").slice(0, 500));
+      if (!peer) break;
+      if (data.private) {
+        addMessage(`${peer.name} (خاص)`, String(data.text || "").slice(0, 500), false, true, peer);
+      } else addMessage(peer.name, String(data.text || "").slice(0, 500));
       break;
     case "reaction":
       if (peer) floatReaction(peer.tile, data.emoji);
@@ -903,6 +952,7 @@ function createPeer(id, name, initiator, cid, role) {
     const video = peer.tile.querySelector("video");
     if (video.srcObject !== peer.stream) video.srcObject = peer.stream;
     playVideo(video);
+    enforceLocks();
     if (e.track.kind === "audio") {
       watchLevel(peer.stream, peer.tile);
       addToRecording(peer.stream);
@@ -1135,6 +1185,7 @@ function createTile(id, isLocal) {
     </div>`}
     <div class="label">${icon("mic-off", "mic-off")}<span class="name"></span><span class="role-tag" hidden>المعلّم</span><span class="stars-tag" hidden></span></div>`;
   tile.querySelector(".pin-btn").addEventListener("click", () => togglePin(id));
+  if (!isLocal) attachTileGestures(tile, id);
   tile.querySelector(".conn-retry")?.addEventListener("click", () => {
     const peer = state.peers.get(id);
     if (peer) retryPeer(peer);
@@ -1189,7 +1240,7 @@ function effectivePin() {
 }
 
 function updatePeerTile(peer) {
-  paintTile(peer.tile, peer);
+  paintTile(peer.tile, peer.blockedMic || peer.blockedCam ? { ...peer, mic: peer.mic && !peer.blockedMic, cam: peer.cam && !peer.blockedCam } : peer);
 }
 
 function repaintTiles() {
@@ -1231,6 +1282,8 @@ function setReciter(id) {
   updateReciteUI();
   repaintTiles();
   tuneSenders(); // من يُسمّع يُرسل صورته بجودة كاملة لأن الجميع يراه كبيراً
+  enforceLocks(); // من يُسمّع يُسمح له بالمايك تلقائياً
+  if (!id) maybeAutoRecite();
   layoutGrid();
   renderPeople();
 }
@@ -1593,11 +1646,16 @@ for (const t of document.querySelectorAll(".panel-tab")) {
   t.addEventListener("click", () => openPanel(t.dataset.tab));
 }
 
-function addMessage(author, text, mine = false) {
+function addMessage(author, text, mine = false, priv = false, from = null) {
   if (!text.trim()) return;
   const box = $("messages");
   const msg = document.createElement("div");
-  msg.className = "msg" + (mine ? " mine" : "");
+  msg.className = "msg" + (mine ? " mine" : "") + (priv ? " private" : "");
+  // الضغط على رسالة خاصة يفتح الرد الخاص على مرسلها
+  if (from) {
+    msg.title = "اضغط للرد برسالة خاصة";
+    msg.addEventListener("click", () => state.peers.has(from.id) && startDM(from));
+  }
   msg.innerHTML = '<div class="meta"><b></b><time></time></div><p></p>';
   msg.querySelector("b").textContent = author;
   msg.querySelector("time").textContent = timeNow();
@@ -1614,7 +1672,18 @@ function addMessage(author, text, mine = false) {
 $("chatForm").addEventListener("submit", (e) => {
   e.preventDefault();
   const text = $("chatInput").value.trim();
-  if (!text || chatLocked()) return;
+  if (!text || (chatLocked() && !state.dm)) return;
+  if (state.dm) {
+    if (!state.peers.has(state.dm.id)) {
+      toast(`${state.dm.name} لم يعد في الغرفة`);
+      state.dm = null;
+      return updateChatInput();
+    }
+    addMessage(`أنت ← ${state.dm.name}`, text, true, true);
+    signal("chat", { text, private: true }, state.dm.id);
+    $("chatInput").value = "";
+    return;
+  }
   addMessage("أنت", text, true);
   signal("chat", { text });
   $("chatInput").value = "";
@@ -1647,12 +1716,72 @@ function applyControls(repaint = true) {
   $("lockBtn").querySelector("span").textContent = c.locked ? "فتح الحلقة" : "قفل الحلقة";
   $("chatOffBtn").classList.toggle("on", !!c.chatOff);
   $("chatOffBtn").querySelector("span").textContent = c.chatOff ? "تفعيل الدردشة" : "إيقاف الدردشة";
+  $("micLockBtn").classList.toggle("on", !!c.micLock);
+  $("camLockBtn").classList.toggle("on", !!c.camLock);
+  $("autoQueueBtn").classList.toggle("on", state.autoQueue);
   $("lockBadge").hidden = !c.locked;
-  const off = chatLocked();
-  $("chatInput").disabled = off;
-  $("chatInput").placeholder = off ? "الدردشة موقفة من المعلّم" : "اكتب رسالة للحلقة…";
+  updateChatInput();
   if (repaint) renderPeople();
 }
+
+function updateChatInput() {
+  const off = chatLocked() && !state.dm;
+  $("chatInput").disabled = off;
+  $("chatInput").placeholder = off ? "الدردشة موقفة من المعلّم" : state.dm ? `رسالة خاصة إلى ${state.dm.name}…` : "اكتب رسالة للحلقة…";
+  $("dmChip").hidden = !state.dm;
+  if (state.dm) $("dmName").textContent = state.dm.name;
+}
+
+/* ---------- الرسائل الخاصة ---------- */
+
+// المعلّم أو الأدمن يراسل طالباً على انفراد، والطالب يرد عليه بالضغط على رسالته
+function startDM(p) {
+  state.dm = { id: p.id, name: p.name.replace(" (أنت)", "") };
+  if ($("panel").hidden || document.querySelector('[data-pane="chat"]').hidden) openPanel("chat");
+  updateChatInput();
+  $("chatInput").focus();
+}
+$("dmClose").addEventListener("click", () => {
+  state.dm = null;
+  updateChatInput();
+});
+
+/* ---------- التسميع التلقائي بالترتيب ---------- */
+
+try {
+  state.autoQueue = localStorage.getItem("wasl:autoq") === "1";
+} catch {}
+
+// من يدير الطابور: المعلّم إن وُجد في الغرفة، وإلا أول أدمن — حتى لا ينادي اثنان معاً
+function isQueueDriver() {
+  const staff = [{ id: state.myId, role: state.role }, ...[...state.peers.values()].filter((p) => isStaff(p.role))].filter((x) => isStaff(x.role));
+  staff.sort((a, b) => (a.role === "teacher" ? 0 : 1) - (b.role === "teacher" ? 0 : 1) || String(a.id).localeCompare(String(b.id)));
+  return staff[0]?.id === state.myId;
+}
+
+let autoTimer;
+function maybeAutoRecite() {
+  if (!state.autoQueue || !isStaff(state.role) || state.reciter || !state.joinedAt || !isQueueDriver()) return;
+  const next = handQueue()[0];
+  if (!next) return;
+  clearTimeout(autoTimer);
+  // مهلة قصيرة حتى يرى الطالب السابق تقييمه
+  autoTimer = setTimeout(() => {
+    if (!state.reciter && handQueue()[0]?.id === next.id) startRecite(next.id);
+  }, 1500);
+}
+
+$("autoQueueBtn").addEventListener("click", () => {
+  state.autoQueue = !state.autoQueue;
+  try {
+    localStorage.setItem("wasl:autoq", state.autoQueue ? "1" : "0");
+  } catch {}
+  toast(state.autoQueue ? "التسميع تلقائي: يُنادى صاحب اليد المرفوعة التالي بعد كل تقييم" : "أُوقف التسميع التلقائي");
+  applyControls();
+  maybeAutoRecite();
+});
+$("micLockBtn").addEventListener("click", () => moderate("micLock", { on: !state.controls?.micLock }));
+$("camLockBtn").addEventListener("click", () => moderate("camLock", { on: !state.controls?.camLock }));
 
 async function moderate(action, extra = {}) {
   try {
@@ -1676,73 +1805,139 @@ $("lockBtn").addEventListener("click", () => moderate("lock", { on: !state.contr
 $("chatOffBtn").addEventListener("click", () => moderate("chat", { on: !!state.controls?.chatOff }));
 
 // قائمة إدارة مشارك واحد
-// remoteRoom: الشخص في غرفة أخرى (لا نملك إلا نقله)
-function openPersonMenu(btn, p, remoteRoom) {
+// قائمة شؤون الطالب: من زر ⋮ في الحضور، أو بضغطة مطولة على مربعه في الحلقة.
+// anchor: العنصر أو نقطة {x, y}. remoteRoom: الشخص في غرفة أخرى (لا نملك إلا نقله)
+function openPersonMenu(anchor, p, remoteRoom) {
   closePersonMenu();
   const menu = document.createElement("div");
   menu.className = "pmenu";
   menu.id = "pmenu";
+  const head = document.createElement("div");
+  head.className = "pm-head";
+  head.textContent = p.name;
+  menu.appendChild(head);
+  const c = state.controls || {};
+  // [أيقونة، النص، متاح، التنفيذ، خطر]
+  const items = [];
+  if (!remoteRoom) {
+    const student = !isStaff(p.role);
+    if (student) {
+      const reciting = state.reciter === p.id;
+      items.push(["book", reciting ? "إنهاء التسميع" : "ابدأ تسميعه", true, () => (reciting ? endRecite() : startRecite(p.id))]);
+    }
+    items.push(["mic-off", "كتم الصوت", p.mic && !p.blockedMic, () => moderate("mute", { target: p.id })]);
+    items.push(["cam-off", "إغلاق الكاميرا", p.cam && !p.blockedCam, () => moderate("camOff", { target: p.id })]);
+    if (c.micLock && student) {
+      const on = c.micAllow?.includes(p.cid);
+      items.push(["mic", on ? "سحب إذن المايك" : "السماح بفتح المايك", true, () => moderate("allowMic", { target: p.id, on: !on })]);
+    }
+    if (c.camLock && student) {
+      const on = c.camAllow?.includes(p.cid);
+      items.push(["cam", on ? "سحب إذن الكاميرا" : "السماح بفتح الكاميرا", true, () => moderate("allowCam", { target: p.id, on: !on })]);
+    }
+    items.push(["chat", "رسالة خاصة", true, () => startDM(p)]);
+    items.push(["hand", "خفض اليد", p.hand, () => moderate("lowerHand", { target: p.id })]);
+    items.push(["pin", effectivePin() === p.id ? "إلغاء التثبيت" : "تثبيت في الوسط", true, () => togglePin(p.id)]);
+    if (state.role === "teacher" && !DEMO) {
+      items.push(["shield", p.role === "admin" ? "إلغاء صلاحية الأدمن" : "تعيينه أدمن", true, () => setAdmin(p.cid, p.role !== "admin")]);
+    }
+  }
+  for (const [ic, label, enabled, run, danger] of items) menu.appendChild(menuButton(ic, label, enabled, run, danger));
+
   // النقل بين الغرف عندما تكون مفتوحة (للطلاب، وللأدمن من المعلّم)
   if (state.breakout && (p.role === "student" || state.role === "teacher")) {
     const cur = remoteRoom || (state.room === state.code ? "main" : state.room.slice(state.code.length + 1));
     const dests = [["main", "الحلقة الرئيسية"], ...state.breakout.rooms.map((r) => [r.id, r.name])].filter(([id]) => id !== cur);
+    if (menu.childElementCount > 1) menu.appendChild(document.createElement("hr"));
     const title = document.createElement("small");
     title.className = "pm-title";
     title.textContent = "نقل إلى";
     menu.appendChild(title);
     for (const [id, name] of dests) {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.innerHTML = `<span class="rs-dot" style="--c:${roomColor(id === "main" ? null : id)}"></span><span></span>`;
-      b.lastChild.textContent = name;
-      b.addEventListener("click", () => {
-        closePersonMenu();
-        assignTo(p, id === "main" ? null : id);
-      });
+      const b = menuButton(null, name, true, () => assignTo(p, id === "main" ? null : id));
+      b.insertAdjacentHTML("afterbegin", `<span class="rs-dot" style="--c:${roomColor(id === "main" ? null : id)}"></span>`);
       menu.appendChild(b);
     }
   }
-  // [أيقونة، النص، متاح، التنفيذ، خطر]
-  const items = [];
   if (!remoteRoom) {
-    const pinned = effectivePin() === p.id;
-    if (!isStaff(p.role)) items.push(["book", "ابدأ تسميعه", true, () => startRecite(p.id)]);
-    items.push(["pin", pinned ? "إلغاء التثبيت" : "تثبيت في الوسط", true, () => togglePin(p.id)]);
-    if (state.role === "teacher" && !DEMO) {
-      items.push(["shield", p.role === "admin" ? "إلغاء صلاحية الأدمن" : "تعيينه أدمن", true, () => setAdmin(p.cid, p.role !== "admin")]);
-    }
-    items.push(["hand", "إنزال اليد", p.hand, () => moderate("lowerHand", { target: p.id })]);
-    items.push([
-      "end",
-      "إخراج من الحلقة",
-      true,
-      async () => {
+    menu.appendChild(document.createElement("hr"));
+    menu.appendChild(
+      menuButton("end", "إخراج من الحلقة", true, async () => {
         if (confirm(`إخراج ${p.name} من الحلقة؟`) && (await moderate("kick", { target: p.id }))) toast(`أُخرج ${p.name}`);
-      },
-      true,
-    ]);
+      }, true)
+    );
   }
-  if (items.length && menu.childElementCount) menu.appendChild(document.createElement("hr"));
-  for (const [ic, label, enabled, run, danger] of items) {
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = danger ? "danger" : "";
-    b.disabled = !enabled;
-    b.innerHTML = `${icon(ic)}<span>${label}</span>`;
-    b.addEventListener("click", () => {
-      closePersonMenu();
-      run();
-    });
-    menu.appendChild(b);
-  }
-  // القائمة تُعرض فوق كل شيء بجانب الزر، وتنفتح للأعلى إن لم يتسع لها المكان
+
+  // القائمة تُعرض فوق كل شيء بجانب الزر أو مكان الضغط، وتنفتح للأعلى إن لم يتسع لها المكان
   document.body.appendChild(menu);
-  const r = btn.getBoundingClientRect();
-  const h = menu.offsetHeight;
+  const r = anchor.getBoundingClientRect ? anchor.getBoundingClientRect() : { left: anchor.x, right: anchor.x, top: anchor.y, bottom: anchor.y };
+  const h = Math.min(menu.offsetHeight, innerHeight - 16);
   const w = menu.offsetWidth;
+  menu.style.maxHeight = `${innerHeight - 16}px`;
   menu.style.top = `${r.bottom + 6 + h > innerHeight ? Math.max(8, r.top - h - 6) : r.bottom + 6}px`;
-  menu.style.left = `${Math.min(Math.max(8, r.left), innerWidth - w - 8)}px`;
+  menu.style.left = `${Math.min(Math.max(8, r.left - (anchor.getBoundingClientRect ? 0 : w / 2)), innerWidth - w - 8)}px`;
   setTimeout(() => document.addEventListener("click", closePersonMenu, { once: true }));
+}
+
+function menuButton(ic, label, enabled, run, danger) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = danger ? "danger" : "";
+  b.disabled = !enabled;
+  b.innerHTML = `${ic ? icon(ic) : ""}<span></span>`;
+  b.lastChild.textContent = label;
+  b.addEventListener("click", () => {
+    closePersonMenu();
+    run();
+  });
+  return b;
+}
+
+// هل أستطيع إدارة هذا المشارك؟ الأدمن يدير الطلاب، والمعلّم يدير الجميع عدا نفسه
+const canManagePeer = (p) => isStaff(state.role) && !DEMO && !!p && p.role !== "teacher" && (state.role === "teacher" || p.role === "student");
+
+// على مربع المشارك في الحلقة: ضغطة مطولة (أو زر الفأرة الأيمن) تفتح قائمة شؤونه،
+// وضغطة عادية على طالب رافع يده تبدأ تسميعه
+function attachTileGestures(tile, id) {
+  let timer = 0;
+  let start = null;
+  let longFired = false;
+  const open = (x, y) => {
+    const p = state.peers.get(id);
+    if (!canManagePeer(p)) return;
+    longFired = true;
+    navigator.vibrate?.(15);
+    openPersonMenu({ x, y }, p);
+  };
+  tile.addEventListener("pointerdown", (e) => {
+    if (!isStaff(state.role) || e.target.closest("button") || e.button > 0) return;
+    longFired = false;
+    start = [e.clientX, e.clientY];
+    clearTimeout(timer);
+    timer = setTimeout(() => open(e.clientX, e.clientY), 500);
+  });
+  const cancel = () => clearTimeout(timer);
+  tile.addEventListener("pointermove", (e) => {
+    if (start && Math.hypot(e.clientX - start[0], e.clientY - start[1]) > 12) cancel();
+  });
+  for (const ev of ["pointerup", "pointercancel", "pointerleave"]) tile.addEventListener(ev, cancel);
+  tile.addEventListener("contextmenu", (e) => {
+    if (!isStaff(state.role)) return;
+    e.preventDefault();
+    cancel();
+    if (!$("pmenu")) open(e.clientX, e.clientY);
+  });
+  tile.addEventListener("click", (e) => {
+    if (longFired) {
+      // نمنع الضغطة التي أنهت الضغط المطوّل من إغلاق القائمة
+      longFired = false;
+      e.stopPropagation();
+      return;
+    }
+    if (e.target.closest("button")) return;
+    const p = state.peers.get(id);
+    if (isStaff(state.role) && p?.hand && !isStaff(p.role) && state.reciter !== id) startRecite(id);
+  });
 }
 window.addEventListener("resize", () => closePersonMenu());
 function closePersonMenu() {
@@ -2081,10 +2276,20 @@ $("recBtn").addEventListener("click", () => (state.recorder ? stopRecording() : 
 
 /* ---------- قائمة «المزيد» ---------- */
 
+// القائمة تُنقل لجسم الصفحة حتى تُعرض فوق كل شيء (وعلى الجوال كلوحة من الأسفل)
+document.body.append($("moreBackdrop"), $("moreMenu"));
 function setMoreMenu(open) {
   $("moreMenu").hidden = !open;
+  $("moreBackdrop").hidden = !open;
   $("moreBtn").setAttribute("aria-expanded", String(open));
   $("moreBtn").classList.toggle("open", open);
+  if (open) {
+    // على الكمبيوتر تظهر فوق الزر مباشرة (على الجوال يضعها التصميم في الأسفل)
+    const m = $("moreMenu");
+    const r = $("moreBtn").getBoundingClientRect();
+    m.style.bottom = `${innerHeight - r.top + 12}px`;
+    m.style.left = `${Math.min(Math.max(8, r.left + r.width / 2 - m.offsetWidth / 2), innerWidth - m.offsetWidth - 8)}px`;
+  }
 }
 $("moreBtn").addEventListener("click", (e) => {
   e.stopPropagation();
@@ -2093,8 +2298,9 @@ $("moreBtn").addEventListener("click", (e) => {
 });
 // أي عنصر في القائمة يغلقها بعد تنفيذه
 $("moreMenu").addEventListener("click", (e) => e.target.closest(".mi") && setMoreMenu(false));
+$("moreBackdrop").addEventListener("click", () => setMoreMenu(false));
 document.addEventListener("click", (e) => {
-  if (!$("moreMenu").hidden && !e.target.closest(".more-wrap")) setMoreMenu(false);
+  if (!$("moreMenu").hidden && !e.target.closest("#moreMenu, #moreBtn")) setMoreMenu(false);
 });
 document.addEventListener("keydown", (e) => e.key === "Escape" && setMoreMenu(false));
 // مشاركة الشاشة غير متاحة في أغلب الجوالات

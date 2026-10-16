@@ -63,12 +63,23 @@ const admins = new Map();
 const controls = new Map();
 const controlsOf = (main) => {
   let c = controls.get(main);
-  if (!c) controls.set(main, (c = { locked: false, chatOff: false, seen: new Set(), kicked: new Set() }));
+  if (!c) {
+    c = { locked: false, chatOff: false, micLock: false, camLock: false, micAllow: new Set(), camAllow: new Set(), seen: new Set(), kicked: new Set() };
+    controls.set(main, c);
+  }
   return c;
 };
+// micLock/camLock: الطلاب لا يفتحون المايك أو الكاميرا إلا بإذن (micAllow/camAllow بالمعرّف الثابت)
 const publicControls = (main) => {
   const c = controls.get(main);
-  return { locked: !!c?.locked, chatOff: !!c?.chatOff };
+  return {
+    locked: !!c?.locked,
+    chatOff: !!c?.chatOff,
+    micLock: !!c?.micLock,
+    camLock: !!c?.camLock,
+    micAllow: c ? [...c.micAllow] : [],
+    camAllow: c ? [...c.camAllow] : [],
+  };
 };
 
 const mainOf = (roomId) => roomId.replace(/-r[1-9]$/, "");
@@ -422,11 +433,24 @@ function handleModerate(req, res, roomId) {
     } else if (action === "muteAll") {
       // كتم الجميع يشمل الطلاب فقط
       for (const peer of room.values()) if (peer.role === "student") send(peer, "moderate", { action: "mute", by });
-    } else if (action === "lock" || action === "chat") {
+    } else if (["lock", "chat", "micLock", "camLock"].includes(action)) {
       const c = controlsOf(main);
       if (action === "lock") c.locked = !!msg.on;
-      else c.chatOff = !msg.on;
-      broadcastFamily(main, "controls", { ...publicControls(main), by });
+      else if (action === "chat") c.chatOff = !msg.on;
+      else {
+        c[action] = !!msg.on;
+        // قفل جديد يلغي الأذونات السابقة
+        if (msg.on) c[action === "micLock" ? "micAllow" : "camAllow"].clear();
+      }
+      broadcastFamily(main, "controls", { ...publicControls(main), by, changed: action });
+    } else if (action === "allowMic" || action === "allowCam") {
+      // إذن لطالب واحد بفتح المايك أو الكاميرا رغم القفل
+      const target = room.get(String(msg.target || ""));
+      if (!target || !canManage(sender, target)) return json(res, 403, { error: "not_allowed" });
+      const set = controlsOf(main)[action === "allowMic" ? "micAllow" : "camAllow"];
+      if (msg.on) set.add(target.cid);
+      else set.delete(target.cid);
+      broadcastFamily(main, "controls", { ...publicControls(main), by, changed: action, cid: target.cid, on: !!msg.on });
     } else {
       return json(res, 400, { error: "bad_action" });
     }
@@ -468,6 +492,10 @@ function handleSignal(req, res, roomId) {
       return json(res, 403, { error: "chat_off" });
     }
 
+    // الرسائل الخاصة: بين الطالب والمعلّم أو الأدمن فقط
+    if (msg.type === "chat" && msg.to && !STAFF.has(sender.role) && !STAFF.has(room.get(String(msg.to))?.role)) {
+      return json(res, 403, { error: "private_staff_only" });
+    }
     const payload = { from: sender.id, type: msg.type, data: msg.data };
     if (msg.to) {
       const target = room.get(msg.to);
