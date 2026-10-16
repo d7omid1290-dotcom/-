@@ -32,13 +32,44 @@ const STAFF = new Set(["teacher", "admin"]);
 
 // خوادم الاتصال (ICE): STUN افتراضياً، ويمكن إضافة خادم TURN من متغيرات البيئة دون تعديل الكود
 // TURN_URLS مثل: turn:example.com:3478,turns:example.com:443?transport=tcp
-function iceServers() {
-  const list = [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }];
+function staticIceServers() {
+  const list = [{ urls: ["stun:stun.cloudflare.com:3478", "stun:stun.l.google.com:19302"] }];
   const urls = (process.env.TURN_URLS || "").split(",").map((u) => u.trim()).filter(Boolean);
   if (urls.length) {
     list.push({ urls, username: process.env.TURN_USERNAME || "", credential: process.env.TURN_CREDENTIAL || "" });
   }
   return list;
+}
+
+// خوادم TURN من Cloudflare (مجانية حتى 1000GB شهرياً): ضع CF_TURN_KEY_ID و CF_TURN_API_TOKEN
+// في متغيرات البيئة، فيولّد الخادم بيانات دخول مؤقتة ويعطيها للمتصفحات. المفتاح نفسه لا يغادر الخادم.
+const CF_TURN = process.env.CF_TURN_KEY_ID && process.env.CF_TURN_API_TOKEN;
+const CF_TTL = 86400;
+let cfCache = { at: 0, servers: null };
+async function iceServers() {
+  if (!CF_TURN) return staticIceServers();
+  // نعيد استخدام بيانات الدخول نصف مدتها ثم نجدّدها
+  if (cfCache.servers && Date.now() - cfCache.at < (CF_TTL / 2) * 1000) return cfCache.servers;
+  // بعد فشل نتوقف دقيقة قبل المحاولة التالية حتى لا يتأخر دخول أحد
+  if (Date.now() - (cfCache.failedAt || 0) < 60000) return cfCache.servers || staticIceServers();
+  try {
+    const r = await fetch(`https://rtc.live.cloudflare.com/v1/turn/keys/${process.env.CF_TURN_KEY_ID}/credentials/generate-ice-servers`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${process.env.CF_TURN_API_TOKEN}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ ttl: CF_TTL }),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!r.ok) throw new Error(`cloudflare ${r.status}`);
+    const { iceServers: list } = await r.json();
+    // بعض المتصفحات تمنع المنفذ 53، فنحذف عناوينه
+    const servers = (Array.isArray(list) ? list : [list]).map((s) => ({ ...s, urls: [].concat(s.urls).filter((u) => !/:53(\?|$)/.test(u)) }));
+    cfCache = { at: Date.now(), servers };
+    return servers;
+  } catch (err) {
+    console.warn("تعذر جلب خوادم TURN من Cloudflare:", err.message);
+    cfCache.failedAt = Date.now();
+    return cfCache.servers || staticIceServers();
+  }
 }
 const MAX_PEERS = 25;
 const MAX_BODY = 64 * 1024;
@@ -163,7 +194,38 @@ function cleanName(name) {
 }
 
 // إضافة مشارك للغرفة — مشترك بين طريقتي الاتصال. يرجع null إن كانت الغرفة ممتلئة
+// استئناف الجلسة: إن انقطعت قناة الأحداث لحظياً (شبكة الجوال أو الوسيط) يعود المشارك بنفس هويته
+// خلال مهلة قصيرة، فلا تُهدم اتصالات الصوت والصورة عند الجميع ولا تضيع الرسائل التي فاتته
+const GRACE_MS = 25000;
+function resumePeer(roomId, url, push) {
+  const peer = rooms.get(roomId)?.get(String(url.searchParams.get("rid") || ""));
+  const given = Buffer.from(String(url.searchParams.get("rtoken") || ""));
+  if (!peer || given.length !== peer.token.length || !crypto.timingSafeEqual(given, Buffer.from(peer.token))) return null;
+  clearTimeout(peer.graceTimer);
+  peer.graceTimer = 0;
+  const backlog = peer.backlog || [];
+  peer.backlog = null;
+  peer.push = push;
+  const main = mainOf(roomId);
+  const room = rooms.get(roomId);
+  const peers = [...room.values()].filter((p) => p.id !== peer.id).map((p) => ({ id: p.id, cid: p.cid, name: p.name, role: p.role }));
+  send(peer, "welcome", { id: peer.id, token: peer.token, role: peer.role, peers, breakout: breakouts.get(main) || null, controls: publicControls(main), resumed: true });
+  for (const [event, data] of backlog) push(event, data);
+  return peer;
+}
+
+// انقطعت قناة المشارك: نحفظ ما يصله في طابور ونمهله، فإن لم يعد خلال المهلة نزيله
+function startGrace(roomId, peer) {
+  if (!rooms.get(roomId)?.has(peer.id) || peer.graceTimer) return;
+  peer.backlog = [];
+  peer.push = (event, data) => peer.backlog.length < 500 && peer.backlog.push([event, data]);
+  peer.end = () => {};
+  peer.graceTimer = setTimeout(() => removePeer(roomId, peer.id), GRACE_MS);
+}
+
 function addPeer(roomId, url, push) {
+  const resumed = resumePeer(roomId, url, push);
+  if (resumed) return resumed;
   let room = rooms.get(roomId);
   if (!room) {
     room = new Map();
@@ -194,7 +256,10 @@ function addPeer(roomId, url, push) {
 
 function removePeer(roomId, id) {
   const room = rooms.get(roomId);
-  if (!room || !room.delete(id)) return;
+  const peer = room?.get(id);
+  if (!peer) return;
+  clearTimeout(peer.graceTimer);
+  room.delete(id);
   broadcast(room, "peer-left", { id });
   if (room.size === 0) deleteRoom(roomId);
   // إذا فرغت الحلقة كلها نحذف حالة غرفها
@@ -208,6 +273,11 @@ function removePeer(roomId, id) {
 }
 
 const isFull = (roomId) => (rooms.get(roomId)?.size || 0) >= MAX_PEERS;
+const canResume = (roomId, url) => {
+  const peer = rooms.get(roomId)?.get(String(url.searchParams.get("rid") || ""));
+  const given = Buffer.from(String(url.searchParams.get("rtoken") || ""));
+  return !!peer && given.length === peer.token.length && crypto.timingSafeEqual(given, Buffer.from(peer.token));
+};
 
 // سبب رفض الدخول: ممتلئة، أو أُخرج من الحلقة، أو مقفلة أمام القادمين الجدد (المعلّم والمشرفون يدخلون دائماً)
 function refuseReason(roomId, url) {
@@ -224,7 +294,7 @@ function refuseReason(roomId, url) {
 
 // الطريقة الأولى: قناة أحداث مستمرة (Server-Sent Events)
 function handleEvents(req, res, roomId, url) {
-  const refused = refuseReason(roomId, url);
+  const refused = canResume(roomId, url) ? null : refuseReason(roomId, url);
   if (refused) return json(res, 403, { error: refused });
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
@@ -235,12 +305,20 @@ function handleEvents(req, res, roomId, url) {
   });
   // حشوة في البداية حتى لا تحبس بعض الوسائط (proxy) الأحداث الصغيرة في ذاكرتها
   res.write(`:${" ".repeat(2048)}\nretry: 3000\n\n`);
-  const peer = addPeer(roomId, url, (event, data) => res.write(`event: ${event}\ndata: ${data}\n\n`));
-  peer.end = () => res.end();
+  req.socket.setNoDelay(true);
+  if (canResume(roomId, url)) detachPoll(String(url.searchParams.get("rid")));
+  const push = (event, data) => res.write(`event: ${event}\ndata: ${data}\n\n`);
+  const peer = addPeer(roomId, url, push);
+  peer.end = () => {
+    peer.gone = true;
+    res.end();
+  };
   const heartbeat = setInterval(() => res.write(": ping\n\n"), 15000);
   req.on("close", () => {
     clearInterval(heartbeat);
-    removePeer(roomId, peer.id);
+    // أُخرج أو غادر صراحةً، أو صار متصلاً بقناة أحدث: لا شيء
+    if (peer.gone || peer.push !== push) return;
+    startGrace(roomId, peer);
   });
 }
 
@@ -264,6 +342,18 @@ function expirePoll(p) {
   p.expire = setTimeout(() => dropPoll(p.peer.id), POLL_EXPIRE);
 }
 
+// فصل جلسة الاستطلاع دون إزالة المشارك (حين يستأنف بقناة أخرى)
+function detachPoll(pid) {
+  const p = pollers.get(pid);
+  if (!p) return;
+  pollers.delete(pid);
+  clearTimeout(p.expire);
+  if (p.waiting) {
+    clearTimeout(p.waiting.timer);
+    json(p.waiting.res, 410, { error: "gone" });
+  }
+}
+
 function dropPoll(pid) {
   const p = pollers.get(pid);
   if (!p) return;
@@ -279,9 +369,10 @@ function dropPoll(pid) {
 function handlePoll(req, res, roomId, url) {
   const pid = url.searchParams.get("pid");
   if (!pid) {
-    const refused = refuseReason(roomId, url);
+    const refused = canResume(roomId, url) ? null : refuseReason(roomId, url);
     if (refused) return json(res, 403, { error: refused });
     const p = { roomId, queue: [], seq: 0, waiting: null, expire: 0 };
+    if (canResume(roomId, url)) detachPoll(String(url.searchParams.get("rid")));
     p.peer = addPeer(roomId, url, (event, data) => {
       p.queue.push({ seq: ++p.seq, event, data });
       flushPoll(p);
@@ -601,7 +692,7 @@ function serveStatic(req, res, pathname) {
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
   if (url.pathname === "/api/config" && req.method === "GET") {
-    return json(res, 200, { iceServers: iceServers(), turn: !!process.env.TURN_URLS });
+    return iceServers().then((list) => json(res, 200, { iceServers: list, turn: !!(CF_TURN || process.env.TURN_URLS) }));
   }
   if (url.pathname === "/healthz") {
     let peers = 0;
@@ -622,6 +713,7 @@ const server = http.createServer((req, res) => {
         if (peer && pollers.has(peer.id)) dropPoll(peer.id);
         else if (peer) {
           // مغادرة صريحة من قناة SSE: نحذفه فوراً بدل انتظار انقطاع الاتصال
+          peer.gone = true;
           removePeer(roomId, peer.id);
           peer.end();
         }

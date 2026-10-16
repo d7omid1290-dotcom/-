@@ -2605,13 +2605,25 @@ $("joinNowBtn").addEventListener("click", join);
 
 /* ---------- الإشارة (Signaling) ---------- */
 
+// إرسال إشارة مع إعادة المحاولة: إن انقطعت الشبكة لحظة الإرسال (عرض أو جواب أو مسار اتصال)
+// لا تضيع الرسالة فيتعلّق الاتصال، بل نعيدها حتى تصل أو يغادر المشارك
 function signal(type, data, to) {
   if (!state.myId || DEMO) return;
-  fetch(`/api/rooms/${state.room}/signal`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ from: state.myId, token: state.token, to, type, data }),
-  }).catch(() => {});
+  const room = state.room;
+  const body = JSON.stringify({ from: state.myId, token: state.token, to, type, data });
+  const send = async (attempt) => {
+    if (state.room !== room || !state.joinedAt || (to && !state.peers.has(to))) return;
+    let retry = false;
+    try {
+      const r = await fetch(`/api/rooms/${room}/signal`, { method: "POST", headers: { "Content-Type": "application/json" }, body });
+      // 404: قد نكون في منتصف استئناف الجلسة؛ 5xx: الخادم مشغول أو يعيد التشغيل
+      retry = r.status === 404 || r.status >= 500;
+    } catch {
+      retry = true;
+    }
+    if (retry && attempt < 8) setTimeout(() => send(attempt + 1), Math.min(4000, 500 * 2 ** attempt));
+  };
+  send(0);
 }
 
 function myStatus() {
@@ -2660,10 +2672,15 @@ function join() {
 }
 
 // الاتصال بغرفة (الرئيسية أو فرعية) عبر قناة الأحداث
-function connect(roomId) {
+// resume: { rid, rtoken } للعودة بنفس الهوية بعد انقطاع لحظي، دون هدم اتصالات الصوت والصورة
+function connect(roomId, resume) {
   const params = new URLSearchParams({ name: state.name, cid: state.cid });
   const key = getKey(state.code);
   if (key) params.set("key", key);
+  if (resume?.rid && resume?.rtoken) {
+    params.set("rid", resume.rid);
+    params.set("rtoken", resume.rtoken);
+  }
   // القناة: أحداث مستمرة (SSE)، وإن حجبتها الشبكة ننتقل تلقائياً للاستطلاع (polling)
   const handlers = {};
   const ch = state.usePoll ? pollChannel(roomId, params, handlers) : sseChannel(roomId, params, handlers);
@@ -2674,7 +2691,9 @@ function connect(roomId) {
   const es = ch;
 
   on("welcome", (e) => {
-    const { id, token, role, peers, breakout, controls } = JSON.parse(e.data);
+    const { id, token, role, peers, breakout, controls, resumed } = JSON.parse(e.data);
+    state.reconnects = 0;
+    if (resumed && state.joinedAt && id === state.myId) return resumeSession({ token, role, peers, breakout, controls });
     // عند إعادة الاتصال التلقائي نبدأ من جديد
     for (const p of [...state.peers.values()]) removePeer(p.id, true);
     state.myId = id;
@@ -2776,12 +2795,13 @@ function connect(roomId) {
       $("joinNowBtn").disabled = false;
       if (state.joinedAt) {
         toast("انقطع الاتصال بالحلقة… جارٍ إعادة الدخول");
-        setTimeout(() => !state.es && state.joinedAt && connect(roomId), 1500);
+        const resume = { rid: state.myId, rtoken: state.token };
+        setTimeout(() => !state.es && state.joinedAt && connect(roomId, resume), 1500);
       } else {
         explainJoinError(fatal);
       }
     } else {
-      toast("انقطع الاتصال… جارٍ إعادة المحاولة");
+      toast("ضعف الاتصال… جارٍ إعادة الوصل");
     }
   };
 }
@@ -2800,11 +2820,12 @@ function sseChannel(roomId, params, handlers) {
       if (pid) sendLeave(roomId, pid, token);
     },
   };
+  const resumeOf = () => (pid ? { rid: pid, rtoken: token } : params.get("rid") ? { rid: params.get("rid"), rtoken: params.get("rtoken") } : null);
   const fallback = () => {
     if (welcomed || state.es !== ch) return;
     es.close();
     state.usePoll = true;
-    connect(roomId);
+    connect(roomId, resumeOf());
   };
   const timer = setTimeout(fallback, WELCOME_TIMEOUT);
   for (const name of ["welcome", "peer-joined", "peer-left", "signal", "breakout", "role", "announce", "moderate", "kicked", "controls", "notice", "presence"]) {
@@ -2824,9 +2845,37 @@ function sseChannel(roomId, params, handlers) {
       clearTimeout(timer);
       return fallback();
     }
+    // انقطاع بعد الدخول: نغلق القناة ونعود بنفس الهوية بعد مهلة تتضاعف (1، 2، 4… حتى 8 ثوانٍ)
+    es.close();
     handlers.error?.(false);
+    const delay = Math.min(8000, 1000 * 2 ** (state.reconnects || 0));
+    state.reconnects = (state.reconnects || 0) + 1;
+    const resume = resumeOf();
+    setTimeout(() => {
+      if (state.es === ch && state.joinedAt) connect(roomId, resume);
+    }, delay);
   };
   return ch;
+}
+
+// عدنا بنفس الهوية: نُبقي اتصالات الصوت والصورة كما هي، ونضيف من دخل ونحذف من خرج أثناء الانقطاع
+function resumeSession({ token, role, peers, breakout, controls }) {
+  state.token = token;
+  state.role = role;
+  state.controls = controls || state.controls;
+  const ids = new Set(peers.map((p) => p.id));
+  for (const p of [...state.peers.values()]) if (!ids.has(p.id)) removePeer(p.id, true);
+  for (const p of peers) if (!state.peers.has(p.id)) createPeer(p.id, p.name, false, p.cid, p.role);
+  applyRole();
+  if (applyBreakout(breakout)) return;
+  enforceLocks();
+  broadcastState();
+  layoutGrid();
+  for (const p of state.peers.values()) {
+    const st = p.pc.connectionState;
+    if (st === "failed" || st === "disconnected") retryPeer(p);
+  }
+  toast("عاد الاتصال");
 }
 
 function sendLeave(roomId, pid, token) {
@@ -3009,6 +3058,11 @@ function createPeer(id, name, initiator, cid, role) {
       }
     } else if (st === "disconnected") {
       setConn(peer, "pending");
+      // انقطاع مؤقت (تبدّل شبكة الجوال مثلاً): إن استمر ثانيتين ونصف نعيد البحث عن مسار جديد فوراً
+      clearTimeout(peer.discTimer);
+      peer.discTimer = setTimeout(() => {
+        if (pc.connectionState === "disconnected" && peer.initiator && !isClosed(peer)) makeOffer(peer, true);
+      }, 2500);
     }
   };
   setConn(peer, "pending");
@@ -3064,6 +3118,8 @@ function removePeer(id, silent) {
   const peer = state.peers.get(id);
   if (!peer) return;
   clearTimeout(peer.connTimer);
+  clearTimeout(peer.discTimer);
+  clearTimeout(peer.stuckTimer);
   disposeTile(peer.tile);
   peer.pc.close();
   state.peers.delete(id);
@@ -3086,6 +3142,11 @@ function setConn(peer, status) {
   tile.classList.toggle("conn-failed", status === "failed");
   if (status === "ok") peer.restarts = 0;
   if (status === "pending") {
+    // إن تعلّق الاتصال (رسالة ضاعت أثناء انقطاع) نعيد التفاوض تلقائياً بعد 7 ثوانٍ قبل إظهار الخطأ
+    clearTimeout(peer.stuckTimer);
+    peer.stuckTimer = setTimeout(() => {
+      if (!isClosed(peer) && peer.pc.connectionState !== "connected" && peer.initiator) makeOffer(peer, true);
+    }, 7000);
     peer.connTimer = setTimeout(() => {
       if (!isClosed(peer) && peer.pc.connectionState !== "connected") setConn(peer, "failed");
     }, CONNECT_TIMEOUT);
@@ -3535,6 +3596,27 @@ function enterRoom() {
   setMediaSession();
 }
 
+/* ---------- تبدّل الشبكة (واي فاي ↔ بيانات الجوال) ---------- */
+
+// عند تبدّل الشبكة نعيد بناء المسارات فوراً بدل انتظار انقطاعها
+let netTimer;
+let lastNetType = navigator.connection?.type;
+function networkChanged() {
+  clearTimeout(netTimer);
+  netTimer = setTimeout(() => {
+    if (!state.joinedAt) return;
+    for (const p of state.peers.values()) if (p.initiator && !isClosed(p) && p.pc.connectionState !== "connected") makeOffer(p, true);
+    if (!state.es) connect(state.room, { rid: state.myId, rtoken: state.token });
+  }, 800);
+}
+addEventListener("online", networkChanged);
+navigator.connection?.addEventListener?.("change", () => {
+  if (navigator.connection.type === lastNetType) return;
+  lastNetType = navigator.connection.type;
+  // الشبكة تغيّرت فعلاً: نعيد التفاوض على المسارات حتى للمتصلة (عنوان الجهاز تغيّر)
+  for (const p of state.peers.values()) if (p.initiator && !isClosed(p)) makeOffer(p, true);
+});
+
 /* ---------- العمل والجوال في الخلفية ---------- */
 
 // يمنع انطفاء الشاشة أثناء الحلقة (انطفاؤها يوقف الكاميرا في أغلب الجوالات)
@@ -3569,7 +3651,7 @@ document.addEventListener("visibilitychange", () => {
   // الكاميرا قد يوقفها النظام في الخلفية؛ نتحقق منها
   const cam = camTrack();
   if (state.camOn && cam && cam.readyState === "ended") restartCamera();
-  if (!state.es) return connect(state.room);
+  if (!state.es) return connect(state.room, { rid: state.myId, rtoken: state.token });
   for (const p of state.peers.values()) {
     const st = p.pc.connectionState;
     if (st === "failed" || st === "disconnected") retryPeer(p);
