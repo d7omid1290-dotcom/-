@@ -60,12 +60,12 @@ const rooms = new Map();
 const breakouts = new Map();
 // الحلقة الرئيسية -> المشرفون الذين عيّنهم المعلّم (بمعرّفاتهم الثابتة)
 const admins = new Map();
-// الحلقة الرئيسية -> أدوات الإدارة { locked, chatOff, seen: Set(cid), kicked: Set(cid) }
+// الحلقة الرئيسية -> أدوات الإدارة { locked, chatOff, seen: Set(cid), kicked: Map(cid -> الاسم) للممنوعين من العودة }
 const controls = new Map();
 const controlsOf = (main) => {
   let c = controls.get(main);
   if (!c) {
-    c = { locked: false, chatOff: false, micLock: false, camLock: false, micAllow: new Set(), camAllow: new Set(), seen: new Set(), kicked: new Set() };
+    c = { locked: false, chatOff: false, micLock: false, camLock: false, micAllow: new Set(), camAllow: new Set(), seen: new Set(), kicked: new Map() };
     controls.set(main, c);
   }
   return c;
@@ -80,6 +80,7 @@ const publicControls = (main) => {
     camLock: !!c?.camLock,
     micAllow: c ? [...c.micAllow] : [],
     camAllow: c ? [...c.camAllow] : [],
+    banned: c ? [...c.kicked].map(([cid, name]) => ({ cid, name })) : [],
   };
 };
 
@@ -448,14 +449,26 @@ function handleModerate(req, res, roomId) {
       if (!target) return json(res, 404, { error: "no_target" });
       if (!canManage(sender, target)) return json(res, 403, { error: "not_allowed" });
       if (action === "kick") {
-        controlsOf(main).kicked.add(target.cid);
-        send(target, "kicked", { by });
+        // الإخراج العادي يسمح بالعودة، ومع ban يُمنع حتى يسمح له المعلّم أو الأدمن
+        const ban = !!msg.ban;
+        if (ban) controlsOf(main).kicked.set(target.cid, target.name);
+        send(target, "kicked", { by, ban });
         removePeer(roomId, target.id);
         target.end();
-        broadcastFamily(main, "notice", { text: `أخرج ${by} ${target.name} من الحلقة` });
+        broadcastFamily(main, "notice", { text: `أخرج ${by} ${target.name} من الحلقة${ban ? " ومنعه من العودة" : ""}` });
+        if (ban) broadcastFamily(main, "controls", { ...publicControls(main), by, changed: "ban" });
       } else {
         send(target, "moderate", { action, by });
       }
+    } else if (action === "unban") {
+      // السماح لممنوع بالعودة
+      const c = controlsOf(main);
+      const cid = String(msg.cid || "");
+      const name = c.kicked.get(cid);
+      if (!name) return json(res, 404, { error: "not_banned" });
+      c.kicked.delete(cid);
+      broadcastFamily(main, "controls", { ...publicControls(main), by, changed: "unban" });
+      broadcastFamily(main, "notice", { text: `سمح ${by} لـ${name} بالعودة للحلقة` });
     } else if (action === "muteAll") {
       // كتم الجميع يشمل الطلاب فقط
       for (const peer of room.values()) if (peer.role === "student") send(peer, "moderate", { action: "mute", by });

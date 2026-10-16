@@ -1475,3 +1475,11 @@ body:has(#roomsStrip:not([hidden])) .toast { bottom: 168px; }
 @media (hover: none), (max-width: 960px) {
   :root[data-theme="light"] .core { background: radial-gradient(circle at 50% 30%, #ffffff, #e9f2ed 75%); }
 }
+
+/* الممنوعون من العودة */
+.banned { margin-bottom: 14px; padding: 10px 12px; border-radius: 14px; background: rgba(244, 63, 94, .08); border: 1px solid rgba(244, 63, 94, .25); }
+.banned[hidden] { display: none; }
+.banned h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: .88rem; color: #fecdd3; }
+.banned h4 .i { width: 16px; height: 16px; }
+.banned ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.banned li { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: .9rem; }

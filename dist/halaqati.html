@@ -1492,6 +1492,14 @@ body:has(#roomsStrip:not([hidden])) .toast { bottom: 168px; }
 @media (hover: none), (max-width: 960px) {
   :root[data-theme="light"] .core { background: radial-gradient(circle at 50% 30%, #ffffff, #e9f2ed 75%); }
 }
+
+/* الممنوعون من العودة */
+.banned { margin-bottom: 14px; padding: 10px 12px; border-radius: 14px; background: rgba(244, 63, 94, .08); border: 1px solid rgba(244, 63, 94, .25); }
+.banned[hidden] { display: none; }
+.banned h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: .88rem; color: #fecdd3; }
+.banned h4 .i { width: 16px; height: 16px; }
+.banned ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.banned li { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: .9rem; }
 </style>
   <script>
     // نطبّق الوضع (نهاري/ليلي) قبل ظهور الصفحة حتى لا تومض
@@ -1788,6 +1796,10 @@ body:has(#roomsStrip:not([hidden])) .toast { bottom: 168px; }
               <button class="adm" id="camLockBtn" type="button"><svg class="i"><use href="#i-cam-off"/></svg><span>الكاميرا بإذن</span></button>
               <button class="adm" id="autoQueueBtn" type="button"><svg class="i"><use href="#i-book"/></svg><span>تسميع تلقائي</span></button>
             </div>
+          </div>
+          <div class="banned" id="bannedBox" hidden>
+            <h4><svg class="i"><use href="#i-lock"/></svg>ممنوعون من العودة</h4>
+            <ul id="bannedList"></ul>
           </div>
           <div class="queue" id="queue" hidden>
             <h4><span>✋</span>طابور التسميع <span class="qcount" id="queueCount">0</span></h4>
@@ -2717,9 +2729,9 @@ function connect(roomId) {
     }
   });
   on("kicked", (e) => {
-    const { by } = JSON.parse(e.data);
+    const { by, ban } = JSON.parse(e.data);
     leave();
-    $("leftSummary").textContent = `أخرجك ${by} من الحلقة`;
+    $("leftSummary").textContent = ban ? `أخرجك ${by} من الحلقة ومنعك من العودة` : `أخرجك ${by} من الحلقة — تستطيع العودة متى شئت`;
   });
   on("controls", (e) => {
     const c = JSON.parse(e.data);
@@ -2878,7 +2890,7 @@ async function explainJoinError(reason) {
   let msg = "تعذر الاتصال بالخادم، أو أن الحلقة ممتلئة.";
   if (reason === "room_full") msg = "الحلقة ممتلئة (25 مشاركاً).";
   else if (reason === "locked") msg = "الحلقة مقفلة الآن، اطلب من المعلّم فتحها.";
-  else if (reason === "kicked") msg = "أُخرجت من هذه الحلقة.";
+  else if (reason === "kicked") msg = "منعك المعلّم من العودة لهذه الحلقة. اطلب منه السماح لك.";
   else {
     const ok = await fetch("/healthz", { cache: "no-store" })
       .then((r) => r.json())
@@ -3804,8 +3816,24 @@ function applyControls(repaint = true) {
   $("camLockBtn").classList.toggle("on", !!c.camLock);
   $("autoQueueBtn").classList.toggle("on", state.autoQueue);
   $("lockBadge").hidden = !c.locked;
+  renderBanned(c.banned || []);
   updateChatInput();
   if (repaint) renderPeople();
+}
+
+// قائمة الممنوعين من العودة مع زر السماح لكل واحد
+function renderBanned(list) {
+  const box = $("bannedBox");
+  box.hidden = !list.length || !isStaff(state.role);
+  const ul = $("bannedList");
+  ul.innerHTML = "";
+  for (const b of list) {
+    const li = document.createElement("li");
+    li.innerHTML = `<span></span><button class="btn btn-sm" type="button">السماح بالعودة</button>`;
+    li.firstChild.textContent = b.name;
+    li.querySelector("button").addEventListener("click", () => moderate("unban", { cid: b.cid }));
+    ul.appendChild(li);
+  }
 }
 
 function updateChatInput() {
@@ -3947,7 +3975,14 @@ function openPersonMenu(anchor, p, remoteRoom) {
     menu.appendChild(document.createElement("hr"));
     menu.appendChild(
       menuButton("end", "إخراج من الحلقة", true, async () => {
-        if (confirm(`إخراج ${p.name} من الحلقة؟`) && (await moderate("kick", { target: p.id }))) toast(`أُخرج ${p.name}`);
+        if (confirm(`إخراج ${p.name} من الحلقة؟ يستطيع العودة بالرابط.`) && (await moderate("kick", { target: p.id }))) toast(`أُخرج ${p.name}`);
+      }, true)
+    );
+    menu.appendChild(
+      menuButton("lock", "إخراج ومنع من العودة", true, async () => {
+        if (confirm(`إخراج ${p.name} ومنعه من العودة؟ تستطيع السماح له لاحقاً من أدوات الإدارة.`) && (await moderate("kick", { target: p.id, ban: true }))) {
+          toast(`أُخرج ${p.name} ومُنع من العودة`);
+        }
       }, true)
     );
   }

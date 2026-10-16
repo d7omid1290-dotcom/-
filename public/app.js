@@ -701,9 +701,9 @@ function connect(roomId) {
     }
   });
   on("kicked", (e) => {
-    const { by } = JSON.parse(e.data);
+    const { by, ban } = JSON.parse(e.data);
     leave();
-    $("leftSummary").textContent = `أخرجك ${by} من الحلقة`;
+    $("leftSummary").textContent = ban ? `أخرجك ${by} من الحلقة ومنعك من العودة` : `أخرجك ${by} من الحلقة — تستطيع العودة متى شئت`;
   });
   on("controls", (e) => {
     const c = JSON.parse(e.data);
@@ -862,7 +862,7 @@ async function explainJoinError(reason) {
   let msg = "تعذر الاتصال بالخادم، أو أن الحلقة ممتلئة.";
   if (reason === "room_full") msg = "الحلقة ممتلئة (25 مشاركاً).";
   else if (reason === "locked") msg = "الحلقة مقفلة الآن، اطلب من المعلّم فتحها.";
-  else if (reason === "kicked") msg = "أُخرجت من هذه الحلقة.";
+  else if (reason === "kicked") msg = "منعك المعلّم من العودة لهذه الحلقة. اطلب منه السماح لك.";
   else {
     const ok = await fetch("/healthz", { cache: "no-store" })
       .then((r) => r.json())
@@ -1788,8 +1788,24 @@ function applyControls(repaint = true) {
   $("camLockBtn").classList.toggle("on", !!c.camLock);
   $("autoQueueBtn").classList.toggle("on", state.autoQueue);
   $("lockBadge").hidden = !c.locked;
+  renderBanned(c.banned || []);
   updateChatInput();
   if (repaint) renderPeople();
+}
+
+// قائمة الممنوعين من العودة مع زر السماح لكل واحد
+function renderBanned(list) {
+  const box = $("bannedBox");
+  box.hidden = !list.length || !isStaff(state.role);
+  const ul = $("bannedList");
+  ul.innerHTML = "";
+  for (const b of list) {
+    const li = document.createElement("li");
+    li.innerHTML = `<span></span><button class="btn btn-sm" type="button">السماح بالعودة</button>`;
+    li.firstChild.textContent = b.name;
+    li.querySelector("button").addEventListener("click", () => moderate("unban", { cid: b.cid }));
+    ul.appendChild(li);
+  }
 }
 
 function updateChatInput() {
@@ -1931,7 +1947,14 @@ function openPersonMenu(anchor, p, remoteRoom) {
     menu.appendChild(document.createElement("hr"));
     menu.appendChild(
       menuButton("end", "إخراج من الحلقة", true, async () => {
-        if (confirm(`إخراج ${p.name} من الحلقة؟`) && (await moderate("kick", { target: p.id }))) toast(`أُخرج ${p.name}`);
+        if (confirm(`إخراج ${p.name} من الحلقة؟ يستطيع العودة بالرابط.`) && (await moderate("kick", { target: p.id }))) toast(`أُخرج ${p.name}`);
+      }, true)
+    );
+    menu.appendChild(
+      menuButton("lock", "إخراج ومنع من العودة", true, async () => {
+        if (confirm(`إخراج ${p.name} ومنعه من العودة؟ تستطيع السماح له لاحقاً من أدوات الإدارة.`) && (await moderate("kick", { target: p.id, ban: true }))) {
+          toast(`أُخرج ${p.name} ومُنع من العودة`);
+        }
       }, true)
     );
   }
