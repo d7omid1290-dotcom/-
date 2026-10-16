@@ -1232,10 +1232,10 @@ body::after { background: radial-gradient(circle, rgba(29, 92, 70, .18), transpa
   :is(.start-card, .show-card, .upcoming, .lobby-side, .perks li, .float-card, .core, .eyebrow, .devices label, .join-form) {
     backdrop-filter: none; -webkit-backdrop-filter: none;
   }
-  .start-card:not(.primary), .show-card, .upcoming, .lobby-side { background: #111733; }
+  .start-card:not(.primary), .show-card, .upcoming, .lobby-side { background: #111a16; }
   .float-card { background: #121c18; }
-  .perks li, .eyebrow { background: #10162e; }
-  .core { background: radial-gradient(circle at 30% 25%, #2a3260, #151b37); }
+  .perks li, .eyebrow { background: #101915; }
+  .core { background: radial-gradient(circle at 30% 25%, #1f3a30, #0f1a15); }
   :root[data-theme="light"] :is(.start-card:not(.primary), .show-card, .upcoming, .lobby-side, .float-card, .perks li, .eyebrow) { background: #fff; }
   :root[data-theme="light"] .core { background: radial-gradient(circle at 30% 25%, #fff, #eef2ec); }
   .op i { box-shadow: 0 0 0 1px rgba(255, 255, 255, .15), 0 6px 14px rgba(0, 0, 0, .25); }
@@ -1436,6 +1436,62 @@ body:has(#roomsStrip:not([hidden])) .toast { bottom: 168px; }
 .dm-chip .icon-btn { width: 28px; height: 28px; }
 .msg.private { border-inline-start: 3px solid var(--teal); padding-inline-start: 8px; cursor: pointer; }
 .msg.private .meta b { color: var(--teal); }
+
+/* ===== قلب المدار: «وصل» — ستّ نقاط في حلقة تتصل، وخطوط تصل القلب بالمزايا ===== */
+.core {
+  inset: 30%; gap: 2px; z-index: 1;
+  background: radial-gradient(circle at 50% 30%, #1f3a30, #0f1a15 72%);
+  border: 1px solid rgba(111, 191, 152, .3);
+  box-shadow: 0 0 0 10px rgba(47, 143, 107, .05), 0 24px 60px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .07);
+}
+/* موجات اتصال تنبعث من القلب */
+.core::before, .core::after {
+  content: ""; position: absolute; inset: -1px; border-radius: 50%; pointer-events: none;
+  border: 1px solid rgba(111, 191, 152, .4); animation: core-wave 4s ease-out infinite;
+}
+.core::after { animation-delay: 2s; }
+@keyframes core-wave { from { transform: scale(1); opacity: .8; } to { transform: scale(1.6); opacity: 0; } }
+.core-mark { width: clamp(46px, 13vw, 66px); height: auto; overflow: visible; margin-bottom: 2px; }
+.cm-glow { fill: rgba(111, 191, 152, .08); }
+.cm-ring {
+  fill: none; stroke: rgba(111, 191, 152, .55); stroke-width: 1.4; stroke-linecap: round;
+  stroke-dasharray: 126; stroke-dashoffset: 126; animation: cm-draw 1.8s .3s ease-out forwards;
+}
+@keyframes cm-draw { to { stroke-dashoffset: 0; } }
+.cm-dot { fill: #d6eee2; transform-box: fill-box; transform-origin: center; animation: cm-dot 4.8s ease-in-out infinite; animation-delay: calc(var(--i) * .8s); }
+@keyframes cm-dot { 0%, 30%, 100% { fill: #d6eee2; transform: scale(1); } 12% { fill: #fff; transform: scale(1.35); } }
+.core .core-name {
+  font-size: clamp(1.5rem, 5vw, 2.1rem); font-weight: 700; line-height: 1.15;
+  background: linear-gradient(180deg, #ffffff, #a9dcc2); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.core .core-tag { display: block; color: var(--muted); font-size: clamp(.68rem, 2vw, .8rem); letter-spacing: .2px; }
+.spokes { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.spokes line { stroke: rgba(111, 191, 152, .28); stroke-width: .35; stroke-linecap: round; stroke-dasharray: 1.2 2.2; animation: spoke-flow 1.6s linear infinite; }
+@keyframes spoke-flow { to { stroke-dashoffset: -3.4; } }
+.orbit.paused :is(.spokes line, .cm-dot) { animation-play-state: paused; }
+.orbit.paused .core::before, .orbit.paused .core::after { animation-play-state: paused; }
+@media (hover: none), (max-width: 960px) {
+  .core { background: radial-gradient(circle at 50% 30%, #1f3a30, #0f1a15 72%); }
+  .spokes line { animation: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .core::before, .core::after, .cm-dot, .spokes line { animation: none; }
+  .cm-ring { animation: none; stroke-dashoffset: 0; }
+}
+:root[data-theme="light"] .core {
+  background: radial-gradient(circle at 50% 30%, #ffffff, #e9f2ed 75%); border-color: rgba(31, 107, 79, .22);
+  box-shadow: 0 0 0 10px rgba(31, 107, 79, .05), 0 18px 44px rgba(15, 23, 42, .1);
+}
+:root[data-theme="light"] .core::before, :root[data-theme="light"] .core::after { border-color: rgba(31, 107, 79, .35); }
+:root[data-theme="light"] .cm-ring { stroke: rgba(31, 107, 79, .5); }
+:root[data-theme="light"] .cm-glow { fill: rgba(31, 107, 79, .06); }
+:root[data-theme="light"] .cm-dot { animation-name: cm-dot-light; fill: #2f8f6b; }
+@keyframes cm-dot-light { 0%, 30%, 100% { fill: #2f8f6b; transform: scale(1); } 12% { fill: #164a37; transform: scale(1.35); } }
+:root[data-theme="light"] .core .core-name { background: linear-gradient(180deg, #164a37, #2f8f6b); -webkit-background-clip: text; background-clip: text; }
+:root[data-theme="light"] .spokes line { stroke: rgba(31, 107, 79, .25); }
+@media (hover: none), (max-width: 960px) {
+  :root[data-theme="light"] .core { background: radial-gradient(circle at 50% 30%, #ffffff, #e9f2ed 75%); }
+}
 </style>
   <script>
     // نطبّق الوضع (نهاري/ليلي) قبل ظهور الصفحة حتى لا تومض
@@ -1561,11 +1617,16 @@ body:has(#roomsStrip:not([hidden])) .toast { bottom: 168px; }
         <div class="orbit">
           <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div>
           <div class="core">
-            <svg class="mark"><use href="#mark"/></svg>
-            <b>وصل</b>
-            <small><span class="live-dot"></span>بالقرآن نتّصل</small>
+            <svg class="core-mark" viewBox="0 0 64 64">
+              <circle class="cm-glow" cx="32" cy="32" r="20"/>
+              <circle class="cm-ring" cx="32" cy="32" r="20"/>
+              <circle class="cm-dot" style="--i:0" cx="32.00" cy="12.00" r="4"/><circle class="cm-dot" style="--i:1" cx="49.32" cy="22.00" r="4"/><circle class="cm-dot" style="--i:2" cx="49.32" cy="42.00" r="4"/><circle class="cm-dot" style="--i:3" cx="32.00" cy="52.00" r="4"/><circle class="cm-dot" style="--i:4" cx="14.68" cy="42.00" r="4"/><circle class="cm-dot" style="--i:5" cx="14.68" cy="22.00" r="4"/>
+            </svg>
+            <b class="core-name">وصل</b>
+            <small class="core-tag">بالقرآن نتّصل</small>
           </div>
           <div class="spin">
+            <svg class="spokes" viewBox="0 0 100 100"><line x1="50.00" y1="29.50" x2="50.00" y2="15.00"/><line x1="64.50" y1="35.50" x2="74.75" y2="25.25"/><line x1="70.50" y1="50.00" x2="85.00" y2="50.00"/><line x1="64.50" y1="64.50" x2="74.75" y2="74.75"/><line x1="50.00" y1="70.50" x2="50.00" y2="85.00"/><line x1="35.50" y1="64.50" x2="25.25" y2="74.75"/><line x1="29.50" y1="50.00" x2="15.00" y2="50.00"/><line x1="35.50" y1="35.50" x2="25.25" y2="25.25"/></svg>
             <span class="op main" style="--a:0deg;--c:#2f8f6b"><i><svg class="i"><use href="#i-book"/></svg></i></span>
             <span class="op" style="--a:45deg;--c:#6fbf98"><i><svg class="i"><use href="#i-hand"/></svg></i></span>
             <span class="op" style="--a:90deg;--c:#6fbf98"><i><svg class="i"><use href="#i-mic"/></svg></i></span>
