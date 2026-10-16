@@ -297,14 +297,24 @@ $("homeClock").textContent = $("roomClock").textContent = timeNow();
 
 /* ---------- الوسائط ---------- */
 
+// الجوال يلتقط بدقة أقل (أخف على المعالج والبطارية والإنترنت)، والكمبيوتر بدقة أعلى
+const IS_PHONE = matchMedia("(hover: none) and (pointer: coarse)").matches;
+const CAM_CONSTRAINTS = IS_PHONE
+  ? { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 24, max: 30 } }
+  : { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } };
+const MIC_CONSTRAINTS = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+
 async function getMedia() {
   if (!navigator.mediaDevices?.getUserMedia) {
     throw new Error("المتصفح لا يدعم الكاميرا هنا. افتح الموقع عبر HTTPS أو localhost.");
   }
-  const attempts = [{ video: { width: 1280, height: 720 }, audio: true }, { audio: true }, { video: true }];
+  const attempts = [{ video: CAM_CONSTRAINTS, audio: MIC_CONSTRAINTS }, { audio: MIC_CONSTRAINTS }, { video: true }];
   for (const constraints of attempts) {
     try {
-      return await navigator.mediaDevices.getUserMedia(constraints);
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      // تلميح للمتصفح أن الصوت كلام (تلاوة)، فيعطيه أولوية الوضوح
+      for (const t of stream.getAudioTracks()) if ("contentHint" in t) t.contentHint = "speech";
+      return stream;
     } catch (err) {
       if (err.name === "NotAllowedError") break;
     }
@@ -462,7 +472,7 @@ async function switchDevice(kind, deviceId) {
   let fresh;
   try {
     fresh = await navigator.mediaDevices.getUserMedia(
-      isAudio ? { audio: { deviceId: { exact: deviceId } } } : { video: { deviceId: { exact: deviceId }, width: 1280, height: 720 } }
+      isAudio ? { audio: { deviceId: { exact: deviceId } } } : { video: { ...CAM_CONSTRAINTS, deviceId: { exact: deviceId } } }
     );
   } catch {
     return toast("تعذر تشغيل هذا الجهاز");
@@ -530,7 +540,7 @@ function signal(type, data, to) {
   fetch(`/api/rooms/${state.room}/signal`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ from: state.myId, to, type, data }),
+    body: JSON.stringify({ from: state.myId, token: state.token, to, type, data }),
   }).catch(() => {});
 }
 
@@ -594,10 +604,11 @@ function connect(roomId) {
   const es = ch;
 
   on("welcome", (e) => {
-    const { id, role, peers, breakout, controls } = JSON.parse(e.data);
+    const { id, token, role, peers, breakout, controls } = JSON.parse(e.data);
     // عند إعادة الاتصال التلقائي نبدأ من جديد
     for (const p of [...state.peers.values()]) removePeer(p.id, true);
     state.myId = id;
+    state.token = token;
     state.role = role;
     state.controls = controls || { locked: false, chatOff: false };
     if (!state.joinedAt) enterRoom();
@@ -626,6 +637,7 @@ function connect(roomId) {
       if (role === "student" && was === "admin") toast("أُلغيت صلاحية الأدمن، عدت طالباً");
     } else {
       for (const p of state.peers.values()) if (p.cid === cid) p.role = role;
+      tuneSenders();
       repaintTiles();
       renderPeople();
       layoutGrid();
@@ -701,7 +713,15 @@ const WELCOME_TIMEOUT = 7000;
 function sseChannel(roomId, params, handlers) {
   const es = new EventSource(`/api/rooms/${roomId}/events?${params}`);
   let welcomed = false;
-  const ch = { close: () => es.close() };
+  let pid = null;
+  let token = null;
+  // عند المغادرة نخبر الخادم صراحةً، فيختفي المشارك من الغرفة القديمة فوراً حتى لو تأخر إغلاق الاتصال
+  const ch = {
+    close() {
+      es.close();
+      if (pid) sendLeave(roomId, pid, token);
+    },
+  };
   const fallback = () => {
     if (welcomed || state.es !== ch) return;
     es.close();
@@ -713,6 +733,7 @@ function sseChannel(roomId, params, handlers) {
     es.addEventListener(name, (e) => {
       if (name === "welcome") {
         welcomed = true;
+        ({ id: pid, token } = JSON.parse(e.data));
         clearTimeout(timer);
       }
       handlers[name]?.(e);
@@ -730,9 +751,17 @@ function sseChannel(roomId, params, handlers) {
   return ch;
 }
 
+function sendLeave(roomId, pid, token) {
+  const body = JSON.stringify({ from: pid, token });
+  if (!navigator.sendBeacon?.(`/api/rooms/${roomId}/leave`, new Blob([body], { type: "application/json" }))) {
+    fetch(`/api/rooms/${roomId}/leave`, { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true }).catch(() => {});
+  }
+}
+
 // الاستطلاع الطويل: طلب ينتظر حتى تصل أحداث جديدة ثم يُعاد فوراً
 function pollChannel(roomId, params, handlers) {
   let pid = null;
+  let token = null;
   let ack = 0;
   let closed = false;
   let fails = 0;
@@ -741,18 +770,13 @@ function pollChannel(roomId, params, handlers) {
     close() {
       closed = true;
       ctrl?.abort();
-      if (pid) {
-        const body = JSON.stringify({ from: pid });
-        if (!navigator.sendBeacon?.(`/api/rooms/${roomId}/leave`, new Blob([body], { type: "application/json" }))) {
-          fetch(`/api/rooms/${roomId}/leave`, { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true }).catch(() => {});
-        }
-      }
+      if (pid) sendLeave(roomId, pid, token);
     },
   };
   (async () => {
     while (!closed) {
       ctrl = new AbortController();
-      const q = pid ? new URLSearchParams({ pid, ack }) : params;
+      const q = pid ? new URLSearchParams({ pid, ack, token }) : params;
       let r;
       try {
         r = await fetch(`/api/rooms/${roomId}/poll?${q}`, { signal: ctrl.signal, cache: "no-store" });
@@ -775,6 +799,7 @@ function pollChannel(roomId, params, handlers) {
         if (ev.seq <= ack) continue;
         ack = ev.seq;
         if (closed) return;
+        if (ev.event === "welcome") token = JSON.parse(ev.data).token;
         handlers[ev.event]?.({ data: ev.data });
       }
     }
@@ -872,10 +897,12 @@ function createPeer(id, name, initiator, cid, role) {
   updatePeerTile(peer);
 
   pc.ontrack = (e) => {
-    peer.stream = new MediaStream([...peer.stream.getTracks().filter((t) => t.kind !== e.track.kind), e.track]);
+    // بث واحد ثابت لكل مشارك: نستبدل المسار داخله بدل إنشاء بث جديد كل مرة
+    for (const t of peer.stream.getTracks()) if (t.kind === e.track.kind && t !== e.track) peer.stream.removeTrack(t);
+    if (!peer.stream.getTracks().includes(e.track)) peer.stream.addTrack(e.track);
     const video = peer.tile.querySelector("video");
-    video.srcObject = peer.stream;
-    video.play().catch(() => {});
+    if (video.srcObject !== peer.stream) video.srcObject = peer.stream;
+    playVideo(video);
     if (e.track.kind === "audio") {
       watchLevel(peer.stream, peer.tile);
       addToRecording(peer.stream);
@@ -1024,10 +1051,16 @@ function videoEncoding(remotes) {
   return enc;
 }
 
+// الطالب يرى زملاءه صغاراً ويرى المعلّم كبيراً، فنرسل لزملائه صورة خفيفة جداً
+// ونوفّر الإنترنت للصورة المرسلة للمعلّم وللصوت
+const PEER_LITE = { maxBitrate: 150000, scaleResolutionDownBy: 3, maxFramerate: 15 };
 function tuneSenders() {
-  const enc = videoEncoding(state.peers.size);
+  const base = videoEncoding(state.peers.size);
   for (const peer of state.peers.values()) {
     if (isClosed(peer)) continue;
+    tuneAudio(peer);
+    const lite = !isStaff(state.role) && !isStaff(peer.role) && !state.screenStream && effectivePin() !== "local";
+    const enc = lite ? { ...base, ...PEER_LITE, maxBitrate: Math.min(base.maxBitrate, PEER_LITE.maxBitrate) } : base;
     const sender = peer.pc.getTransceivers().find((x) => x.receiver.track.kind === "video")?.sender;
     if (!sender?.getParameters) continue;
     // تعديل واحد في كل مرة لكل اتصال؛ وإن طُلب تعديل أثناء آخر نعيده بعده
@@ -1047,6 +1080,41 @@ function tuneSenders() {
       }
     });
   }
+}
+
+// بعض الجوالات (خصوصاً آيفون) تمنع تشغيل الصوت تلقائياً بعد الانتقال بين الغرف.
+// حينها نشغّل الصورة بدون صوت فوراً، ونظهر زراً واحداً لتشغيل الصوت للجميع
+function playVideo(video) {
+  const p = video.play();
+  if (!p) return;
+  p.catch((err) => {
+    if (err?.name !== "NotAllowedError" || video.muted) return;
+    video.muted = true;
+    video.dataset.needsSound = "1";
+    video.play().catch(() => {});
+    $("soundBtn").hidden = false;
+  });
+}
+$("soundBtn").addEventListener("click", () => {
+  for (const v of document.querySelectorAll('#grid video[data-needs-sound="1"]')) {
+    v.muted = false;
+    delete v.dataset.needsSound;
+    v.play().catch(() => {});
+  }
+  state.audioCtx?.resume?.();
+  $("soundBtn").hidden = true;
+});
+
+// الصوت أولاً: عند ضعف الشبكة يحافظ المتصفح على الصوت قبل الصورة
+function tuneAudio(peer) {
+  const sender = peer.pc.getTransceivers().find((x) => x.receiver.track.kind === "audio")?.sender;
+  if (!sender?.getParameters || sender.audioTuned) return;
+  const params = sender.getParameters();
+  if (!params.encodings?.length) return;
+  params.encodings[0].priority = "high";
+  params.encodings[0].networkPriority = "high";
+  sender.audioTuned = true;
+  sender.setParameters(params).catch(() => (sender.audioTuned = false));
 }
 
 /* ---------- البلاطات (عرض المشاركين) ---------- */
@@ -1162,6 +1230,7 @@ function setReciter(id) {
   }
   updateReciteUI();
   repaintTiles();
+  tuneSenders(); // من يُسمّع يُرسل صورته بجودة كاملة لأن الجميع يراه كبيراً
   layoutGrid();
   renderPeople();
 }
@@ -1554,6 +1623,7 @@ $("chatForm").addEventListener("submit", (e) => {
 // يحدّث الواجهة حسب دوري (معلّم/مشرف/طالب)
 function applyRole() {
   $("breakoutBtn").hidden = !isStaff(state.role) || DEMO;
+  tuneSenders();
   // التسجيل للمستضيف (المعلّم) فقط
   $("recBtn").hidden = state.role !== "teacher";
   if (state.recorder && state.role !== "teacher") stopRecording();
@@ -1589,7 +1659,7 @@ async function moderate(action, extra = {}) {
     const r = await fetch(`/api/rooms/${state.room}/moderate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ from: state.myId, action, ...extra }),
+      body: JSON.stringify({ from: state.myId, token: state.token, action, ...extra }),
     });
     if (!r.ok) throw new Error();
     return true;
@@ -1684,7 +1754,7 @@ async function setAdmin(cid, admin) {
     const r = await fetch(`/api/rooms/${state.room}/promote`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ from: state.myId, cid, admin }),
+      body: JSON.stringify({ from: state.myId, token: state.token, cid, admin }),
     });
     if (!r.ok) throw new Error();
   } catch {
@@ -2358,7 +2428,7 @@ async function breakoutAction(body) {
     const r = await fetch(`/api/rooms/${state.room}/breakout`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ from: state.myId, ...body }),
+      body: JSON.stringify({ from: state.myId, token: state.token, ...body }),
     });
     if (!r.ok) throw new Error();
     return true;

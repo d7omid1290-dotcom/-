@@ -106,6 +106,15 @@ function broadcast(room, event, data, exceptId) {
   }
 }
 
+// المرسل الحقيقي: معرّفه ومفتاحه السرّي معاً
+function senderOf(roomId, msg) {
+  const peer = rooms.get(roomId)?.get(String(msg.from || ""));
+  if (!peer) return null;
+  const a = Buffer.from(String(msg.token || ""));
+  const b = Buffer.from(peer.token);
+  return a.length === b.length && crypto.timingSafeEqual(a, b) ? peer : null;
+}
+
 function json(res, status, body) {
   res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
   res.end(JSON.stringify(body));
@@ -134,10 +143,12 @@ function addPeer(roomId, url, push) {
   const role = isHostKey(main, url.searchParams.get("key")) ? "teacher" : admins.get(main)?.has(cid) ? "admin" : "student";
 
   const peers = [...room.values()].map((p) => ({ id: p.id, cid: p.cid, name: p.name, role: p.role }));
-  const peer = { id, cid, name, role, push, end: () => {} };
+  // مفتاح سرّي لهذا المشارك وحده: يثبت هويته في كل طلب (المعرّف id يعرفه الجميع)
+  const token = crypto.randomBytes(16).toString("hex");
+  const peer = { id, cid, name, role, token, push, end: () => {} };
   room.set(id, peer);
   controlsOf(main).seen.add(cid);
-  send(peer, "welcome", { id, role, peers, breakout: breakouts.get(main) || null, controls: publicControls(main) });
+  send(peer, "welcome", { id, token, role, peers, breakout: breakouts.get(main) || null, controls: publicControls(main) });
   broadcast(room, "peer-joined", { id, cid, name, role }, id);
   sendPresence(main);
   return peer;
@@ -247,7 +258,7 @@ function handlePoll(req, res, roomId, url) {
     return json(res, 200, { pid: p.peer.id, events: p.queue });
   }
   const p = pollers.get(pid);
-  if (!p || p.roomId !== roomId) return json(res, 410, { error: "gone" });
+  if (!p || p.roomId !== roomId || url.searchParams.get("token") !== p.peer.token) return json(res, 410, { error: "gone" });
   const ack = Number(url.searchParams.get("ack")) || 0;
   p.queue = p.queue.filter((e) => e.seq > ack);
   expirePoll(p);
@@ -294,7 +305,7 @@ function readJson(req, res, done) {
 // أوامر المعلّم للغرف الفرعية: فتح، إغلاق، رسالة لكل الغرف
 function handleBreakout(req, res, roomId) {
   readJson(req, res, (msg) => {
-    const sender = rooms.get(roomId)?.get(msg.from);
+    const sender = senderOf(roomId, msg);
     if (!sender) return json(res, 404, { error: "not_in_room" });
     if (!STAFF.has(sender.role)) return json(res, 403, { error: "teacher_only" });
     const main = mainOf(roomId);
@@ -360,7 +371,7 @@ function handleBreakout(req, res, roomId) {
 // المعلّم (منشئ الغرفة فقط) يعيّن مشرفاً أو يلغي إشرافه
 function handlePromote(req, res, roomId) {
   readJson(req, res, (msg) => {
-    const sender = rooms.get(roomId)?.get(msg.from);
+    const sender = senderOf(roomId, msg);
     if (!sender) return json(res, 404, { error: "not_in_room" });
     if (sender.role !== "teacher") return json(res, 403, { error: "host_only" });
     const cid = String(msg.cid || "").slice(0, 64);
@@ -388,7 +399,7 @@ const canManage = (sender, target) =>
 function handleModerate(req, res, roomId) {
   readJson(req, res, (msg) => {
     const room = rooms.get(roomId);
-    const sender = room?.get(msg.from);
+    const sender = senderOf(roomId, msg);
     if (!sender) return json(res, 404, { error: "not_in_room" });
     if (!STAFF.has(sender.role)) return json(res, 403, { error: "staff_only" });
     const main = mainOf(roomId);
@@ -444,24 +455,25 @@ function handleCreate(req, res) {
 function handleSignal(req, res, roomId) {
   readJson(req, res, (msg) => {
     const room = rooms.get(roomId);
-    if (!room || !room.has(msg.from)) return json(res, 404, { error: "not_in_room" });
+    const sender = senderOf(roomId, msg);
+    if (!sender) return json(res, 404, { error: "not_in_room" });
     const allowed = ["offer", "answer", "ice", "chat", "state", "reaction", "recite", "grade"];
     if (!allowed.includes(msg.type)) return json(res, 400, { error: "bad_type" });
     // مناداة الطالب للتسميع وتقييمه للمعلّم والمشرفين فقط
-    if ((msg.type === "recite" || msg.type === "grade") && !STAFF.has(room.get(msg.from).role)) {
+    if ((msg.type === "recite" || msg.type === "grade") && !STAFF.has(sender.role)) {
       return json(res, 403, { error: "teacher_only" });
     }
     // الدردشة موقفة للطلاب من المعلّم أو الأدمن
-    if (msg.type === "chat" && controls.get(mainOf(roomId))?.chatOff && !STAFF.has(room.get(msg.from).role)) {
+    if (msg.type === "chat" && controls.get(mainOf(roomId))?.chatOff && !STAFF.has(sender.role)) {
       return json(res, 403, { error: "chat_off" });
     }
 
-    const payload = { from: msg.from, type: msg.type, data: msg.data };
+    const payload = { from: sender.id, type: msg.type, data: msg.data };
     if (msg.to) {
       const target = room.get(msg.to);
       if (target) send(target, "signal", payload);
     } else {
-      broadcast(room, "signal", payload, msg.from);
+      broadcast(room, "signal", payload, sender.id);
     }
     json(res, 200, { ok: true });
   });
@@ -503,9 +515,15 @@ const server = http.createServer((req, res) => {
     if (action === "events" && req.method === "GET") return handleEvents(req, res, roomId, url);
     if (action === "poll" && req.method === "GET") return handlePoll(req, res, roomId, url);
     if (action === "leave" && req.method === "POST") {
-      // مغادرة مستخدم الاستطلاع (يُرسل عند إغلاق الصفحة)
+      // مغادرة صريحة (عند الانتقال لغرفة أخرى أو إغلاق الصفحة)
       return readJson(req, res, (msg) => {
-        if (pollers.get(String(msg.from))?.roomId === roomId) dropPoll(String(msg.from));
+        const peer = senderOf(roomId, msg);
+        if (peer && pollers.has(peer.id)) dropPoll(peer.id);
+        else if (peer) {
+          // مغادرة صريحة من قناة SSE: نحذفه فوراً بدل انتظار انقطاع الاتصال
+          removePeer(roomId, peer.id);
+          peer.end();
+        }
         json(res, 200, { ok: true });
       });
     }

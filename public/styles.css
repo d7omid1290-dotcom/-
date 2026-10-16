@@ -1364,3 +1364,19 @@ body::after { background: radial-gradient(circle, rgba(29, 92, 70, .18), transpa
 }
 /* الإشعار يرتفع فوق شريط الغرف حين يظهر */
 body:has(#roomsStrip:not([hidden])) .toast { bottom: 168px; }
+
+/* زر تشغيل الصوت حين يمنع الجوال التشغيل التلقائي */
+.sound-btn {
+  position: absolute; left: 50%; bottom: 150px; transform: translateX(-50%); z-index: 40;
+  display: inline-flex; align-items: center; gap: 8px; height: 48px; padding: 0 22px; border: 0; border-radius: 999px;
+  background: var(--grad); color: #fff; font: inherit; font-weight: 700; cursor: pointer;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .45); animation: popc .2s ease-out;
+}
+.sound-btn[hidden] { display: none; }
+.sound-btn .i { width: 20px; height: 20px; }
+
+/* الجوال: نلغي تأثير الزجاج (التمويه) داخل الحلقة لأنه يثقل الرسم فوق الفيديو */
+@media (hover: none) {
+  .room *, .pmenu { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+  .room .bar-controls, .room .more-menu, .room .people-pill, .room .rs-card, .room .rs-manage { background: rgba(16, 26, 22, .94); }
+}
