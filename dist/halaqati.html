@@ -1962,7 +1962,12 @@ let ICE_CONFIG = {
 };
 const CONNECT_TIMEOUT = 20000; // بعدها نعرض «تعذر الاتصال» مع زر إعادة المحاولة
 
-async function loadIceConfig() {
+// نجلب إعدادات الاتصال مرة واحدة مبكراً (عند فتح الصفحة) فلا ينتظرها زر الدخول
+let iceConfigPromise = null;
+function loadIceConfig() {
+  return (iceConfigPromise ||= fetchIceConfig());
+}
+async function fetchIceConfig() {
   try {
     const r = await fetch("/api/config");
     if (r.ok) {
@@ -3332,7 +3337,9 @@ function updateLocalTile() {
   const s = myStatus();
   paintTile(state.localTile, { ...s, name: `${state.name} (أنت)` });
   const video = state.localTile.querySelector("video");
-  video.srcObject = state.screenStream || state.stream;
+  // نغيّر المصدر فقط إن تغيّر؛ إعادة تعيينه في كل تحديث توقف الصورة لحظياً
+  const src = state.screenStream || state.stream;
+  if (video.srcObject !== src) video.srcObject = src;
   video.classList.toggle("mirror", !state.screenStream);
 }
 
@@ -3451,10 +3458,71 @@ function enterRoom() {
   syncToggleButtons();
   layoutGrid();
   renderPeople();
+  keepAwake(true);
+  setMediaSession();
+}
 
+/* ---------- العمل والجوال في الخلفية ---------- */
+
+// يمنع انطفاء الشاشة أثناء الحلقة (انطفاؤها يوقف الكاميرا في أغلب الجوالات)
+let wakeLock = null;
+async function keepAwake(on) {
+  try {
+    if (on && !wakeLock && document.visibilityState === "visible" && navigator.wakeLock) {
+      wakeLock = await navigator.wakeLock.request("screen");
+      wakeLock.addEventListener("release", () => (wakeLock = null));
+    } else if (!on && wakeLock) {
+      await wakeLock.release();
+      wakeLock = null;
+    }
+  } catch {}
+}
+
+// يُعرّف الحلقة كمكالمة جارية عند النظام فيبقى الصوت في الخلفية حيث يسمح الجوال
+function setMediaSession() {
+  if (!("mediaSession" in navigator)) return;
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({ title: "حلقة وصل", artist: roomLabel(state.room), album: "وصل — بالقرآن نتّصل" });
+    navigator.mediaSession.setActionHandler?.("hangup", () => leave());
+  } catch {}
+}
+
+// عند الرجوع للصفحة بعد الخلفية: نعيد ما توقف فوراً بدل انتظار المحاولات التلقائية
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible" || !state.joinedAt) return;
+  keepAwake(true);
+  state.audioCtx?.resume?.();
+  for (const v of document.querySelectorAll("#grid video")) if (v.paused && v.srcObject) playVideo(v);
+  // الكاميرا قد يوقفها النظام في الخلفية؛ نتحقق منها
+  const cam = camTrack();
+  if (state.camOn && cam && cam.readyState === "ended") restartCamera();
+  if (!state.es) return connect(state.room);
+  for (const p of state.peers.values()) {
+    const st = p.pc.connectionState;
+    if (st === "failed" || st === "disconnected") retryPeer(p);
+  }
+});
+
+async function restartCamera() {
+  try {
+    const fresh = await navigator.mediaDevices.getUserMedia({ video: CAM_CONSTRAINTS });
+    const track = fresh.getVideoTracks()[0];
+    const old = camTrack();
+    if (old) {
+      state.stream.removeTrack(old);
+      old.stop();
+    }
+    state.stream.addTrack(track);
+    for (const p of state.peers.values()) {
+      const sender = p.pc.getTransceivers().find((x) => x.receiver.track.kind === "video")?.sender;
+      if (sender && !state.screenStream) sender.replaceTrack(track).catch(() => {});
+    }
+    updateLocalTile();
+  } catch {}
 }
 
 function leave(navigate = true) {
+  keepAwake(false);
   if (state.joinedAt) {
     $("leftSummary").textContent = `مدة حضورك: ${formatDuration(Date.now() - state.joinedAt)}`;
     $("leftStars").hidden = !state.sessionStars;
@@ -4957,6 +5025,7 @@ function applyTheme(theme) {
 }
 applyTheme(document.documentElement.dataset.theme === "light" ? "light" : "dark");
 $("demoBar").hidden = !DEMO;
+if (!DEMO) loadIceConfig();
 
 // نوقف دوران المدار حين يخرج من الشاشة أو تُخفى الصفحة، فلا يستهلك الجوال أثناء التمرير
 {

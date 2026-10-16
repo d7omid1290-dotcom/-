@@ -1,6 +1,7 @@
 // خادم وصل: يقدّم الواجهة ويعمل كخادم إشارة (signaling) لاتصالات WebRTC
 // بدون أي اعتماديات خارجية — Node.js فقط.
 const http = require("http");
+const zlib = require("zlib");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
@@ -85,8 +86,23 @@ const publicControls = (main) => {
 const mainOf = (roomId) => roomId.replace(/-r[1-9]$/, "");
 
 // كل الغرف التابعة لحلقة واحدة: الرئيسية وغرفها الفرعية
+// فهرس سريع: كل حلقة رئيسية ← معرّفات غرفها الموجودة (حتى لا نمر على كل غرف الموقع عند كل حدث)
+const families = new Map();
+function addRoom(roomId, room) {
+  rooms.set(roomId, room);
+  const main = mainOf(roomId);
+  if (!families.has(main)) families.set(main, new Set());
+  families.get(main).add(roomId);
+}
+function deleteRoom(roomId) {
+  rooms.delete(roomId);
+  const main = mainOf(roomId);
+  const set = families.get(main);
+  set?.delete(roomId);
+  if (set && !set.size) families.delete(main);
+}
 function familyRooms(main) {
-  return [...rooms.entries()].filter(([id]) => mainOf(id) === main).map(([, room]) => room);
+  return [...(families.get(main) || [])].map((id) => rooms.get(id)).filter(Boolean);
 }
 
 function broadcastFamily(main, event, data) {
@@ -96,14 +112,24 @@ function broadcastFamily(main, event, data) {
 // من في كل غرفة من غرف الحلقة الآن — ليرى المعلّم والطلاب أماكن الجميع
 function presenceOf(main) {
   const out = {};
-  for (const [id, room] of rooms.entries()) {
-    if (mainOf(id) !== main) continue;
+  for (const id of families.get(main) || []) {
+    const room = rooms.get(id);
+    if (!room) continue;
     out[id === main ? "main" : id.slice(main.length + 1)] = [...room.values()].map((p) => ({ cid: p.cid, name: p.name, role: p.role }));
   }
   return out;
 }
+// نجمع التغييرات المتقاربة (دخول عشرين طالباً معاً) في رسالة واحدة بدل عشرين
+const presenceTimers = new Map();
 function sendPresence(main) {
-  broadcastFamily(main, "presence", presenceOf(main));
+  if (presenceTimers.has(main)) return;
+  presenceTimers.set(
+    main,
+    setTimeout(() => {
+      presenceTimers.delete(main);
+      broadcastFamily(main, "presence", presenceOf(main));
+    }, 120)
+  );
 }
 
 // إرسال حدث لمشارك: عبر قناة SSE، أو يُحفظ في طابوره إن كان يتصل بالاستطلاع (polling)
@@ -140,10 +166,10 @@ function addPeer(roomId, url, push) {
   let room = rooms.get(roomId);
   if (!room) {
     room = new Map();
-    rooms.set(roomId, room);
+    addRoom(roomId, room);
   }
   if (room.size >= MAX_PEERS) {
-    if (room.size === 0) rooms.delete(roomId);
+    if (room.size === 0) deleteRoom(roomId);
     return null;
   }
   const id = crypto.randomUUID();
@@ -169,7 +195,7 @@ function removePeer(roomId, id) {
   const room = rooms.get(roomId);
   if (!room || !room.delete(id)) return;
   broadcast(room, "peer-left", { id });
-  if (room.size === 0) rooms.delete(roomId);
+  if (room.size === 0) deleteRoom(roomId);
   // إذا فرغت الحلقة كلها نحذف حالة غرفها
   const main = mainOf(roomId);
   sendPresence(main);
@@ -507,6 +533,32 @@ function handleSignal(req, res, roomId) {
   });
 }
 
+// الملفات الثابتة تُقرأ مرة واحدة وتُضغط مسبقاً، وتُرسل مضغوطة مع بصمة (ETag)
+// فالمتصفح لا يعيد تنزيل ما لم يتغير، والتحديثات تصل فوراً بعد النشر
+const staticCache = new Map();
+function loadStatic(filePath) {
+  if (staticCache.has(filePath)) return staticCache.get(filePath);
+  let data;
+  try {
+    data = fs.readFileSync(filePath);
+  } catch {
+    return null;
+  }
+  const ext = path.extname(filePath);
+  const type = MIME[ext] || "application/octet-stream";
+  const compressible = /text|javascript|json|svg|manifest/.test(type);
+  const entry = {
+    type,
+    data,
+    gz: compressible ? zlib.gzipSync(data, { level: 9 }) : null,
+    etag: `"${crypto.createHash("sha1").update(data).digest("base64url").slice(0, 16)}"`,
+    // الصور تُحفظ أسبوعاً، والصفحة والسكربت والتنسيق يُتحقق منها كل مرة (رد صغير 304 إن لم تتغير)
+    cache: /\.(png|ico)$/.test(ext) ? "public, max-age=604800" : "no-cache",
+  };
+  if (process.env.NODE_ENV === "production" || !process.env.WASL_DEV) staticCache.set(filePath, entry);
+  return entry;
+}
+
 function serveStatic(req, res, pathname) {
   // أي رابط بشكل رمز اجتماع يعرض الصفحة الرئيسية
   if (pathname === "/" || ROOM_RE.test(pathname.slice(1))) pathname = "/index.html";
@@ -515,14 +567,22 @@ function serveStatic(req, res, pathname) {
     res.writeHead(403);
     return res.end();
   }
-  fs.readFile(filePath, (err, data) => {
-    if (err) {
-      res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
-      return res.end("الصفحة غير موجودة");
-    }
-    res.writeHead(200, { "Content-Type": MIME[path.extname(filePath)] || "application/octet-stream" });
-    res.end(data);
-  });
+  const f = loadStatic(filePath);
+  if (!f) {
+    res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+    return res.end("الصفحة غير موجودة");
+  }
+  const headers = { "Content-Type": f.type, "Cache-Control": f.cache, ETag: f.etag, Vary: "Accept-Encoding" };
+  if (req.headers["if-none-match"] === f.etag) {
+    res.writeHead(304, headers);
+    return res.end();
+  }
+  if (f.gz && /\bgzip\b/.test(req.headers["accept-encoding"] || "")) {
+    res.writeHead(200, { ...headers, "Content-Encoding": "gzip", "Content-Length": f.gz.length });
+    return res.end(f.gz);
+  }
+  res.writeHead(200, { ...headers, "Content-Length": f.data.length });
+  res.end(f.data);
 }
 
 const server = http.createServer((req, res) => {
