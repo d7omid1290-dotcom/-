@@ -762,7 +762,7 @@ function connect(roomId, resume) {
     const c = JSON.parse(e.data);
     const was = state.controls || {};
     state.controls = c;
-    if (was.locked !== c.locked) toast(c.locked ? `قفل ${c.by} الحلقة أمام القادمين الجدد` : `فتح ${c.by} الحلقة`);
+    if (was.locked !== c.locked) toast(c.locked ? `صار دخول القادمين الجدد بإذن ${c.by === state.name ? "منك" : "المعلّم"}` : "صار الدخول للحلقة مفتوحاً");
     if (was.chatOff !== c.chatOff) toast(c.chatOff ? `أوقف ${c.by} دردشة الطلاب` : `فعّل ${c.by} الدردشة`);
     if (!!was.micLock !== !!c.micLock) toast(c.micLock ? "المايك صار بإذن المعلّم — ارفع يدك إذا تبي تتكلم" : "صار بإمكان الجميع فتح المايك");
     if (!!was.camLock !== !!c.camLock) toast(c.camLock ? "الكاميرا صارت بإذن المعلّم" : "صار بإمكان الجميع فتح الكاميرا");
@@ -774,6 +774,7 @@ function connect(roomId, resume) {
     enforceLocks();
   });
   on("notice", (e) => toast(JSON.parse(e.data).text));
+  on("knocks", (e) => renderKnocks(JSON.parse(e.data).knocks || []));
   on("presence", (e) => {
     state.presence = JSON.parse(e.data);
     renderRoomsStrip();
@@ -834,7 +835,7 @@ function sseChannel(roomId, params, handlers) {
     connect(roomId, resumeOf());
   };
   const timer = setTimeout(fallback, WELCOME_TIMEOUT);
-  for (const name of ["welcome", "peer-joined", "peer-left", "signal", "breakout", "role", "announce", "moderate", "kicked", "controls", "notice", "presence"]) {
+  for (const name of ["welcome", "peer-joined", "peer-left", "signal", "breakout", "role", "announce", "moderate", "kicked", "controls", "notice", "presence", "knocks"]) {
     es.addEventListener(name, (e) => {
       if (name === "welcome") {
         welcomed = true;
@@ -940,11 +941,96 @@ function pollChannel(roomId, params, handlers) {
   return ch;
 }
 
+/* ---------- الدخول بإذن ---------- */
+
+// الطالب: يرسل طلب دخول وينتظر في صفحة التجهيز حتى يقبله المعلّم أو الأدمن
+let knock = null;
+async function startKnock() {
+  $("lobbyError").textContent = "";
+  $("joinNowBtn").disabled = true;
+  let r;
+  try {
+    r = await fetch(`/api/rooms/${state.code}/knock`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: state.name, cid: state.cid }) });
+  } catch {
+    return knockDone("تعذر إرسال طلب الدخول، حاول مرة أخرى.");
+  }
+  const body = await r.json().catch(() => ({}));
+  if (body.status === "admitted") return knockDone(null, true);
+  if (body.error === "kicked") return knockDone("منعك المعلّم من العودة لهذه الحلقة. اطلب منه السماح لك.");
+  if (body.error === "no_staff") return knockDone("الدخول لهذه الحلقة بإذن المعلّم، ولا يوجد معلّم فيها الآن. حاول بعد قليل.");
+  if (!body.kid) return knockDone("تعذر إرسال طلب الدخول، حاول مرة أخرى.");
+  knock = { kid: body.kid, ktoken: body.ktoken };
+  $("knockWait").hidden = false;
+  $("joinNowBtn").textContent = "بانتظار إذن المعلّم…";
+  $("knockWait").scrollIntoView({ block: "center", behavior: "smooth" });
+  pollKnock();
+}
+
+async function pollKnock() {
+  const k = knock;
+  if (!k) return;
+  let status = "pending";
+  try {
+    const r = await fetch(`/api/rooms/${state.code}/knock?${new URLSearchParams(k)}`, { cache: "no-store" });
+    status = (await r.json()).status;
+  } catch {}
+  if (knock !== k) return;
+  if (status === "admitted") return knockDone(null, true);
+  if (status === "denied") return knockDone("اعتذر المعلّم عن إدخالك الآن.");
+  if (status === "gone") return knockDone("انتهى طلب الدخول، أرسله مرة أخرى.");
+  setTimeout(pollKnock, 2000);
+}
+
+function knockDone(message, admitted) {
+  knock = null;
+  $("knockWait").hidden = true;
+  $("joinNowBtn").textContent = "دخول الحلقة";
+  $("joinNowBtn").disabled = false;
+  if (message) $("lobbyError").textContent = message;
+  if (admitted) {
+    toast("سمح لك المعلّم بالدخول");
+    join();
+  }
+}
+
+$("knockCancel").addEventListener("click", () => {
+  if (knock) {
+    fetch(`/api/rooms/${state.code}/knock`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cancel: true, ...knock }) }).catch(() => {});
+  }
+  knockDone("أُلغي طلب الدخول.");
+});
+
+// المعلّم والأدمن: بطاقة بطلبات الدخول مع سماح أو رفض
+let knownKnocks = new Set();
+function renderKnocks(list) {
+  const card = $("knockCard");
+  card.hidden = !list.length || !isStaff(state.role);
+  $("knockAll").hidden = list.length < 2;
+  const ul = $("knockList");
+  ul.innerHTML = "";
+  for (const k of list) {
+    if (!knownKnocks.has(k.kid)) {
+      toast(`${k.name} يطلب الدخول`);
+      navigator.vibrate?.(20);
+    }
+    const li = document.createElement("li");
+    li.innerHTML = `<span class="mini"></span><b></b><button class="btn btn-sm" type="button" data-deny>رفض</button><button class="btn btn-sm btn-primary" type="button" data-allow>سماح</button>`;
+    li.querySelector(".mini").textContent = initial(k.name);
+    li.querySelector(".mini").style.background = colorFor(k.name);
+    li.querySelector("b").textContent = k.name;
+    li.querySelector("[data-allow]").addEventListener("click", () => moderate("admit", { kid: k.kid, allow: true }));
+    li.querySelector("[data-deny]").addEventListener("click", () => moderate("admit", { kid: k.kid, allow: false }));
+    ul.appendChild(li);
+  }
+  knownKnocks = new Set(list.map((k) => k.kid));
+}
+$("knockAll").addEventListener("click", () => moderate("admit", { all: true, allow: true }));
+
 // سبب واضح لتعذّر الدخول
 async function explainJoinError(reason) {
   let msg = "تعذر الاتصال بالخادم، أو أن الحلقة ممتلئة.";
   if (reason === "room_full") msg = "الحلقة ممتلئة (25 مشاركاً).";
-  else if (reason === "locked") msg = "الحلقة مقفلة الآن، اطلب من المعلّم فتحها.";
+  else if (reason === "locked") return startKnock();
   else if (reason === "kicked") msg = "منعك المعلّم من العودة لهذه الحلقة. اطلب منه السماح لك.";
   else {
     const ok = await fetch("/healthz", { cache: "no-store" })
@@ -1703,6 +1789,8 @@ function leave(navigate = true) {
   state.reciter = null;
   state.controls = null;
   state.presence = null;
+  $("knockCard").hidden = true;
+  knownKnocks = new Set();
   state.boChoice = null;
   $("roomsStrip").hidden = true;
   $("moreMenu").hidden = true;
@@ -1897,7 +1985,7 @@ function applyControls(repaint = true) {
   const staff = isStaff(state.role) && !DEMO;
   $("adminTools").hidden = !staff;
   $("lockBtn").classList.toggle("on", !!c.locked);
-  $("lockBtn").querySelector("span").textContent = c.locked ? "فتح الحلقة" : "قفل الحلقة";
+  $("lockBtn").querySelector("span").textContent = "الدخول بإذن";
   $("chatOffBtn").classList.toggle("on", !!c.chatOff);
   $("chatOffBtn").querySelector("span").textContent = c.chatOff ? "تفعيل الدردشة" : "إيقاف الدردشة";
   $("micLockBtn").classList.toggle("on", !!c.micLock);

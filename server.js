@@ -249,6 +249,7 @@ function addPeer(roomId, url, push) {
   room.set(id, peer);
   controlsOf(main).seen.add(cid);
   send(peer, "welcome", { id, token, role, peers, breakout: breakouts.get(main) || null, controls: publicControls(main) });
+  if (STAFF.has(role)) send(peer, "knocks", { knocks: pendingKnocks(main) });
   broadcast(room, "peer-joined", { id, cid, name, role }, id);
   sendPresence(main);
   return peer;
@@ -516,7 +517,74 @@ function handlePromote(req, res, roomId) {
     }
     broadcastFamily(main, "role", { cid, role });
     sendPresence(main);
+    sendKnocks(main);
     json(res, 200, { ok: true, role });
+  });
+}
+
+// ===== الدخول بإذن: الحلقة «المقفلة» تستقبل طلبات دخول يقبلها المعلّم أو الأدمن =====
+// الحلقة الرئيسية -> Map(kid -> { name, cid, token, status: pending|admitted|denied, seen: آخر متابعة })
+const knocks = new Map();
+const KNOCK_IDLE = 20000;
+function pendingKnocks(main) {
+  return [...(knocks.get(main)?.entries() || [])].filter(([, k]) => k.status === "pending").map(([kid, k]) => ({ kid, name: k.name }));
+}
+// القائمة تصل للمعلّم والأدمن فقط
+function sendKnocks(main) {
+  const data = { knocks: pendingKnocks(main) };
+  for (const room of familyRooms(main)) for (const peer of room.values()) if (STAFF.has(peer.role)) send(peer, "knocks", data);
+}
+// طلبات من أغلق صفحته (توقف عن المتابعة) تُحذف
+setInterval(() => {
+  for (const [main, map] of knocks) {
+    let changed = false;
+    for (const [kid, k] of map) {
+      if (Date.now() - k.seen > KNOCK_IDLE) {
+        map.delete(kid);
+        changed = changed || k.status === "pending";
+      }
+    }
+    if (!map.size) knocks.delete(main);
+    if (changed) sendKnocks(main);
+  }
+}, 5000).unref();
+
+function handleKnock(req, res, roomId, url) {
+  const main = mainOf(roomId);
+  if (req.method === "GET") {
+    // متابعة الطلب: معلّق أو مقبول أو مرفوض
+    const k = knocks.get(main)?.get(String(url.searchParams.get("kid") || ""));
+    if (!k || k.token !== String(url.searchParams.get("ktoken") || "")) return json(res, 404, { status: "gone" });
+    k.seen = Date.now();
+    return json(res, 200, { status: k.status });
+  }
+  readJson(req, res, (msg) => {
+    const map = knocks.get(main);
+    if (msg.cancel) {
+      const k = map?.get(String(msg.kid || ""));
+      if (k && k.token === String(msg.ktoken || "")) {
+        map.delete(String(msg.kid));
+        sendKnocks(main);
+      }
+      return json(res, 200, { ok: true });
+    }
+    const c = controls.get(main);
+    const cid = String(msg.cid || "").slice(0, 64);
+    if (!cid) return json(res, 400, { error: "bad_cid" });
+    if (c?.kicked.has(cid)) return json(res, 403, { error: "kicked" });
+    if (!c?.locked || c.seen.has(cid)) return json(res, 200, { status: "admitted" });
+    if (!familyRooms(main).some((room) => [...room.values()].some((p) => STAFF.has(p.role)))) {
+      return json(res, 409, { error: "no_staff" });
+    }
+    let list = knocks.get(main);
+    if (!list) knocks.set(main, (list = new Map()));
+    // طلب واحد لكل مشارك
+    for (const [kid, k] of list) if (k.cid === cid) list.delete(kid);
+    const kid = crypto.randomBytes(6).toString("hex");
+    const token = crypto.randomBytes(16).toString("hex");
+    list.set(kid, { name: cleanName(msg.name), cid, token, status: "pending", seen: Date.now() });
+    sendKnocks(main);
+    json(res, 200, { status: "pending", kid, ktoken: token });
   });
 }
 
@@ -551,6 +619,20 @@ function handleModerate(req, res, roomId) {
       } else {
         send(target, "moderate", { action, by });
       }
+    } else if (action === "admit") {
+      // قبول أو رفض طلب دخول (أو الجميع معاً)
+      const map = knocks.get(main);
+      const ids = msg.all ? pendingKnocks(main).map((k) => k.kid) : [String(msg.kid || "")];
+      let n = 0;
+      for (const kid of ids) {
+        const k = map?.get(kid);
+        if (!k || k.status !== "pending") continue;
+        k.status = msg.allow ? "admitted" : "denied";
+        if (msg.allow) controlsOf(main).seen.add(k.cid);
+        n++;
+      }
+      if (!n) return json(res, 404, { error: "no_knock" });
+      sendKnocks(main);
     } else if (action === "unban") {
       // السماح لممنوع بالعودة
       const c = controlsOf(main);
@@ -565,7 +647,19 @@ function handleModerate(req, res, roomId) {
       for (const peer of room.values()) if (peer.role === "student") send(peer, "moderate", { action: "mute", by });
     } else if (["lock", "chat", "micLock", "camLock"].includes(action)) {
       const c = controlsOf(main);
-      if (action === "lock") c.locked = !!msg.on;
+      if (action === "lock") {
+        c.locked = !!msg.on;
+        // عند فتح الحلقة يدخل كل من كان ينتظر الإذن
+        if (!c.locked) {
+          for (const k of knocks.get(main)?.values() || []) {
+            if (k.status === "pending") {
+              k.status = "admitted";
+              c.seen.add(k.cid);
+            }
+          }
+          sendKnocks(main);
+        }
+      }
       else if (action === "chat") c.chatOff = !msg.on;
       else {
         c[action] = !!msg.on;
@@ -700,7 +794,7 @@ const server = http.createServer((req, res) => {
     return json(res, 200, { ok: true, rooms: rooms.size, peers });
   }
   if (url.pathname === "/api/rooms" && req.method === "POST") return handleCreate(req, res);
-  const m = url.pathname.match(/^\/api\/rooms\/([^/]+)\/(events|poll|leave|signal|peers|breakout|promote|moderate)$/);
+  const m = url.pathname.match(/^\/api\/rooms\/([^/]+)\/(events|poll|leave|signal|peers|breakout|promote|moderate|knock)$/);
   if (m) {
     const [, roomId, action] = m;
     if (!API_ROOM_RE.test(roomId)) return json(res, 400, { error: "bad_room" });
@@ -724,6 +818,7 @@ const server = http.createServer((req, res) => {
     if (action === "breakout" && req.method === "POST") return handleBreakout(req, res, roomId);
     if (action === "promote" && req.method === "POST") return handlePromote(req, res, roomId);
     if (action === "moderate" && req.method === "POST") return handleModerate(req, res, roomId);
+    if (action === "knock") return handleKnock(req, res, roomId, url);
     if (action === "peers" && req.method === "GET") {
       // من في الحلقة الآن — لعرضه في شاشة ما قبل الدخول
       const room = rooms.get(roomId);

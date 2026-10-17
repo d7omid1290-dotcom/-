@@ -238,6 +238,11 @@
         </div>
         <button class="btn btn-primary btn-lg btn-block" id="joinNowBtn">دخول الحلقة</button>
         <p class="error" id="lobbyError" role="alert"></p>
+        <div class="knock-wait" id="knockWait" hidden>
+          <span class="spinner"></span>
+          <div><b>طلبت الإذن بالدخول</b><small>سيدخلك المعلّم بعد قليل، انتظر في هذه الصفحة</small></div>
+          <button class="btn btn-sm" type="button" id="knockCancel">إلغاء</button>
+        </div>
       </div>
     </div>
   </section>
@@ -246,6 +251,10 @@
   <section id="room" class="view room" hidden>
     <div class="top-banners">
       <div class="room-banner" id="roomBanner" hidden><svg class="i"><use href="#i-rooms"/></svg>أنت في: <b id="roomBannerText"></b></div>
+    </div>
+    <div class="knock-card" id="knockCard" role="alert" hidden>
+      <div class="knock-head"><svg class="i"><use href="#i-hand"/></svg><b>طلبات الدخول</b><button class="btn btn-sm btn-primary" type="button" id="knockAll" hidden>سماح للجميع</button></div>
+      <ul id="knockList"></ul>
     </div>
     <div class="announce" id="announce" role="alert" hidden>
       <span class="announce-icon">📢</span>
@@ -259,7 +268,7 @@
         <span id="roomClock"></span>
         <span class="sep"></span>
         <span id="roomCode" dir="ltr"></span>
-        <span class="lock-badge" id="lockBadge" hidden><svg class="i"><use href="#i-lock"/></svg>مقفلة</span>
+        <span class="lock-badge" id="lockBadge" hidden><svg class="i"><use href="#i-lock"/></svg>الدخول بإذن</span>
         <span class="elapsed" id="roomElapsed"></span>
       </div>
       <button class="people-pill" id="peopleBtn" type="button" title="الحضور وإدارة الأعضاء"><svg class="i"><use href="#i-users"/></svg><span>الحضور</span><b id="peoplePill">1</b><span class="count-badge" id="handCount" hidden>0</span></button>
@@ -307,7 +316,7 @@
             <h4><svg class="i"><use href="#i-shield"/></svg>أدوات الإدارة</h4>
             <div class="admin-row">
               <button class="adm" id="muteAllBtn" type="button"><svg class="i"><use href="#i-mic-off"/></svg><span>كتم الجميع</span></button>
-              <button class="adm" id="lockBtn" type="button"><svg class="i"><use href="#i-lock"/></svg><span>قفل الحلقة</span></button>
+              <button class="adm" id="lockBtn" type="button"><svg class="i"><use href="#i-lock"/></svg><span>الدخول بإذن</span></button>
               <button class="adm" id="chatOffBtn" type="button"><svg class="i"><use href="#i-chat"/></svg><span>إيقاف الدردشة</span></button>
               <button class="adm" id="micLockBtn" type="button"><svg class="i"><use href="#i-mic-off"/></svg><span>المايك بإذن</span></button>
               <button class="adm" id="camLockBtn" type="button"><svg class="i"><use href="#i-cam-off"/></svg><span>الكاميرا بإذن</span></button>
