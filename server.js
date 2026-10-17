@@ -448,7 +448,7 @@ function handleBreakout(req, res, roomId) {
         rooms: list.map((r, i) => {
           const members = (Array.isArray(r.members) ? r.members : []).slice(0, 25).map((c) => String(c).slice(0, 64));
           const names = (Array.isArray(r.names) ? r.names : []).slice(0, 25).map(cleanName);
-          return { id: `r${i + 1}`, name: String(r.name || "").trim().slice(0, 30) || `غرفة ${i + 1}`, members, names };
+          return { id: `r${i + 1}`, name: String(r.name || "").trim().slice(0, 30) || `مراجعة ${i + 1}`, members, names };
         }),
       };
       breakouts.set(main, state);

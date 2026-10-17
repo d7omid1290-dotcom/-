@@ -1531,3 +1531,9 @@ body:has(#roomsStrip:not([hidden])) .toast { bottom: 168px; }
 .knock-card li { display: flex; align-items: center; gap: 8px; }
 .knock-card li b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .knock-card .mini { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: .8rem; font-weight: 700; flex-shrink: 0; }
+
+/* الجوال: لوحة الدردشة والحضور بخلفية ثابتة (بدون تمويه تصبح شفافة ويظهر الفيديو خلفها) */
+@media (hover: none), (max-width: 640px) {
+  .panel { background: #0f1814; }
+  :root[data-theme="light"] .room .panel { background: #0f1814; }
+}

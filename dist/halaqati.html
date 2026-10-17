@@ -1548,6 +1548,12 @@ body:has(#roomsStrip:not([hidden])) .toast { bottom: 168px; }
 .knock-card li { display: flex; align-items: center; gap: 8px; }
 .knock-card li b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .knock-card .mini { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: .8rem; font-weight: 700; flex-shrink: 0; }
+
+/* الجوال: لوحة الدردشة والحضور بخلفية ثابتة (بدون تمويه تصبح شفافة ويظهر الفيديو خلفها) */
+@media (hover: none), (max-width: 640px) {
+  .panel { background: #0f1814; }
+  :root[data-theme="light"] .room .panel { background: #0f1814; }
+}
 </style>
   <script>
     // نطبّق الوضع (نهاري/ليلي) قبل ظهور الصفحة حتى لا تومض
@@ -1706,7 +1712,7 @@ body:has(#roomsStrip:not([hidden])) .toast { bottom: 168px; }
         <ul>
           <li><span class="sc-icon"><svg class="i"><use href="#i-hand"/></svg></span><div><b>طابور التسميع</b><small>الطلاب يرفعون أيديهم بالترتيب، وتنادي التالي بضغطة</small></div></li>
           <li><span class="sc-icon"><svg class="i"><use href="#i-screen"/></svg></span><div><b>اعرض شاشتك للطالب</b><small>شارك المصحف أو أي ملف ليراه الطلاب أمامهم</small></div></li>
-          <li><span class="sc-icon"><svg class="i"><use href="#i-rooms"/></svg></span><div><b>غرف داخل الحلقة</b><small>قسّم الطلاب لمجموعات صغيرة ثم أعدهم</small></div></li>
+          <li><span class="sc-icon"><svg class="i"><use href="#i-rooms"/></svg></span><div><b>غرف المراجعة</b><small>قسّم الطلاب لمجموعات صغيرة ثم أعدهم</small></div></li>
           <li><span class="sc-icon"><svg class="i"><use href="#i-rec"/></svg></span><div><b>تسجيل الحلقة</b><small>احفظ الحلقة للمراجعة لاحقاً</small></div></li>
         </ul>
       </article>
@@ -1887,7 +1893,7 @@ body:has(#roomsStrip:not([hidden])) .toast { bottom: 168px; }
           <div class="sheet-backdrop" id="moreBackdrop" hidden></div>
           <div class="more-menu" id="moreMenu" role="menu" hidden>
             <div class="sheet-handle" aria-hidden="true"></div>
-            <button class="mi" id="breakoutBtn" type="button" role="menuitem" hidden><svg class="i"><use href="#i-rooms"/></svg><span>غرف الحلقة</span></button>
+            <button class="mi" id="breakoutBtn" type="button" role="menuitem" hidden><svg class="i"><use href="#i-rooms"/></svg><span>غرف المراجعة</span></button>
             <button class="mi" id="recBtn" type="button" role="menuitem" hidden><svg class="i"><use href="#i-rec"/></svg><span id="recLabel">تسجيل الحلقة</span></button>
             <button class="mi" id="shareBtn" type="button" role="menuitem"><svg class="i"><use href="#i-screen"/></svg><span id="shareLabel">مشاركة الشاشة</span></button>
             <button class="mi" id="copyBtn" type="button" role="menuitem"><svg class="i"><use href="#i-link"/></svg><span>نسخ رابط الحلقة</span></button>
@@ -2024,12 +2030,12 @@ body:has(#roomsStrip:not([hidden])) .toast { bottom: 168px; }
     </div>
   </div>
 
-  <!-- غرف الحلقة (للمعلّم) -->
+  <!-- غرف المراجعة (للمعلّم) -->
   <div class="modal" id="breakoutModal" hidden>
     <div class="modal-backdrop" data-close></div>
     <div class="modal-card modal-wide" role="dialog" aria-modal="true" aria-labelledby="boTitle">
       <button class="icon-btn modal-close" data-close aria-label="إغلاق"><svg class="i"><use href="#i-close"/></svg></button>
-      <h2 id="boTitle">غرف الحلقة</h2>
+      <h2 id="boTitle">غرف المراجعة</h2>
       <div id="boSetup">
         <p class="muted bo-intro">قسّم الطلاب إلى مجموعات صغيرة للحفظ أو المراجعة، ثم أعدهم للحلقة الرئيسية متى شئت.</p>
         <div class="bo-toolbar">
@@ -4928,7 +4934,7 @@ function renderRoomsStrip() {
     const manage = document.createElement("button");
     manage.type = "button";
     manage.className = "rs-manage";
-    manage.innerHTML = `${icon("rooms")}<span>إدارة الغرف</span>`;
+    manage.innerHTML = `${icon("rooms")}<span>غرف المراجعة</span>`;
     manage.addEventListener("click", openBreakout);
     strip.appendChild(manage);
   }
@@ -5060,7 +5066,7 @@ function renderBreakout() {
   if (live) return renderBreakoutLive();
 
   $("boCountVal").textContent = bo.count;
-  for (let i = 0; i < bo.count; i++) bo.names[i] ||= `غرفة ${i + 1}`;
+  for (let i = 0; i < bo.count; i++) bo.names[i] ||= `مراجعة ${i + 1}`;
   const students = boStudents();
   // الطالب الجديد أو من خرج رقم غرفته عن العدد يوضع في أقل غرفة عدداً
   for (const p of students) {
@@ -5152,7 +5158,7 @@ $("boOpen").addEventListener("click", async () => {
   const students = boStudents();
   const rooms = Array.from({ length: bo.count }, (_, i) => {
     const members = students.filter((p) => bo.assign.get(p.cid) === i);
-    return { name: bo.names[i].trim() || `غرفة ${i + 1}`, members: members.map((p) => p.cid), names: members.map((p) => p.name) };
+    return { name: bo.names[i].trim() || `مراجعة ${i + 1}`, members: members.map((p) => p.cid), names: members.map((p) => p.name) };
   });
   $("boOpen").disabled = true;
   if (await breakoutAction({ action: "open", rooms })) {

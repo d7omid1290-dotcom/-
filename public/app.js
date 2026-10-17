@@ -2829,7 +2829,7 @@ function renderRoomsStrip() {
     const manage = document.createElement("button");
     manage.type = "button";
     manage.className = "rs-manage";
-    manage.innerHTML = `${icon("rooms")}<span>إدارة الغرف</span>`;
+    manage.innerHTML = `${icon("rooms")}<span>غرف المراجعة</span>`;
     manage.addEventListener("click", openBreakout);
     strip.appendChild(manage);
   }
@@ -2961,7 +2961,7 @@ function renderBreakout() {
   if (live) return renderBreakoutLive();
 
   $("boCountVal").textContent = bo.count;
-  for (let i = 0; i < bo.count; i++) bo.names[i] ||= `غرفة ${i + 1}`;
+  for (let i = 0; i < bo.count; i++) bo.names[i] ||= `مراجعة ${i + 1}`;
   const students = boStudents();
   // الطالب الجديد أو من خرج رقم غرفته عن العدد يوضع في أقل غرفة عدداً
   for (const p of students) {
@@ -3053,7 +3053,7 @@ $("boOpen").addEventListener("click", async () => {
   const students = boStudents();
   const rooms = Array.from({ length: bo.count }, (_, i) => {
     const members = students.filter((p) => bo.assign.get(p.cid) === i);
-    return { name: bo.names[i].trim() || `غرفة ${i + 1}`, members: members.map((p) => p.cid), names: members.map((p) => p.name) };
+    return { name: bo.names[i].trim() || `مراجعة ${i + 1}`, members: members.map((p) => p.cid), names: members.map((p) => p.name) };
   });
   $("boOpen").disabled = true;
   if (await breakoutAction({ action: "open", rooms })) {
