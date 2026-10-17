@@ -4285,7 +4285,14 @@ function openPersonMenu(anchor, p, remoteRoom) {
   menu.style.maxHeight = `${innerHeight - 16}px`;
   menu.style.top = `${r.bottom + 6 + h > innerHeight ? Math.max(8, r.top - h - 6) : r.bottom + 6}px`;
   menu.style.left = `${Math.min(Math.max(8, r.left - (anchor.getBoundingClientRect ? 0 : w / 2)), innerWidth - w - 8)}px`;
-  setTimeout(() => document.addEventListener("click", closePersonMenu, { once: true }));
+  // الضغط خارج القائمة يغلقها (لا داخلها، ولا رفع الإصبع بعد الضغطة المطوّلة)
+  const onOutside = (e) => {
+    if (!document.body.contains(menu)) return document.removeEventListener("click", onOutside, true);
+    if (menu.guard || menu.contains(e.target)) return;
+    document.removeEventListener("click", onOutside, true);
+    closePersonMenu();
+  };
+  setTimeout(() => document.addEventListener("click", onOutside, true));
 }
 
 function menuButton(ic, label, enabled, run, danger) {
