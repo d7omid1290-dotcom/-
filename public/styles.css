@@ -1502,3 +1502,9 @@ body:has(#roomsStrip:not([hidden])) .toast { bottom: 168px; }
 .del-btn:hover { color: #fb7185; background: rgba(244, 63, 94, .12); }
 :root[data-theme="light"] .confirm-card { background: #fff; }
 :root[data-theme="light"] .confirm-card p { color: var(--muted); }
+
+/* الجوال: مسافة بين الشريط العلوي والمدار حتى لا تمر الأيقونات الدوّارة فوق «بالقرآن نتّصل» */
+.topbar { position: relative; z-index: 3; }
+@media (max-width: 960px) {
+  .home-art { padding-top: 34px; }
+}
