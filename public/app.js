@@ -48,6 +48,40 @@ function tabCid() {
   }
 }
 
+// نافذة تأكيد مرتبة في وسط الشاشة بدل نافذة المتصفح. ترجع وعداً بنعم/لا
+function askConfirm({ title, text, ok = "حذف", icon: ic = "trash", danger = true }) {
+  return new Promise((resolve) => {
+    const modal = $("confirmModal");
+    $("confirmTitle").textContent = title;
+    $("confirmText").textContent = text || "";
+    $("confirmText").hidden = !text;
+    $("confirmOk").textContent = ok;
+    $("confirmOk").className = `btn ${danger ? "btn-danger-solid" : "btn-primary"}`;
+    $("confirmIcon").className = `confirm-icon${danger ? "" : " calm"}`;
+    $("confirmIcon").innerHTML = icon(ic);
+    modal.hidden = false;
+    $("confirmCancel").focus();
+    const done = (answer) => {
+      modal.hidden = true;
+      modal.removeEventListener("click", onClick);
+      document.removeEventListener("keydown", onKey, true);
+      resolve(answer);
+    };
+    const onClick = (e) => {
+      if (e.target.closest("#confirmOk")) done(true);
+      else if (e.target.closest("[data-cancel]")) done(false);
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        done(false);
+      }
+    };
+    modal.addEventListener("click", onClick);
+    document.addEventListener("keydown", onKey, true);
+  });
+}
+
 function uid() {
   return crypto.randomUUID ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
 }
@@ -2029,12 +2063,14 @@ function openPersonMenu(anchor, p, remoteRoom) {
     menu.appendChild(document.createElement("hr"));
     menu.appendChild(
       menuButton("end", "إخراج من الحلقة", true, async () => {
-        if (confirm(`إخراج ${p.name} من الحلقة؟ يستطيع العودة بالرابط.`) && (await moderate("kick", { target: p.id }))) toast(`أُخرج ${p.name}`);
+        const yes = await askConfirm({ title: `إخراج ${p.name}؟`, text: "يخرج من الحلقة الآن، ويستطيع العودة بالرابط.", ok: "إخراج", icon: "end" });
+        if (yes && (await moderate("kick", { target: p.id }))) toast(`أُخرج ${p.name}`);
       }, true)
     );
     menu.appendChild(
       menuButton("lock", "إخراج ومنع من العودة", true, async () => {
-        if (confirm(`إخراج ${p.name} ومنعه من العودة؟ تستطيع السماح له لاحقاً من أدوات الإدارة.`) && (await moderate("kick", { target: p.id, ban: true }))) {
+        const yes = await askConfirm({ title: `إخراج ${p.name} ومنعه؟`, text: "لن يستطيع العودة حتى تسمح له من «ممنوعون من العودة» في أدوات الإدارة.", ok: "إخراج ومنع", icon: "lock" });
+        if (yes && (await moderate("kick", { target: p.id, ban: true }))) {
           toast(`أُخرج ${p.name} ومُنع من العودة`);
         }
       }, true)
@@ -2517,14 +2553,16 @@ function renderUpcoming() {
     li.innerHTML = `
       <div class="when"><b></b><span></span></div>
       <button class="btn btn-primary" data-join>دخول</button>
-      <button class="icon-btn" data-del aria-label="حذف">🗑️</button>`;
+      <button class="icon-btn del-btn" data-del title="حذف" aria-label="حذف">${icon("trash")}</button>`;
     li.querySelector("b").textContent = m.title;
     li.querySelector("span").textContent = live ? "يبدأ الآن" : formatWhen(m.start);
     li.querySelector("span").classList.toggle("soon", live);
     li.querySelector("[data-join]").addEventListener("click", () => goTo(m.code));
-    li.querySelector("[data-del]").addEventListener("click", () => {
+    li.querySelector("[data-del]").addEventListener("click", async () => {
+      if (!(await askConfirm({ title: `حذف «${m.title}»؟`, text: "سيُحذف الموعد من قائمتك. من أرسلت لهم الرابط يستطيعون الدخول به." }))) return;
       saveScheduled(loadScheduled().filter((x) => x.code !== m.code));
       renderUpcoming();
+      toast("حُذف الموعد");
     });
     ul.appendChild(li);
   }
@@ -3019,17 +3057,22 @@ function renderTerms() {
       <div class="when"><b></b><span></span></div>
       <button class="icon-btn" data-copy title="نسخ الرابط">${icon("copy")}</button>
       <button class="btn btn-primary" data-join>دخول</button>
-      <button class="icon-btn" data-del title="حذف">${icon("close")}</button>`;
+      <button class="icon-btn del-btn" data-del title="حذف" aria-label="حذف">${icon("trash")}</button>`;
     li.querySelector("b").textContent = t.title;
     const span = li.querySelector("span");
     span.textContent = live ? "الحلقة الآن" : `${daysText(t.days)} · ${timeText(t.time)}`;
     span.classList.toggle("soon", !!live);
     li.querySelector("[data-join]").addEventListener("click", () => goTo(t.code));
     li.querySelector("[data-copy]").addEventListener("click", () => copyText(termInvite(t), "تم نسخ رابط الغرفة الثابتة"));
-    li.querySelector("[data-del]").addEventListener("click", () => {
-      if (!confirm(`حذف «${t.title}» من قائمتك؟ الرابط نفسه سيبقى يعمل لمن عنده.`)) return;
+    li.querySelector("[data-del]").addEventListener("click", async () => {
+      const yes = await askConfirm({
+        title: `حذف «${t.title}»؟`,
+        text: "ستُحذف من قائمتك في هذا الجهاز فقط، والرابط نفسه يبقى يعمل لمن عنده.",
+      });
+      if (!yes) return;
       saveTerms(loadTerms().filter((x) => x.code !== t.code));
       renderTerms();
+      toast("حُذفت الغرفة من قائمتك");
     });
     ul.appendChild(li);
   }

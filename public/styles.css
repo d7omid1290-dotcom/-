@@ -1483,3 +1483,22 @@ body:has(#roomsStrip:not([hidden])) .toast { bottom: 168px; }
 .banned h4 .i { width: 16px; height: 16px; }
 .banned ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .banned li { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: .9rem; }
+
+/* ===== نافذة التأكيد في وسط الشاشة ===== */
+.confirm-modal { z-index: 80; }
+.confirm-card { width: min(380px, 100%); text-align: center; padding: 30px 24px 22px; }
+.confirm-icon {
+  width: 60px; height: 60px; margin: 0 auto 14px; border-radius: 50%; display: grid; place-items: center;
+  background: rgba(244, 63, 94, .12); color: #fb7185; box-shadow: 0 0 0 8px rgba(244, 63, 94, .06);
+}
+.confirm-icon.calm { background: rgba(111, 191, 152, .14); color: var(--teal); box-shadow: 0 0 0 8px rgba(111, 191, 152, .06); }
+.confirm-icon .i { width: 28px; height: 28px; }
+.confirm-card h2 { font-size: 1.2rem; margin-bottom: 6px; overflow-wrap: anywhere; }
+.confirm-card p { margin: 0 0 22px; color: var(--muted); font-size: .92rem; line-height: 1.7; }
+.confirm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.confirm-actions .btn { height: 48px; justify-content: center; }
+.btn-danger-solid { background: var(--danger); border-color: transparent; color: #fff; font-weight: 600; }
+.btn-danger-solid:hover { background: var(--danger-hover); }
+.del-btn:hover { color: #fb7185; background: rgba(244, 63, 94, .12); }
+:root[data-theme="light"] .confirm-card { background: #fff; }
+:root[data-theme="light"] .confirm-card p { color: var(--muted); }

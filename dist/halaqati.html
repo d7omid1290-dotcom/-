@@ -1500,6 +1500,25 @@ body:has(#roomsStrip:not([hidden])) .toast { bottom: 168px; }
 .banned h4 .i { width: 16px; height: 16px; }
 .banned ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .banned li { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: .9rem; }
+
+/* ===== نافذة التأكيد في وسط الشاشة ===== */
+.confirm-modal { z-index: 80; }
+.confirm-card { width: min(380px, 100%); text-align: center; padding: 30px 24px 22px; }
+.confirm-icon {
+  width: 60px; height: 60px; margin: 0 auto 14px; border-radius: 50%; display: grid; place-items: center;
+  background: rgba(244, 63, 94, .12); color: #fb7185; box-shadow: 0 0 0 8px rgba(244, 63, 94, .06);
+}
+.confirm-icon.calm { background: rgba(111, 191, 152, .14); color: var(--teal); box-shadow: 0 0 0 8px rgba(111, 191, 152, .06); }
+.confirm-icon .i { width: 28px; height: 28px; }
+.confirm-card h2 { font-size: 1.2rem; margin-bottom: 6px; overflow-wrap: anywhere; }
+.confirm-card p { margin: 0 0 22px; color: var(--muted); font-size: .92rem; line-height: 1.7; }
+.confirm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.confirm-actions .btn { height: 48px; justify-content: center; }
+.btn-danger-solid { background: var(--danger); border-color: transparent; color: #fff; font-weight: 600; }
+.btn-danger-solid:hover { background: var(--danger-hover); }
+.del-btn:hover { color: #fb7185; background: rgba(244, 63, 94, .12); }
+:root[data-theme="light"] .confirm-card { background: #fff; }
+:root[data-theme="light"] .confirm-card p { color: var(--muted); }
 </style>
   <script>
     // نطبّق الوضع (نهاري/ليلي) قبل ظهور الصفحة حتى لا تومض
@@ -1537,6 +1556,7 @@ body:has(#roomsStrip:not([hidden])) .toast { bottom: 168px; }
       <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6.5C10.5 5 8 4.5 3.5 4.5v14c4.5 0 7 .5 8.5 2 1.5-1.5 4-2 8.5-2v-14c-4.5 0-7 .5-8.5 2zM12 6.5v14"/></symbol>
       <symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="5.5" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="18.5" r="1.4" fill="currentColor"/></symbol>
       <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"/></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5"/></symbol>
       <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7.5 3v6c0 4.6-3.2 7.8-7.5 9-4.3-1.2-7.5-4.4-7.5-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
       <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></symbol>
       <symbol id="i-google" viewBox="0 0 24 24"><path d="M20.5 12.2c0-.6-.1-1.2-.2-1.7H12v3.3h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.6-3.9 2.6-6.5zM12 21c2.4 0 4.5-.8 5.9-2.2L15 16.5c-.8.5-1.8.9-3 .9-2.3 0-4.3-1.6-5-3.7H4v2.3A9 9 0 0 0 12 21zM7 13.7a5.4 5.4 0 0 1 0-3.4V8H4a9 9 0 0 0 0 8.1zM12 6.6c1.3 0 2.5.5 3.4 1.3L18 5.4A9 9 0 0 0 4 8l3 2.3c.7-2.1 2.7-3.7 5-3.7z" fill="currentColor" stroke="none"/></symbol>
@@ -2000,6 +2020,19 @@ body:has(#roomsStrip:not([hidden])) .toast { bottom: 168px; }
   </div>
 
   <!-- نافذة اختيار الأجهزة داخل الحلقة -->
+  <div class="modal confirm-modal" id="confirmModal" hidden>
+    <div class="modal-backdrop" data-cancel></div>
+    <div class="modal-card confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmText">
+      <span class="confirm-icon" id="confirmIcon"><svg class="i"><use href="#i-trash"/></svg></span>
+      <h2 id="confirmTitle"></h2>
+      <p id="confirmText"></p>
+      <div class="confirm-actions">
+        <button class="btn" id="confirmCancel" type="button" data-cancel>إلغاء</button>
+        <button class="btn btn-danger-solid" id="confirmOk" type="button"></button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal" id="settingsModal" hidden>
     <div class="modal-backdrop" data-close></div>
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
@@ -2074,6 +2107,40 @@ function tabCid() {
   } catch {
     return uid();
   }
+}
+
+// نافذة تأكيد مرتبة في وسط الشاشة بدل نافذة المتصفح. ترجع وعداً بنعم/لا
+function askConfirm({ title, text, ok = "حذف", icon: ic = "trash", danger = true }) {
+  return new Promise((resolve) => {
+    const modal = $("confirmModal");
+    $("confirmTitle").textContent = title;
+    $("confirmText").textContent = text || "";
+    $("confirmText").hidden = !text;
+    $("confirmOk").textContent = ok;
+    $("confirmOk").className = `btn ${danger ? "btn-danger-solid" : "btn-primary"}`;
+    $("confirmIcon").className = `confirm-icon${danger ? "" : " calm"}`;
+    $("confirmIcon").innerHTML = icon(ic);
+    modal.hidden = false;
+    $("confirmCancel").focus();
+    const done = (answer) => {
+      modal.hidden = true;
+      modal.removeEventListener("click", onClick);
+      document.removeEventListener("keydown", onKey, true);
+      resolve(answer);
+    };
+    const onClick = (e) => {
+      if (e.target.closest("#confirmOk")) done(true);
+      else if (e.target.closest("[data-cancel]")) done(false);
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        done(false);
+      }
+    };
+    modal.addEventListener("click", onClick);
+    document.addEventListener("keydown", onKey, true);
+  });
 }
 
 function uid() {
@@ -4057,12 +4124,14 @@ function openPersonMenu(anchor, p, remoteRoom) {
     menu.appendChild(document.createElement("hr"));
     menu.appendChild(
       menuButton("end", "إخراج من الحلقة", true, async () => {
-        if (confirm(`إخراج ${p.name} من الحلقة؟ يستطيع العودة بالرابط.`) && (await moderate("kick", { target: p.id }))) toast(`أُخرج ${p.name}`);
+        const yes = await askConfirm({ title: `إخراج ${p.name}؟`, text: "يخرج من الحلقة الآن، ويستطيع العودة بالرابط.", ok: "إخراج", icon: "end" });
+        if (yes && (await moderate("kick", { target: p.id }))) toast(`أُخرج ${p.name}`);
       }, true)
     );
     menu.appendChild(
       menuButton("lock", "إخراج ومنع من العودة", true, async () => {
-        if (confirm(`إخراج ${p.name} ومنعه من العودة؟ تستطيع السماح له لاحقاً من أدوات الإدارة.`) && (await moderate("kick", { target: p.id, ban: true }))) {
+        const yes = await askConfirm({ title: `إخراج ${p.name} ومنعه؟`, text: "لن يستطيع العودة حتى تسمح له من «ممنوعون من العودة» في أدوات الإدارة.", ok: "إخراج ومنع", icon: "lock" });
+        if (yes && (await moderate("kick", { target: p.id, ban: true }))) {
           toast(`أُخرج ${p.name} ومُنع من العودة`);
         }
       }, true)
@@ -4545,14 +4614,16 @@ function renderUpcoming() {
     li.innerHTML = `
       <div class="when"><b></b><span></span></div>
       <button class="btn btn-primary" data-join>دخول</button>
-      <button class="icon-btn" data-del aria-label="حذف">🗑️</button>`;
+      <button class="icon-btn del-btn" data-del title="حذف" aria-label="حذف">${icon("trash")}</button>`;
     li.querySelector("b").textContent = m.title;
     li.querySelector("span").textContent = live ? "يبدأ الآن" : formatWhen(m.start);
     li.querySelector("span").classList.toggle("soon", live);
     li.querySelector("[data-join]").addEventListener("click", () => goTo(m.code));
-    li.querySelector("[data-del]").addEventListener("click", () => {
+    li.querySelector("[data-del]").addEventListener("click", async () => {
+      if (!(await askConfirm({ title: `حذف «${m.title}»؟`, text: "سيُحذف الموعد من قائمتك. من أرسلت لهم الرابط يستطيعون الدخول به." }))) return;
       saveScheduled(loadScheduled().filter((x) => x.code !== m.code));
       renderUpcoming();
+      toast("حُذف الموعد");
     });
     ul.appendChild(li);
   }
@@ -5047,17 +5118,22 @@ function renderTerms() {
       <div class="when"><b></b><span></span></div>
       <button class="icon-btn" data-copy title="نسخ الرابط">${icon("copy")}</button>
       <button class="btn btn-primary" data-join>دخول</button>
-      <button class="icon-btn" data-del title="حذف">${icon("close")}</button>`;
+      <button class="icon-btn del-btn" data-del title="حذف" aria-label="حذف">${icon("trash")}</button>`;
     li.querySelector("b").textContent = t.title;
     const span = li.querySelector("span");
     span.textContent = live ? "الحلقة الآن" : `${daysText(t.days)} · ${timeText(t.time)}`;
     span.classList.toggle("soon", !!live);
     li.querySelector("[data-join]").addEventListener("click", () => goTo(t.code));
     li.querySelector("[data-copy]").addEventListener("click", () => copyText(termInvite(t), "تم نسخ رابط الغرفة الثابتة"));
-    li.querySelector("[data-del]").addEventListener("click", () => {
-      if (!confirm(`حذف «${t.title}» من قائمتك؟ الرابط نفسه سيبقى يعمل لمن عنده.`)) return;
+    li.querySelector("[data-del]").addEventListener("click", async () => {
+      const yes = await askConfirm({
+        title: `حذف «${t.title}»؟`,
+        text: "ستُحذف من قائمتك في هذا الجهاز فقط، والرابط نفسه يبقى يعمل لمن عنده.",
+      });
+      if (!yes) return;
       saveTerms(loadTerms().filter((x) => x.code !== t.code));
       renderTerms();
+      toast("حُذفت الغرفة من قائمتك");
     });
     ul.appendChild(li);
   }
