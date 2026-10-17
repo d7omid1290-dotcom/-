@@ -2100,6 +2100,7 @@ function openPersonMenu(anchor, p, remoteRoom) {
   const menu = document.createElement("div");
   menu.className = "pmenu";
   menu.id = "pmenu";
+  menu.openedAt = anchor.getBoundingClientRect ? 0 : Date.now();
   const head = document.createElement("div");
   head.className = "pm-head";
   head.textContent = p.name;
@@ -2184,6 +2185,8 @@ function menuButton(ic, label, enabled, run, danger) {
   b.innerHTML = `${ic ? icon(ic) : ""}<span></span>`;
   b.lastChild.textContent = label;
   b.addEventListener("click", () => {
+    // بعد الضغطة المطوّلة يرفع المستخدم إصبعه فوق القائمة؛ نتجاهل تلك اللمسة حتى لا تُنفَّذ أول خيار تحتها
+    if (Date.now() - ($("pmenu")?.openedAt || 0) < 450) return;
     closePersonMenu();
     run();
   });
