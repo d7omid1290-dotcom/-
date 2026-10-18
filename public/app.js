@@ -1863,15 +1863,22 @@ function leave(navigate = true) {
 
 $("micBtn").addEventListener("click", () => setMic(!state.micOn));
 $("camBtn").addEventListener("click", () => setCam(!state.camOn));
-// المعلّم يختار: إنهاء الحلقة للجميع، أو المغادرة وتبقى الحلقة قائمة
+// المعلّم يختار دائماً: إنهاء الحلقة للجميع، أو المغادرة وتبقى الحلقة قائمة
 $("leaveBtn").addEventListener("click", async () => {
-  if (state.role !== "teacher" || DEMO || !state.peers.size) return leave();
+  if (state.role !== "teacher" || DEMO) return leave();
   const choice = await askLeave();
-  if (choice === "end") {
-    if (await moderate("end")) toast("أُنهيت الحلقة للجميع");
-    leave();
-    $("leftSummary").textContent = "أنهيت الحلقة للجميع";
-  } else if (choice === "leave") leave();
+  if (choice === "end") endCircle();
+  else if (choice === "leave") leave();
+});
+async function endCircle() {
+  if (state.peers.size && (await moderate("end"))) toast("أُنهيت الحلقة للجميع");
+  leave();
+  $("leftSummary").textContent = "أنهيت الحلقة للجميع";
+}
+// وزر مستقل في قائمة «المزيد»
+$("endMenuBtn").addEventListener("click", async () => {
+  const yes = await askConfirm({ title: "إنهاء الحلقة للجميع؟", text: "يخرج جميع المشاركين وتنتهي الحلقة الآن.", ok: "إنهاء الحلقة", icon: "end" });
+  if (yes) endCircle();
 });
 function askLeave() {
   return new Promise((resolve) => {
@@ -2050,6 +2057,7 @@ function applyRole() {
   tuneSenders();
   // التسجيل للمستضيف (المعلّم) فقط
   $("recBtn").hidden = state.role !== "teacher";
+  $("endMenuBtn").hidden = state.role !== "teacher" || DEMO;
   if (state.recorder && state.role !== "teacher") stopRecording();
   renderRoomsStrip();
   applyControls(false);
