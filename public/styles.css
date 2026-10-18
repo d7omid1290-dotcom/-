@@ -1627,3 +1627,15 @@ body:has(#roomsStrip:not([hidden])) .toast { bottom: 168px; }
   content: "انقطع مؤقتاً… بانتظار عودته"; position: absolute; inset: auto 8px 8px 8px; text-align: center;
   padding: 4px 8px; border-radius: 999px; font-size: .72rem; color: #fbbf24; background: rgba(0, 0, 0, .55); pointer-events: none;
 }
+
+/* إرشاد إذن المايك في صفحة التجهيز */
+.perm-help { margin-top: 12px; border-radius: 14px; padding: 12px 14px; background: rgba(251, 191, 36, .1); border: 1px solid rgba(251, 191, 36, .35); font-size: .88rem; }
+.perm-help[hidden], .perm-help [hidden] { display: none; }
+.perm-ask { display: flex; gap: 12px; align-items: center; }
+.perm-ask b, .perm-denied b { display: block; color: #fbbf24; }
+.perm-ask small { color: var(--muted); }
+.perm-arrow { font-size: 1.4rem; color: #fbbf24; animation: perm-bob 1s ease-in-out infinite; }
+@keyframes perm-bob { 50% { transform: translateY(-5px); } }
+.perm-denied ol { margin: 8px 0 10px; padding-inline-start: 20px; line-height: 1.8; }
+:root[data-theme="light"] .perm-ask b, :root[data-theme="light"] .perm-denied b, :root[data-theme="light"] .perm-arrow { color: #b45309; }
+.lobby > .perm-help { grid-column: 1 / -1; margin: 0; }

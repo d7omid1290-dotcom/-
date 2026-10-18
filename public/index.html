@@ -209,6 +209,14 @@
       </div>
     </header>
     <div class="lobby">
+      <div class="perm-help" id="permHelp" hidden>
+        <div class="perm-ask" id="permAsk"><span class="perm-arrow">⬆</span><div><b>اضغط «سماح» في الرسالة اللي فوق</b><small>المتصفح يطلب إذن المايك والكاميرا، عشان يسمعك المعلّم</small></div></div>
+        <div class="perm-denied" id="permDenied" hidden>
+          <b>المايك ممنوع في المتصفح</b>
+          <ol id="permSteps"></ol>
+          <button class="btn btn-primary btn-sm" type="button" id="permRetry">حاول مرة أخرى</button>
+        </div>
+      </div>
       <div class="preview-wrap">
         <div class="preview">
           <video id="previewVideo" autoplay playsinline muted></video>

@@ -384,7 +384,10 @@ async function getMedia() {
       for (const t of stream.getAudioTracks()) if ("contentHint" in t) t.contentHint = "speech";
       return stream;
     } catch (err) {
-      if (err.name === "NotAllowedError") break;
+      if (err.name === "NotAllowedError") {
+        state.permDenied = true;
+        break;
+      }
     }
   }
   return new MediaStream(); // بدون كاميرا أو ميكروفون — يمكنه المشاهدة فقط
@@ -484,27 +487,70 @@ async function openLobby() {
   $("nameInput").value = localStorage.getItem("halaqati:name") || "";
   $("hostBadge").hidden = !getKey(state.code);
   $("hostLinkBtn").hidden = !teacherLink(state.code);
-  if (!state.stream) {
-    try {
-      state.stream = await getMedia();
-    } catch (err) {
-      $("lobbyError").textContent = err.message;
-      state.stream = new MediaStream();
-    }
-  }
+  if (!state.stream) await acquireMedia();
   state.micOn = !!micTrack() && state.micOn;
   state.camOn = !!camTrack() && state.camOn;
   $("previewVideo").srcObject = state.stream;
   syncToggleButtons();
-  if (!micTrack() && !camTrack()) {
+  if (!micTrack() && !camTrack() && !state.permDenied) {
     $("lobbyError").textContent = "لم نتمكن من الوصول للكاميرا أو الميكروفون. يمكنك الدخول للاستماع فقط.";
   }
   populateDevices();
   startLobbyMeter();
   $("previewName").textContent = $("nameInput").value;
   refreshLobbyPeers();
-  $("nameInput").focus();
+  // المايك ممنوع: نُبقي الإرشاد ظاهراً أعلى الصفحة بدل القفز لخانة الاسم
+  if (state.permDenied && !micTrack()) $("permHelp").scrollIntoView({ block: "start" });
+  else $("nameInput").focus();
 }
+
+// طلب إذن المايك والكاميرا مع إرشاد واضح لمن لا يعرف: «اضغط سماح»، وإن رُفض نشرح طريقة السماح خطوة بخطوة
+async function acquireMedia() {
+  state.permDenied = false;
+  $("permHelp").hidden = false;
+  $("permAsk").hidden = false;
+  $("permDenied").hidden = true;
+  // لا نُظهر «اضغط سماح» إن كان الإذن ممنوحاً من قبل (لن تظهر رسالة المتصفح)
+  const granted = await navigator.permissions?.query({ name: "microphone" }).then((p) => p.state === "granted").catch(() => false);
+  if (granted) $("permHelp").hidden = true;
+  try {
+    state.stream = await getMedia();
+  } catch (err) {
+    $("lobbyError").textContent = err.message;
+    state.stream = new MediaStream();
+  }
+  $("permAsk").hidden = true;
+  if (state.permDenied && !micTrack()) {
+    $("permSteps").innerHTML = permSteps().map((s) => `<li>${s}</li>`).join("");
+    $("permDenied").hidden = false;
+    $("permHelp").hidden = false;
+  } else {
+    $("permHelp").hidden = true;
+  }
+}
+function permSteps() {
+  const ua = navigator.userAgent;
+  if (/iPhone|iPad|iPod/.test(ua) && !/CriOS|FxiOS/.test(ua)) {
+    return ["اضغط «aA» (أو أيقونة الإعدادات) يسار شريط العنوان", "اختر «إعدادات موقع الويب»", "غيّر «الميكروفون» و«الكاميرا» إلى «سماح»", "ثم اضغط «حاول مرة أخرى» تحت"];
+  }
+  if (/Android/.test(ua)) {
+    return ["اضغط أيقونة القفل 🔒 بجانب رابط الموقع فوق", "اختر «الأذونات»", "فعّل «الميكروفون» و«الكاميرا»", "ثم اضغط «حاول مرة أخرى» تحت"];
+  }
+  return ["اضغط أيقونة القفل 🔒 بجانب رابط الموقع فوق", "غيّر «الميكروفون» و«الكاميرا» إلى «سماح»", "ثم اضغط «حاول مرة أخرى» تحت (أو حدّث الصفحة)"];
+}
+$("permRetry").addEventListener("click", async () => {
+  stopMedia();
+  await acquireMedia();
+  // إن بقي ممنوعاً في سفاري فلا بد من تحديث الصفحة بعد تغيير الإعداد
+  if (state.permDenied && !micTrack()) return location.reload();
+  state.micOn = !!micTrack();
+  state.camOn = !!camTrack();
+  $("previewVideo").srcObject = state.stream;
+  $("lobbyError").textContent = "";
+  syncToggleButtons();
+  populateDevices();
+  startLobbyMeter();
+});
 
 $("nameInput").addEventListener("input", () => {
   $("previewName").textContent = $("nameInput").value;
@@ -1237,12 +1283,25 @@ function createPeer(id, name, initiator, cid, role) {
   return peer;
 }
 
+// الصوت: لا يُرسل شيء تقريباً وقت السكوت (DTX)، ومع تصحيح الأخطاء (FEC) يبقى واضحاً على النت الضعيف.
+// أغلب الطلاب ساكتون أغلب الوقت، فهذا يوفّر معظم ما يستهلكه الصوت
+function lightAudio(desc) {
+  const sdp = desc.sdp.replace(/a=fmtp:(\d+) ([^\r\n]*)/g, (line, pt, params) => {
+    if (!new RegExp(`a=rtpmap:${pt} opus/`, "i").test(desc.sdp)) return line;
+    let p = params;
+    if (!/usedtx=/.test(p)) p += ";usedtx=1";
+    if (!/useinbandfec=/.test(p)) p += ";useinbandfec=1";
+    return `a=fmtp:${pt} ${p}`;
+  });
+  return { type: desc.type, sdp };
+}
+
 async function makeOffer(peer, iceRestart = false) {
   try {
     if (isClosed(peer)) return;
     const offer = await peer.pc.createOffer({ iceRestart });
     if (isClosed(peer)) return;
-    await peer.pc.setLocalDescription(offer);
+    await peer.pc.setLocalDescription(lightAudio(offer));
     signal("offer", peer.pc.localDescription, peer.id);
     tuneSenders();
   } catch (err) {
@@ -1263,7 +1322,7 @@ async function onOffer(peer, sdp) {
   if (isClosed(peer)) return;
   const answer = await pc.createAnswer();
   if (isClosed(peer)) return;
-  await pc.setLocalDescription(answer);
+  await pc.setLocalDescription(lightAudio(answer));
   signal("answer", pc.localDescription, peer.id);
   flushIce(peer);
   tuneSenders();
@@ -1338,8 +1397,8 @@ function replaceOutgoingVideo() {
 // المعلّم (يُشاهَد كبيراً) نحو 2.5 ميغابت، والطالب نحو 0.8 ميغابت (أغلبها للمعلّم، وزملاؤه صورة صغيرة)
 function videoEncoding(remotes) {
   const staff = isStaff(state.role);
-  const budget = staff ? 2500000 : 800000;
-  const maxBitrate = Math.round(Math.min(staff ? 1200000 : 600000, budget / Math.max(1, staff ? remotes : Math.min(remotes, 2))));
+  const budget = staff ? 1500000 : 450000;
+  const maxBitrate = Math.round(Math.min(staff ? 800000 : 350000, budget / Math.max(1, staff ? remotes : Math.min(remotes, 2))));
   const enc = {
     maxBitrate,
     scaleResolutionDownBy: maxBitrate >= 600000 ? 1 : maxBitrate >= 280000 ? 1.5 : maxBitrate >= 140000 ? 2 : 3,
@@ -1356,7 +1415,7 @@ function videoEncoding(remotes) {
 
 // الطالب يرى زملاءه صغاراً ويرى المعلّم كبيراً، فنرسل لزملائه صورة خفيفة جداً
 // ونوفّر الإنترنت للصورة المرسلة للمعلّم وللصوت
-const PEER_LITE = { maxBitrate: 60000, scaleResolutionDownBy: 4, maxFramerate: 10 };
+const PEER_LITE = { maxBitrate: 40000, scaleResolutionDownBy: 4, maxFramerate: 8 };
 function tuneSenders() {
   const base = videoEncoding(state.peers.size);
   for (const peer of state.peers.values()) {
@@ -1367,7 +1426,7 @@ function tuneSenders() {
     // المستقبِل جوال أو إنترنته ضعيف: صورة أخف له (الطلاب أخف بكثير، والمعلّم يبقى واضحاً)
     if (peer.lite && !state.screenStream) {
       if (lite) Object.assign(enc, { maxBitrate: 90000, scaleResolutionDownBy: 4, maxFramerate: 12 });
-      else enc.maxBitrate = Math.min(enc.maxBitrate, 450000);
+      else enc.maxBitrate = Math.min(enc.maxBitrate, 300000);
     }
     // جوالي يرسل بإطارات أقل فلا يسخن
     if (IS_PHONE && !state.screenStream) enc.maxFramerate = Math.min(enc.maxFramerate, isStaff(state.role) ? 20 : 15);
@@ -1432,7 +1491,7 @@ function tuneAudio(peer) {
   params.encodings[0].priority = "high";
   params.encodings[0].networkPriority = "high";
   // صوت الكلام واضح تماماً عند 32 كيلوبت، فلا نهدر أكثر لكل مشارك
-  params.encodings[0].maxBitrate = 32000;
+  params.encodings[0].maxBitrate = 28000;
   sender.audioTuned = true;
   sender.setParameters(params).catch(() => (sender.audioTuned = false));
 }
@@ -1556,7 +1615,17 @@ function setReciter(id) {
       syncToggleButtons();
       broadcastState();
     }
-    toast(state.micOn ? "🎙️ دورك الآن في التسميع، بالتوفيق" : "🎙️ دورك الآن — افتح الميكروفون وابدأ التسميع");
+    if (!state.micOn && micTrack()) {
+      state.micAuto = true;
+      // إذن المايك يُمنح لمن يُسمّع، فنفتحه بعد تطبيق القيود
+      setTimeout(() => state.reciter === state.myId && setMic(true), 0);
+      toast("🎙️ دورك الآن — فُتح المايك تلقائياً، ابدأ التسميع");
+    } else toast("🎙️ دورك الآن في التسميع، بالتوفيق");
+  }
+  // انتهى دوري: إن كان المايك فُتح تلقائياً نقفله كما كان
+  if (was === state.myId && id !== state.myId && state.micAuto) {
+    state.micAuto = false;
+    if (state.micOn) setMic(false);
   }
   updateReciteUI();
   repaintTiles();
@@ -1860,6 +1929,12 @@ document.addEventListener("touchend", () => {
 function enterRoom() {
   state.joinedAt = Date.now();
   watchMic();
+  // الطالب يدخل والمايك مقفل حتى لا يُسمع ضجيج عنده، ويُفتح تلقائياً حين يأتي دوره في التسميع
+  if (state.role === "student" && state.micOn && micTrack()) {
+    state.micOn = false;
+    micTrack().enabled = false;
+    setTimeout(() => toast("دخلت والمايك مقفل 🔇 — يُفتح تلقائياً إذا جاء دورك، أو اضغط زر المايك"), 900);
+  }
   $("joinNowBtn").disabled = false;
   show("room");
   $("roomCode").textContent = state.code;
