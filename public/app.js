@@ -459,7 +459,8 @@ function enforceLocks() {
 function setMic(on, forced) {
   if (on && !micAllowed()) return toast("المايك بإذن المعلّم — ارفع يدك ليسمح لك أو ينادي دورك");
   if (forced) toast("أُغلق المايك: الفتح بإذن المعلّم");
-  if (on && !micTrack()) return toast("لا يوجد ميكروفون متاح");
+  // لم يسمح للمايك من قبل: نطلب الإذن الآن عند الضغط على الزر
+  if (on && !micTrack()) return requestDevice("audioinput");
   state.micOn = on;
   if (micTrack()) micTrack().enabled = on;
   syncToggleButtons();
@@ -470,7 +471,7 @@ function setMic(on, forced) {
 function setCam(on, forced) {
   if (on && !camAllowed()) return toast("الكاميرا بإذن المعلّم");
   if (forced) toast("أُغلقت الكاميرا: الفتح بإذن المعلّم");
-  if (on && !camTrack()) return toast("لا توجد كاميرا متاحة");
+  if (on && !camTrack()) return requestDevice("videoinput");
   state.camOn = on;
   if (camTrack()) camTrack().enabled = on;
   syncToggleButtons();
@@ -487,7 +488,7 @@ async function openLobby() {
   $("nameInput").value = localStorage.getItem("halaqati:name") || "";
   $("hostBadge").hidden = !getKey(state.code);
   $("hostLinkBtn").hidden = !teacherLink(state.code);
-  if (!state.stream) await acquireMedia();
+  if (!state.stream) await (state.mediaReady = acquireMedia());
   state.micOn = !!micTrack() && state.micOn;
   state.camOn = !!camTrack() && state.camOn;
   $("previewVideo").srcObject = state.stream;
@@ -688,7 +689,46 @@ $("backHomeBtn").addEventListener("click", () => goTo(null));
 $("nameInput").addEventListener("keydown", (e) => {
   if (e.key === "Enter") join();
 });
-$("joinNowBtn").addEventListener("click", join);
+// الدخول بلا إذن للمايك مسموح، لكن بعد تأكيد واضح، ويستطيع السماح لاحقاً من زر المايك داخل الحلقة
+$("joinNowBtn").addEventListener("click", async () => {
+  // إن ضغط الدخول قبل أن ينتهي طلب الإذن ننتظره أولاً
+  await state.mediaReady?.catch?.(() => {});
+  if (!DEMO && !micTrack() && $("nameInput").value.trim()) {
+    const yes = await askConfirm({
+      title: "تدخل بدون مايك؟",
+      text: "ما سمحت للمايك، فلن يسمعك المعلّم. تقدر تسمح له بعدين من داخل الحلقة بالضغط على زر المايك.",
+      ok: "نعم، أدخل بدون مايك",
+      icon: "mic-off",
+      danger: false,
+    });
+    if (!yes) return;
+  }
+  join();
+});
+
+// طلب إذن المايك أو الكاميرا عند الضغط على زرها (لمن لم يسمح عند الدخول)
+let requesting = false;
+async function requestDevice(kind) {
+  if (requesting) return;
+  requesting = true;
+  const isAudio = kind === "audioinput";
+  try {
+    const fresh = await navigator.mediaDevices.getUserMedia(isAudio ? { audio: MIC_CONSTRAINTS } : { video: CAM_CONSTRAINTS });
+    const track = isAudio ? fresh.getAudioTracks()[0] : fresh.getVideoTracks()[0];
+    if (isAudio && "contentHint" in track) track.contentHint = "speech";
+    state.permDenied = false;
+    $("permHelp").hidden = true;
+    installTrack(kind, track);
+    toast(isAudio ? "🎙️ تم تشغيل المايك" : "📷 تم تشغيل الكاميرا");
+  } catch (err) {
+    const what = isAudio ? "المايك" : "الكاميرا";
+    if (err?.name === "NotAllowedError") {
+      await askConfirm({ title: `${what} ممنوع في المتصفح`, text: [...permSteps().slice(0, -1), "ثم ارجع واضغط الزر مرة ثانية (وإذا ما اشتغل حدّث الصفحة)"].join(" ← "), ok: "حسناً", icon: isAudio ? "mic-off" : "cam-off", danger: false });
+    } else toast(isAudio ? "لا يوجد ميكروفون متاح" : "لا توجد كاميرا متاحة");
+  } finally {
+    requesting = false;
+  }
+}
 
 /* ---------- الإشارة (Signaling) ---------- */
 
