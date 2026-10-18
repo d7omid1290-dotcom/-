@@ -368,7 +368,7 @@ $("homeClock").textContent = $("roomClock").textContent = timeNow();
 // الجوال يلتقط بدقة أقل (أخف على المعالج والبطارية والإنترنت)، والكمبيوتر بدقة أعلى
 const IS_PHONE = matchMedia("(hover: none) and (pointer: coarse)").matches;
 const CAM_CONSTRAINTS = IS_PHONE
-  ? { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 24, max: 30 } }
+  ? { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 15, max: 20 } }
   : { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } };
 const MIC_CONSTRAINTS = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
 
@@ -582,7 +582,12 @@ async function switchDevice(kind, deviceId) {
   } catch {
     return toast("تعذر تشغيل هذا الجهاز");
   }
-  const track = isAudio ? fresh.getAudioTracks()[0] : fresh.getVideoTracks()[0];
+  installTrack(kind, isAudio ? fresh.getAudioTracks()[0] : fresh.getVideoTracks()[0]);
+}
+
+// يضع مساراً جديداً (ميكروفون أو كاميرا) مكان القديم لدى الجميع دون إعادة الاتصال
+function installTrack(kind, track) {
+  const isAudio = kind === "audioinput";
   const old = isAudio ? micTrack() : camTrack();
   state.stream ||= new MediaStream();
   if (old) {
@@ -606,6 +611,7 @@ async function switchDevice(kind, deviceId) {
     startLobbyMeter();
     if (state.localTile) watchLevel(new MediaStream([track]), state.localTile);
     addToRecording(new MediaStream([track]));
+    watchMic();
   }
   syncToggleButtons();
   updateLocalTile();
@@ -670,6 +676,8 @@ function myStatus() {
     screen: !!state.screenStream,
     recording: !!state.recorder,
     role: state.role,
+    // أطلب صورة خفيفة: الجوال (حتى لا يسخن من فك عشرات الصور) أو عند ضعف الإنترنت
+    lite: IS_PHONE || !!state.netPoor,
     handAt: state.handAt,
   };
 }
@@ -1120,6 +1128,10 @@ async function handleSignal({ from, type, data }) {
         screen: !!data.screen,
         recording: !!data.recording,
       });
+      if (peer.lite !== !!data.lite) {
+        peer.lite = !!data.lite;
+        tuneSenders();
+      }
       updatePeerTile(peer);
       layoutGrid();
       updateRecBanner();
@@ -1338,7 +1350,22 @@ function tuneSenders() {
     if (isClosed(peer)) continue;
     tuneAudio(peer);
     const lite = !isStaff(state.role) && !isStaff(peer.role) && !state.screenStream && effectivePin() !== "local";
-    const enc = lite ? { ...base, ...PEER_LITE, maxBitrate: Math.min(base.maxBitrate, PEER_LITE.maxBitrate) } : base;
+    const enc = lite ? { ...base, ...PEER_LITE, maxBitrate: Math.min(base.maxBitrate, PEER_LITE.maxBitrate) } : { ...base };
+    // المستقبِل جوال أو إنترنته ضعيف: صورة أخف له (الطلاب أخف بكثير، والمعلّم يبقى واضحاً)
+    if (peer.lite && !state.screenStream) {
+      if (lite) Object.assign(enc, { maxBitrate: 90000, scaleResolutionDownBy: 4, maxFramerate: 12 });
+      else enc.maxBitrate = Math.min(enc.maxBitrate, 450000);
+    }
+    // جوالي يرسل بإطارات أقل فلا يسخن
+    if (IS_PHONE && !state.screenStream) enc.maxFramerate = Math.min(enc.maxFramerate, isStaff(state.role) ? 20 : 15);
+    // إنترنتي ضعيف: الصوت أولاً، والصورة في أدنى حد
+    if (state.netPoor && !state.screenStream) {
+      Object.assign(enc, {
+        maxBitrate: Math.min(enc.maxBitrate, isStaff(state.role) ? 160000 : 80000),
+        scaleResolutionDownBy: Math.max(enc.scaleResolutionDownBy, isStaff(state.role) ? 2 : 4),
+        maxFramerate: Math.min(enc.maxFramerate, 12),
+      });
+    }
     const sender = peer.pc.getTransceivers().find((x) => x.receiver.track.kind === "video")?.sender;
     if (!sender?.getParameters) continue;
     // تعديل واحد في كل مرة لكل اتصال؛ وإن طُلب تعديل أثناء آخر نعيده بعده
@@ -1703,6 +1730,7 @@ function levelOf(analyser) {
 }
 
 setInterval(() => {
+  if (document.hidden) return;
   for (const [tile, analyser] of state.meters) {
     const muted = tile === state.localTile ? !state.micOn : tile.classList.contains("muted");
     tile.classList.toggle("speaking", !muted && levelOf(analyser) > 6);
@@ -1711,12 +1739,106 @@ setInterval(() => {
     const level = state.micOn ? Math.min(100, levelOf(lobbyAnalyser) * 5) : 0;
     $("micLevel").style.height = `${level}%`;
   }
-}, 120);
+}, IS_PHONE ? 250 : 120);
+
+/* ---------- مراقبة جودة الإنترنت ---------- */
+
+// كل بضع ثوانٍ نقرأ إحصاءات الاتصال: زمن الذهاب والعودة، ونسبة فقد الحزم، وسرعة الرفع المتاحة.
+// إن ضعفت باستمرار خفّضنا الصورة للحد الأدنى (الصوت أولاً) ونبّهنا المستخدم، ونعيدها حين تتحسن
+const net = { bad: 0, good: 0, lost: new Map() };
+async function checkNetwork() {
+  if (!state.joinedAt || document.hidden || !state.peers.size) return;
+  let worstRtt = 0;
+  let worstLoss = 0;
+  let minOut = Infinity;
+  for (const peer of state.peers.values()) {
+    if (isClosed(peer) || peer.pc.connectionState !== "connected") continue;
+    let stats;
+    try {
+      stats = await peer.pc.getStats();
+    } catch {
+      continue;
+    }
+    for (const s of stats.values()) {
+      if (s.type === "candidate-pair" && s.nominated && s.state === "succeeded") {
+        if (s.currentRoundTripTime) worstRtt = Math.max(worstRtt, s.currentRoundTripTime);
+        if (s.availableOutgoingBitrate) minOut = Math.min(minOut, s.availableOutgoingBitrate);
+      }
+      // فقد الحزم في الصوت القادم (منذ آخر قراءة)
+      if (s.type === "inbound-rtp" && s.kind === "audio" && s.packetsReceived) {
+        const prev = net.lost.get(peer.id + s.id) || { r: 0, l: 0 };
+        const dr = s.packetsReceived - prev.r;
+        const dl = (s.packetsLost || 0) - prev.l;
+        net.lost.set(peer.id + s.id, { r: s.packetsReceived, l: s.packetsLost || 0 });
+        if (prev.r && dr + dl > 20) worstLoss = Math.max(worstLoss, dl / (dr + dl));
+      }
+    }
+  }
+  const poor = worstRtt > 0.7 || worstLoss > 0.08 || minOut < 150000;
+  if (poor) (net.bad++, (net.good = 0));
+  else (net.good++, (net.bad = 0));
+  if (!state.netPoor && net.bad >= 2) setNetPoor(true);
+  else if (state.netPoor && net.good >= 4) setNetPoor(false);
+}
+function setNetPoor(on) {
+  state.netPoor = on;
+  $("netBadge").hidden = !on;
+  tuneSenders();
+  broadcastState();
+  toast(on ? "الإنترنت ضعيف — خفّضنا جودة الصورة ليبقى الصوت واضحاً" : "تحسّن الإنترنت — عادت جودة الصورة");
+}
+setInterval(checkNetwork, 4000);
+
+/* ---------- حماية الميكروفون من التعليق ---------- */
+
+// على الآيفون خصوصاً: مكالمة أو سيري أو تطبيق آخر قد يوقف الميكروفون بصمت.
+// نراقبه، وإن توقف أو بقي معطلاً أعدنا تشغيله تلقائياً دون أن يخرج المستخدم
+function watchMic() {
+  const track = micTrack();
+  if (!track || track.watched) return;
+  track.watched = true;
+  let muteTimer = 0;
+  track.addEventListener("ended", () => recoverMic("ended"));
+  track.addEventListener("mute", () => {
+    clearTimeout(muteTimer);
+    muteTimer = setTimeout(() => track.muted && !document.hidden && recoverMic("muted"), 2500);
+  });
+  track.addEventListener("unmute", () => clearTimeout(muteTimer));
+}
+let micRecovering = false;
+async function recoverMic(reason) {
+  if (micRecovering || !state.joinedAt) return;
+  const old = micTrack();
+  if (old && old.readyState === "live" && !old.muted && reason !== "force") return;
+  micRecovering = true;
+  try {
+    const fresh = await navigator.mediaDevices.getUserMedia({ audio: MIC_CONSTRAINTS });
+    const track = fresh.getAudioTracks()[0];
+    if ("contentHint" in track) track.contentHint = "speech";
+    installTrack("audioinput", track);
+    toast("أُعيد تشغيل الميكروفون");
+  } catch {
+    // سنحاول مجدداً حين يعود المستخدم للصفحة
+  } finally {
+    micRecovering = false;
+  }
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden || !state.joinedAt) return;
+  state.audioCtx?.resume?.();
+  const t = micTrack();
+  if (t && (t.readyState === "ended" || t.muted)) recoverMic("visible");
+});
+// سفاري يعلّق محرك الصوت أحياناً ("interrupted"): أي لمسة تعيده
+document.addEventListener("touchend", () => {
+  if (state.audioCtx && state.audioCtx.state !== "running") state.audioCtx.resume().catch(() => {});
+}, { passive: true });
 
 /* ---------- غرفة الاجتماع ---------- */
 
 function enterRoom() {
   state.joinedAt = Date.now();
+  watchMic();
   $("joinNowBtn").disabled = false;
   show("room");
   $("roomCode").textContent = state.code;
@@ -1821,6 +1943,9 @@ async function restartCamera() {
 
 function leave(navigate = true) {
   keepAwake(false);
+  state.netPoor = false;
+  net.bad = net.good = 0;
+  $("netBadge").hidden = true;
   if (state.joinedAt) {
     $("leftSummary").textContent = `مدة حضورك: ${formatDuration(Date.now() - state.joinedAt)}`;
     $("leftStars").hidden = !state.sessionStars;
@@ -2257,7 +2382,11 @@ function openPersonMenu(anchor, p, remoteRoom) {
     );
   }
 
-  // القائمة تُعرض فوق كل شيء بجانب الزر أو مكان الضغط، وتنفتح للأعلى إن لم يتسع لها المكان
+  placeMenu(menu, anchor);
+}
+
+// القائمة تُعرض فوق كل شيء بجانب الزر أو مكان الضغط، وتنفتح للأعلى إن لم يتسع لها المكان
+function placeMenu(menu, anchor) {
   document.body.appendChild(menu);
   const r = anchor.getBoundingClientRect ? anchor.getBoundingClientRect() : { left: anchor.x, right: anchor.x, top: anchor.y, bottom: anchor.y };
   const h = Math.min(menu.offsetHeight, innerHeight - 16);
@@ -3077,6 +3206,33 @@ function boStudents() {
   return [...state.peers.values()].filter((p) => !isStaff(p.role));
 }
 
+// -1 = يبقى في الحلقة الرئيسية ولا يدخل أي غرفة
+const BO_MAIN = -1;
+function boDestName(i) {
+  return i === BO_MAIN ? "الحلقة الرئيسية" : bo.names[i] || `مراجعة ${i + 1}`;
+}
+function openBoPicker(anchor, p) {
+  closePersonMenu();
+  const menu = document.createElement("div");
+  menu.className = "pmenu";
+  menu.id = "pmenu";
+  const head = document.createElement("div");
+  head.className = "pm-head";
+  head.textContent = `أين يكون ${p.name}؟`;
+  menu.appendChild(head);
+  const cur = bo.assign.get(p.cid);
+  for (const i of [BO_MAIN, ...Array.from({ length: bo.count }, (_, k) => k)]) {
+    const b = menuButton(i === cur ? "check" : null, boDestName(i) + (i === BO_MAIN ? " (لا يدخل الغرف)" : ""), true, () => {
+      bo.assign.set(p.cid, i);
+      renderBreakout();
+    });
+    b.insertAdjacentHTML("afterbegin", `<span class="rs-dot" style="--c:${i === BO_MAIN ? "#6b7d75" : COLORS[i % COLORS.length]}"></span>`);
+    if (i === cur) b.classList.add("current");
+    menu.appendChild(b);
+  }
+  placeMenu(menu, anchor);
+}
+
 function autoAssign() {
   const list = boStudents().sort(() => Math.random() - 0.5);
   bo.assign.clear();
@@ -3093,45 +3249,45 @@ function renderBreakout() {
   $("boCountVal").textContent = bo.count;
   for (let i = 0; i < bo.count; i++) bo.names[i] ||= `مراجعة ${i + 1}`;
   const students = boStudents();
-  // الطالب الجديد أو من خرج رقم غرفته عن العدد يوضع في أقل غرفة عدداً
+  // الطالب الجديد (أو من حُذفت غرفته) يبقى في الحلقة الرئيسية حتى يختار له المعلّم غرفة
   for (const p of students) {
-    if (!bo.assign.has(p.cid) || bo.assign.get(p.cid) >= bo.count) {
-      const sizes = Array.from({ length: bo.count }, (_, i) => [...bo.assign.values()].filter((v) => v === i).length);
-      bo.assign.set(p.cid, sizes.indexOf(Math.min(...sizes)));
-    }
+    if (!bo.assign.has(p.cid) || bo.assign.get(p.cid) >= bo.count) bo.assign.set(p.cid, BO_MAIN);
   }
 
   const roomsBox = $("boRooms");
   roomsBox.innerHTML = "";
-  for (let i = 0; i < bo.count; i++) {
+  for (const i of [BO_MAIN, ...Array.from({ length: bo.count }, (_, k) => k)]) {
     const members = students.filter((p) => bo.assign.get(p.cid) === i);
     const card = document.createElement("div");
-    card.className = "bo-room";
-    card.style.setProperty("--c", COLORS[i % COLORS.length]);
-    card.innerHTML = `<div class="bo-room-head"><span class="bo-dot"></span><input maxlength="30" aria-label="اسم الغرفة"><span class="bo-n">${members.length}</span></div><div class="bo-chips"></div>`;
+    card.className = "bo-room" + (i === BO_MAIN ? " bo-main" : "");
+    card.style.setProperty("--c", i === BO_MAIN ? "#6b7d75" : COLORS[i % COLORS.length]);
+    card.innerHTML = `<div class="bo-room-head"><span class="bo-dot"></span>${i === BO_MAIN ? "<b>يبقون في الحلقة الرئيسية</b>" : '<input maxlength="30" aria-label="اسم الغرفة">'}<span class="bo-n">${members.length}</span></div><div class="bo-chips"></div>`;
     const input = card.querySelector("input");
-    input.value = bo.names[i];
-    input.addEventListener("input", () => (bo.names[i] = input.value));
+    if (input) {
+      input.value = bo.names[i];
+      input.addEventListener("input", () => (bo.names[i] = input.value));
+    }
     const chips = card.querySelector(".bo-chips");
-    if (!members.length) chips.innerHTML = '<span class="bo-empty">لا يوجد طلاب</span>';
+    if (!members.length) chips.innerHTML = `<span class="bo-empty">${i === BO_MAIN ? "الكل موزّع على الغرف" : "لا يوجد طلاب"}</span>`;
     for (const p of members) {
       const chip = document.createElement("button");
       chip.type = "button";
       chip.className = "bo-chip";
-      chip.title = "اضغط لنقله إلى الغرفة التالية";
+      chip.title = "اختر غرفته";
       chip.textContent = p.name;
-      chip.addEventListener("click", () => {
-        bo.assign.set(p.cid, (bo.assign.get(p.cid) + 1) % bo.count);
-        renderBreakout();
+      chip.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openBoPicker(chip, p);
       });
       chips.appendChild(chip);
     }
     roomsBox.appendChild(card);
   }
+  const placed = students.filter((p) => bo.assign.get(p.cid) !== BO_MAIN).length;
   $("boHint").textContent = students.length
-    ? "اضغط على اسم الطالب لنقله إلى الغرفة التالية"
+    ? "اضغط على اسم الطالب واختر غرفته، أو اتركه في الحلقة الرئيسية"
     : "لا يوجد طلاب في الحلقة الآن";
-  $("boOpen").disabled = !students.length;
+  $("boOpen").disabled = !placed;
 }
 
 function renderBreakoutLive() {
