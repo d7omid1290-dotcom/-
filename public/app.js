@@ -3448,6 +3448,47 @@ if (!DEMO) loadIceConfig();
     new IntersectionObserver(([e]) => orbit.classList.toggle("paused", !e.isIntersecting)).observe(orbit);
   }
   if (orbit) initOrbitTour(orbit);
+  if (orbit) initFloatCards(orbit);
+}
+
+// البطاقتان الطافيتان حول المدار: تختفي كل واحدة ثم تظهر بإشعار جديد من حياة الحلقة
+function initFloatCards(orbit) {
+  const POOLS = [
+    [
+      ["i-chat", "رسالة من الحلقة", "السلام عليكم يا شيخ"],
+      ["i-users", "انضم أحمد للحلقة", "الحضور الآن ١٢ طالباً"],
+      ["i-check", "تقييم: ممتاز", "ما شاء الله يا يوسف ⭐⭐⭐"],
+      ["i-chat", "رسالة خاصة", "يا شيخ، أسمّع بعد خالد؟"],
+      ["i-mic", "أذن المعلّم بالميكروفون", "دورك يا عمر، تفضّل"],
+    ],
+    [
+      ["i-hand", "طابور التسميع", "٣ طلاب بانتظار دورهم"],
+      ["i-book", "دور يوسف للتسميع", "سورة الملك من أولها"],
+      ["i-rooms", "غرف المراجعة", "٣ غرف تعمل الآن"],
+      ["i-hand", "رفع خالد يده", "الرابع في الطابور"],
+      ["i-calendar", "الحلقة القادمة", "بعد العصر ٤:٠٠"],
+    ],
+  ];
+  const cards = [orbit.querySelector(".fc-chat"), orbit.querySelector(".fc-hand")];
+  if (cards.some((c) => !c) || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  cards.forEach((card, n) => {
+    let i = 0;
+    const swap = () => {
+      if (!orbit.classList.contains("paused") && !document.hidden) {
+        card.classList.add("fc-out");
+        setTimeout(() => {
+          const [icon, title, sub] = POOLS[n][(i = (i + 1) % POOLS[n].length)];
+          card.querySelector(".fc-ic use").setAttribute("href", "#" + icon);
+          card.querySelector("b").textContent = title;
+          card.querySelector("small").textContent = sub;
+          card.classList.remove("fc-out");
+        }, 1400);
+      }
+      setTimeout(swap, 5200);
+    };
+    // البطاقتان لا تتبدلان معاً: الثانية متأخرة نصف دورة
+    setTimeout(swap, 3000 + n * 2600);
+  });
 }
 
 // المدار تفاعلي: لمس أيقونة (أو المرور عليها) يوقف الدوران ويعرض الميزة في القلب،
