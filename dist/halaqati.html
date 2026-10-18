@@ -1566,6 +1566,16 @@ body:has(#roomsStrip:not([hidden])) .toast { bottom: 168px; }
 }
 .tile-more .i { width: 22px; height: 22px; }
 .tile.manageable .tile-more { display: grid; }
+
+/* ترتيب طبقات المدار صريح: القلب («وصل — بالقرآن نتّصل») دائماً فوق العجلة الدوّارة.
+   Safari يرسم الطبقات المتحركة أحياناً فوق غيرها، فنعطي القلب طبقة مستقلة وأعلى */
+.orbit { isolation: isolate; }
+.orbit .spin { z-index: 0; }
+.orbit .core { z-index: 2; transform: translateZ(0); -webkit-backdrop-filter: none; backdrop-filter: none; }
+/* الشعار في الزاوية: «بالقرآن نتّصل» بلون صريح بدل التدرج المقصوص على النص؛ التدرج كان يُقصّ عند حدود السطر،
+   فتختفي أطراف الحروف السفلية وتبدو الكلمات كأنها خلف شيء */
+.wordmark { position: relative; z-index: 1; }
+.wordmark em { background: none; color: var(--teal); -webkit-text-fill-color: currentColor; }
 </style>
   <script>
     // نطبّق الوضع (نهاري/ليلي) قبل ظهور الصفحة حتى لا تومض
