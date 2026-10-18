@@ -2789,7 +2789,7 @@ function toCalDate(ts) {
 }
 
 function inviteText(m) {
-  return `أنت مدعو لحضور حلقة تحفيظ عبر منصة وصل (بالقرآن نتّصل) — مدرسة جامع الصحابة\n\n${m.title}\n${formatWhen(m.start)} (${m.duration} دقيقة)\n\nرابط الانضمام:\n${linkFor(m.code)}`;
+  return `أنت مدعو لحضور حلقة تحفيظ عبر منصة وصل (بالقرآن نتّصل)\n\n${m.title}\n${formatWhen(m.start)} (${m.duration} دقيقة)\n\nرابط الانضمام:\n${linkFor(m.code)}`;
 }
 
 function icsFile(m) {
@@ -3262,7 +3262,7 @@ function termRRule(t) {
 }
 
 function termInvite(t) {
-  return `رابط ${t.title} — غرفة ثابتة بنفس الرابط\nمنصة وصل (بالقرآن نتّصل) — مدرسة جامع الصحابة\n\nالمواعيد: ${daysText(t.days)} الساعة ${timeText(t.time)}\n\nادخل يومياً من نفس الرابط:\n${linkFor(t.code)}`;
+  return `رابط ${t.title} — غرفة ثابتة بنفس الرابط\nمنصة وصل (بالقرآن نتّصل)\n\nالمواعيد: ${daysText(t.days)} الساعة ${timeText(t.time)}\n\nادخل يومياً من نفس الرابط:\n${linkFor(t.code)}`;
 }
 
 function renderTerms() {
@@ -3446,6 +3446,126 @@ if (!DEMO) loadIceConfig();
   const orbit = document.querySelector(".orbit");
   if (orbit && "IntersectionObserver" in window) {
     new IntersectionObserver(([e]) => orbit.classList.toggle("paused", !e.isIntersecting)).observe(orbit);
+  }
+  if (orbit) initOrbitTour(orbit);
+}
+
+// المدار تفاعلي: لمس أيقونة (أو المرور عليها) يوقف الدوران ويعرض الميزة في القلب،
+// وعند السكون يتجول المدار وحده بين المزايا. على الكمبيوتر يميل المدار قليلاً مع حركة المؤشر.
+function initOrbitTour(orbit) {
+  const FEATURES = {
+    "i-book": ["حلقات التحفيظ", "تسميع منظّم وتقييم بالنجوم"],
+    "i-hand": ["رفع اليد", "طابور تسميع تلقائي بالترتيب"],
+    "i-mic": ["صوت نقي", "الميكروفون بإذن المعلّم"],
+    "i-screen": ["عرض الشاشة", "اعرض المصحف للطلاب"],
+    "i-cam": ["الصورة", "جودة تتكيّف مع سرعة النت"],
+    "i-chat": ["الدردشة", "رسائل عامة وخاصة"],
+    "i-rooms": ["غرف المراجعة", "قسّم الطلاب مجموعات"],
+    "i-calendar": ["الجدولة", "مواعيد ثابتة ورابط واحد"],
+  };
+  const core = orbit.querySelector(".core");
+  const ops = [...orbit.querySelectorAll(".op")].filter((op) => FEATURES[op.querySelector("use")?.getAttribute("href")?.slice(1)]);
+  if (!core || !ops.length) return;
+  orbit.closest(".home-art")?.removeAttribute("aria-hidden");
+  const feat = document.createElement("div");
+  feat.className = "core-feat";
+  feat.setAttribute("aria-live", "polite");
+  feat.innerHTML = '<svg class="i"><use href="#i-book"/></svg><b></b><small></small>';
+  core.append(feat);
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let active = null;
+  let held = false;
+  let resumeTimer = 0;
+  let tourIndex = 0;
+
+  function show(op, hold) {
+    const id = op.querySelector("use").getAttribute("href").slice(1);
+    const [title, desc] = FEATURES[id];
+    if (active !== op) {
+      active?.classList.remove("on");
+      op.classList.add("on");
+      active = op;
+      feat.querySelector("use").setAttribute("href", "#" + id);
+      feat.querySelector("b").textContent = title;
+      feat.querySelector("small").textContent = desc;
+      // إعادة تشغيل حركة الظهور مع كل ميزة جديدة
+      feat.classList.remove("in");
+      void feat.offsetWidth;
+      feat.classList.add("in");
+    }
+    core.classList.add("featuring");
+    held = hold;
+    orbit.classList.toggle("hold", hold);
+  }
+  function hide() {
+    active?.classList.remove("on");
+    active = null;
+    held = false;
+    core.classList.remove("featuring");
+    orbit.classList.remove("hold");
+  }
+
+  for (const op of ops) {
+    const title = FEATURES[op.querySelector("use").getAttribute("href").slice(1)][0];
+    op.tabIndex = 0;
+    op.setAttribute("role", "button");
+    op.setAttribute("aria-label", title);
+    op.addEventListener("pointerenter", (e) => {
+      if (e.pointerType === "mouse") {
+        clearTimeout(resumeTimer);
+        show(op, true);
+      }
+    });
+    op.addEventListener("pointerleave", (e) => {
+      if (e.pointerType === "mouse") resumeTimer = setTimeout(hide, 350);
+    });
+    op.addEventListener("click", (e) => {
+      e.stopPropagation();
+      clearTimeout(resumeTimer);
+      show(op, true);
+      op.classList.remove("pulse");
+      void op.offsetWidth;
+      op.classList.add("pulse");
+      // باللمس: تبقى الميزة ظاهرة قليلاً ثم يعود الدوران
+      resumeTimer = setTimeout(hide, 4500);
+    });
+    op.addEventListener("focus", () => show(op, true));
+    op.addEventListener("blur", () => (resumeTimer = setTimeout(hide, 200)));
+  }
+  document.addEventListener("click", (e) => {
+    if (held && !e.target.closest(".op")) {
+      clearTimeout(resumeTimer);
+      hide();
+    }
+  });
+
+  // جولة تلقائية هادئة: ميزة كل بضع ثوانٍ، ثم يعود شعار «وصل»
+  if (!reduced) {
+    setInterval(() => {
+      if (held || orbit.classList.contains("paused") || document.hidden) return;
+      if (active) return hide();
+      show(ops[tourIndex++ % ops.length], false);
+    }, 2800);
+  }
+
+  // ميل خفيف مع المؤشر (الكمبيوتر فقط)
+  const art = orbit.closest(".home-art");
+  if (art && !reduced && matchMedia("(hover: hover) and (pointer: fine)").matches) {
+    let frame = 0;
+    art.addEventListener("pointermove", (e) => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const r = orbit.getBoundingClientRect();
+        const x = (e.clientX - r.left) / r.width - 0.5;
+        const y = (e.clientY - r.top) / r.height - 0.5;
+        orbit.style.setProperty("--tx", (y * -8).toFixed(2) + "deg");
+        orbit.style.setProperty("--ty", (x * 8).toFixed(2) + "deg");
+      });
+    });
+    art.addEventListener("pointerleave", () => {
+      orbit.style.setProperty("--tx", "0deg");
+      orbit.style.setProperty("--ty", "0deg");
+    });
   }
 }
 for (const b of document.querySelectorAll("[data-theme-toggle]")) {
