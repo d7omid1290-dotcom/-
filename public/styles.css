@@ -1620,3 +1620,10 @@ body:has(#roomsStrip:not([hidden])) .toast { bottom: 168px; }
 .net-badge i:nth-child(2) { height: 8px; opacity: .35; }
 .net-badge i:nth-child(3) { height: 11px; opacity: .35; margin-inline-end: 6px; }
 @media (max-width: 480px) { .bo-rooms { grid-template-columns: 1fr; } }
+
+/* مشارك انقطع مؤقتاً: مربعه باهت مع إشارة، ويعود طبيعياً حين يرجع */
+.tile.away video, .tile.away .avatar { opacity: .35; filter: grayscale(1); transition: opacity .3s, filter .3s; }
+.tile.away::after {
+  content: "انقطع مؤقتاً… بانتظار عودته"; position: absolute; inset: auto 8px 8px 8px; text-align: center;
+  padding: 4px 8px; border-radius: 999px; font-size: .72rem; color: #fbbf24; background: rgba(0, 0, 0, .55); pointer-events: none;
+}

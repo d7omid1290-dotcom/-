@@ -1637,6 +1637,13 @@ body:has(#roomsStrip:not([hidden])) .toast { bottom: 168px; }
 .net-badge i:nth-child(2) { height: 8px; opacity: .35; }
 .net-badge i:nth-child(3) { height: 11px; opacity: .35; margin-inline-end: 6px; }
 @media (max-width: 480px) { .bo-rooms { grid-template-columns: 1fr; } }
+
+/* مشارك انقطع مؤقتاً: مربعه باهت مع إشارة، ويعود طبيعياً حين يرجع */
+.tile.away video, .tile.away .avatar { opacity: .35; filter: grayscale(1); transition: opacity .3s, filter .3s; }
+.tile.away::after {
+  content: "انقطع مؤقتاً… بانتظار عودته"; position: absolute; inset: auto 8px 8px 8px; text-align: center;
+  padding: 4px 8px; border-radius: 999px; font-size: .72rem; color: #fbbf24; background: rgba(0, 0, 0, .55); pointer-events: none;
+}
 </style>
   <script>
     // نطبّق الوضع (نهاري/ليلي) قبل ظهور الصفحة حتى لا تومض
@@ -3039,6 +3046,19 @@ function connect(roomId, resume) {
     showAnnounce(name, text);
   });
 
+  // انقطع مشارك مؤقتاً (الجوال في الخلفية أو تبدّلت شبكته): نُبقي مربعه باهتاً حتى يعود
+  on("peer-away", (e) => {
+    const p = state.peers.get(JSON.parse(e.data).id);
+    p?.tile?.classList.add("away");
+  });
+  on("peer-back", (e) => {
+    const p = state.peers.get(JSON.parse(e.data).id);
+    if (!p) return;
+    p.tile?.classList.remove("away");
+    const st = p.pc.connectionState;
+    if (st === "failed" || st === "disconnected") retryPeer(p);
+  });
+
   on("peer-left", (e) => {
     const { id } = JSON.parse(e.data);
     const p = state.peers.get(id);
@@ -3089,7 +3109,7 @@ function sseChannel(roomId, params, handlers) {
     connect(roomId, resumeOf());
   };
   const timer = setTimeout(fallback, WELCOME_TIMEOUT);
-  for (const name of ["welcome", "peer-joined", "peer-left", "signal", "breakout", "role", "announce", "moderate", "kicked", "controls", "notice", "presence", "knocks", "adminKey", "ended"]) {
+  for (const name of ["welcome", "peer-joined", "peer-left", "signal", "breakout", "role", "announce", "moderate", "kicked", "controls", "notice", "presence", "knocks", "adminKey", "ended", "peer-away", "peer-back"]) {
     es.addEventListener(name, (e) => {
       if (name === "welcome") {
         welcomed = true;
@@ -3525,17 +3545,17 @@ function replaceOutgoingVideo() {
 
 // كل مشارك يرسل نسخة من صورته لكل الآخرين، فكلما زاد العدد خفّضنا جودة كل نسخة
 // حتى يبقى مجموع ما يرفعه الجهاز معقولاً (حتى 25 مشاركاً)
+// ميزانية رفع إجمالية للصورة تُقسم على المشاهدين، حتى لا يحتاج أحد إنترنت قوياً:
+// المعلّم (يُشاهَد كبيراً) نحو 2.5 ميغابت، والطالب نحو 0.8 ميغابت (أغلبها للمعلّم، وزملاؤه صورة صغيرة)
 function videoEncoding(remotes) {
-  let enc;
-  if (remotes <= 3) enc = { maxBitrate: 1200000, scaleResolutionDownBy: 1, maxFramerate: 30 };
-  else if (remotes <= 7) enc = { maxBitrate: 450000, scaleResolutionDownBy: 1.5, maxFramerate: 24 };
-  else if (remotes <= 14) enc = { maxBitrate: 220000, scaleResolutionDownBy: 2, maxFramerate: 20 };
-  else enc = { maxBitrate: 130000, scaleResolutionDownBy: 3, maxFramerate: 15 };
-  // الجميع يشاهد المعلّم كبيراً، فنعطيه جودة أعلى
-  if (isStaff(state.role)) {
-    enc.maxBitrate *= 2;
-    enc.scaleResolutionDownBy = Math.max(1, enc.scaleResolutionDownBy / 1.5);
-  }
+  const staff = isStaff(state.role);
+  const budget = staff ? 2500000 : 800000;
+  const maxBitrate = Math.round(Math.min(staff ? 1200000 : 600000, budget / Math.max(1, staff ? remotes : Math.min(remotes, 2))));
+  const enc = {
+    maxBitrate,
+    scaleResolutionDownBy: maxBitrate >= 600000 ? 1 : maxBitrate >= 280000 ? 1.5 : maxBitrate >= 140000 ? 2 : 3,
+    maxFramerate: maxBitrate >= 400000 ? 24 : maxBitrate >= 150000 ? 20 : 15,
+  };
   // مشاركة الشاشة تحتاج وضوحاً للنص
   if (state.screenStream) {
     enc.maxBitrate = Math.max(enc.maxBitrate, 800000);
@@ -3547,7 +3567,7 @@ function videoEncoding(remotes) {
 
 // الطالب يرى زملاءه صغاراً ويرى المعلّم كبيراً، فنرسل لزملائه صورة خفيفة جداً
 // ونوفّر الإنترنت للصورة المرسلة للمعلّم وللصوت
-const PEER_LITE = { maxBitrate: 150000, scaleResolutionDownBy: 3, maxFramerate: 15 };
+const PEER_LITE = { maxBitrate: 60000, scaleResolutionDownBy: 4, maxFramerate: 10 };
 function tuneSenders() {
   const base = videoEncoding(state.peers.size);
   for (const peer of state.peers.values()) {
@@ -3622,6 +3642,8 @@ function tuneAudio(peer) {
   if (!params.encodings?.length) return;
   params.encodings[0].priority = "high";
   params.encodings[0].networkPriority = "high";
+  // صوت الكلام واضح تماماً عند 32 كيلوبت، فلا نهدر أكثر لكل مشارك
+  params.encodings[0].maxBitrate = 32000;
   sender.audioTuned = true;
   sender.setParameters(params).catch(() => (sender.audioTuned = false));
 }
@@ -3992,6 +4014,12 @@ function setNetPoor(on) {
   toast(on ? "الإنترنت ضعيف — خفّضنا جودة الصورة ليبقى الصوت واضحاً" : "تحسّن الإنترنت — عادت جودة الصورة");
 }
 setInterval(checkNetwork, 4000);
+
+// استضافة Render المجانية تُطفئ الخادم إن لم يصله طلب جديد مدة، حتى لو كانت الحلقة شغالة
+// بقناة أحداث مفتوحة. نرسل طلباً خفيفاً كل دقيقتين أثناء الحلقة فيبقى الخادم مستيقظاً
+setInterval(() => {
+  if (state.joinedAt && !DEMO) fetch("/healthz", { cache: "no-store" }).catch(() => {});
+}, 120000);
 
 /* ---------- حماية الميكروفون من التعليق ---------- */
 
@@ -5982,6 +6010,9 @@ for (const b of document.querySelectorAll("[data-theme-toggle]")) {
 }
 
 window.addEventListener("beforeunload", () => state.es?.close());
+// سفاري على الآيفون لا يرسل beforeunload دائماً عند إغلاق الصفحة؛ pagehide يصل، فنخبر الخادم أننا غادرنا
+// (حتى لا يظهر للآخرين «انقطع مؤقتاً» دقيقة ونصف لشخص أغلق الصفحة فعلاً)
+window.addEventListener("pagehide", (e) => !e.persisted && state.es?.close());
 
 for (const el of document.querySelectorAll(".bar .ctrl[title]")) setTip(el, el.title);
 

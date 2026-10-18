@@ -207,7 +207,8 @@ function cleanName(name) {
 // إضافة مشارك للغرفة — مشترك بين طريقتي الاتصال. يرجع null إن كانت الغرفة ممتلئة
 // استئناف الجلسة: إن انقطعت قناة الأحداث لحظياً (شبكة الجوال أو الوسيط) يعود المشارك بنفس هويته
 // خلال مهلة قصيرة، فلا تُهدم اتصالات الصوت والصورة عند الجميع ولا تضيع الرسائل التي فاتته
-const GRACE_MS = 25000;
+// مهلة طويلة (90 ثانية) لأن الجوال يوقف الصفحة في الخلفية، والشبكة قد تتبدل بين الواي فاي والبيانات
+const GRACE_MS = 90000;
 function resumePeer(roomId, url, push) {
   const peer = rooms.get(roomId)?.get(String(url.searchParams.get("rid") || ""));
   const given = Buffer.from(String(url.searchParams.get("rtoken") || ""));
@@ -222,6 +223,7 @@ function resumePeer(roomId, url, push) {
   const peers = [...room.values()].filter((p) => p.id !== peer.id).map((p) => ({ id: p.id, cid: p.cid, name: p.name, role: p.role }));
   send(peer, "welcome", { id: peer.id, token: peer.token, role: peer.role, peers, breakout: breakouts.get(main) || null, controls: publicControls(main), resumed: true });
   for (const [event, data] of backlog) push(event, data);
+  broadcast(room, "peer-back", { id: peer.id }, peer.id);
   return peer;
 }
 
@@ -232,6 +234,8 @@ function startGrace(roomId, peer) {
   peer.push = (event, data) => peer.backlog.length < 500 && peer.backlog.push([event, data]);
   peer.end = () => {};
   peer.graceTimer = setTimeout(() => removePeer(roomId, peer.id), GRACE_MS);
+  // يرى الآخرون أنه انقطع مؤقتاً (لا أنه غادر)، فيبقى مربعه حتى يعود
+  broadcast(rooms.get(roomId), "peer-away", { id: peer.id }, peer.id);
 }
 
 function addPeer(roomId, url, push) {
@@ -360,7 +364,13 @@ function flushPoll(p) {
 
 function expirePoll(p) {
   clearTimeout(p.expire);
-  p.expire = setTimeout(() => dropPoll(p.peer.id), POLL_EXPIRE);
+  // توقف الاستطلاع (الجوال في الخلفية مثلاً): نمهله كما نمهل قناة الأحداث بدل إزالته فوراً
+  p.expire = setTimeout(() => {
+    if (pollers.get(p.peer.id) !== p) return;
+    pollers.delete(p.peer.id);
+    if (p.waiting) clearTimeout(p.waiting.timer);
+    startGrace(p.roomId, p.peer);
+  }, POLL_EXPIRE);
 }
 
 // بعد إخراج مشارك بالاستطلاع: نُبقي جلسته حتى يستلم آخر حدث ثم تنتهي
