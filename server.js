@@ -29,6 +29,17 @@ function isHostKey(code, key) {
   return given.length === expected.length && crypto.timingSafeEqual(given, expected);
 }
 const STAFF = new Set(["teacher", "admin"]);
+// مفتاح المشرف: توقيع لرمز الحلقة ومعرّف الجهاز. يُعطى للمشرف عند تعيينه ويحفظه جهازه،
+// فيبقى مشرفاً كلما عاد للحلقة — حتى لو فرغت الحلقة أو أُعيد تشغيل الخادم — إلى أن يلغيه المعلّم
+const adminKey = (code, did) => crypto.createHmac("sha256", SECRET).update(`admin:${code}:${did}`).digest("base64url").slice(0, 24);
+function isAdminKey(code, did, key) {
+  if (!did || !key) return false;
+  const a = Buffer.from(adminKey(code, did));
+  const b = Buffer.from(String(key));
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+// المشرفون الملغون (لا يُقبل مفتاحهم القديم)
+const revoked = new Map();
 
 // خوادم الاتصال (ICE): STUN افتراضياً، ويمكن إضافة خادم TURN من متغيرات البيئة دون تعديل الكود
 // TURN_URLS مثل: turn:example.com:3478,turns:example.com:443?transport=tcp
@@ -238,16 +249,25 @@ function addPeer(roomId, url, push) {
   const id = crypto.randomUUID();
   const name = cleanName(url.searchParams.get("name"));
   const cid = String(url.searchParams.get("cid") || id).slice(0, 64);
-  // الدور يقرّره الخادم: مفتاح المعلّم ← معلّم، ومن عيّنه المعلّم ← مشرف، والباقي طلاب
+  // معرّف الجهاز: ثابت في هذا المتصفح (يبقى بعد إغلاقه)، وبه نحفظ الإشراف والمنع
+  const did = String(url.searchParams.get("did") || cid).slice(0, 64);
+  // الدور يقرّره الخادم: مفتاح المعلّم ← معلّم، ومن عيّنه المعلّم (أو يحمل مفتاح مشرف صالحاً) ← مشرف، والباقي طلاب
   const main = mainOf(roomId);
-  const role = isHostKey(main, url.searchParams.get("key")) ? "teacher" : admins.get(main)?.has(cid) ? "admin" : "student";
+  let role = "student";
+  if (isHostKey(main, url.searchParams.get("key"))) role = "teacher";
+  else if (admins.get(main)?.has(did)) role = "admin";
+  else if (isAdminKey(main, did, url.searchParams.get("akey")) && !revoked.get(main)?.has(did)) {
+    role = "admin";
+    if (!admins.has(main)) admins.set(main, new Set());
+    admins.get(main).add(did);
+  }
 
   const peers = [...room.values()].map((p) => ({ id: p.id, cid: p.cid, name: p.name, role: p.role }));
   // مفتاح سرّي لهذا المشارك وحده: يثبت هويته في كل طلب (المعرّف id يعرفه الجميع)
   const token = crypto.randomBytes(16).toString("hex");
-  const peer = { id, cid, name, role, token, push, end: () => {} };
+  const peer = { id, cid, did, name, role, token, push, end: () => {} };
   room.set(id, peer);
-  controlsOf(main).seen.add(cid);
+  controlsOf(main).seen.add(did);
   send(peer, "welcome", { id, token, role, peers, breakout: breakouts.get(main) || null, controls: publicControls(main) });
   if (STAFF.has(role)) send(peer, "knocks", { knocks: pendingKnocks(main) });
   broadcast(room, "peer-joined", { id, cid, name, role }, id);
@@ -268,7 +288,6 @@ function removePeer(roomId, id) {
   sendPresence(main);
   if (familyRooms(main).length === 0) {
     breakouts.delete(main);
-    admins.delete(main);
     controls.delete(main);
   }
 }
@@ -286,10 +305,11 @@ function refuseReason(roomId, url) {
   const main = mainOf(roomId);
   const c = controls.get(main);
   if (!c) return null;
-  const cid = String(url.searchParams.get("cid") || "");
+  const did = String(url.searchParams.get("did") || url.searchParams.get("cid") || "").slice(0, 64);
   if (isHostKey(main, url.searchParams.get("key"))) return null;
-  if (c.kicked.has(cid)) return "kicked";
-  if (c.locked && !c.seen.has(cid) && !admins.get(main)?.has(cid)) return "locked";
+  if (c.kicked.has(did)) return "kicked";
+  const isAdmin = admins.get(main)?.has(did) || (isAdminKey(main, did, url.searchParams.get("akey")) && !revoked.get(main)?.has(did));
+  if (c.locked && !c.seen.has(did) && !isAdmin) return "locked";
   return null;
 }
 
@@ -341,6 +361,15 @@ function flushPoll(p) {
 function expirePoll(p) {
   clearTimeout(p.expire);
   p.expire = setTimeout(() => dropPoll(p.peer.id), POLL_EXPIRE);
+}
+
+// بعد إخراج مشارك بالاستطلاع: نُبقي جلسته حتى يستلم آخر حدث ثم تنتهي
+function dropPollQuiet(pid) {
+  const p = pollers.get(pid);
+  if (p) {
+    p.closing = true;
+    flushPoll(p);
+  }
 }
 
 // فصل جلسة الاستطلاع دون إزالة المشارك (حين يستأنف بقناة أخرى)
@@ -509,11 +538,22 @@ function handlePromote(req, res, roomId) {
     const main = mainOf(roomId);
     let set = admins.get(main);
     if (!set) admins.set(main, (set = new Set()));
-    if (msg.admin) set.add(cid);
-    else set.delete(cid);
+    if (!revoked.has(main)) revoked.set(main, new Set());
     const role = msg.admin ? "admin" : "student";
     for (const room of familyRooms(main)) {
-      for (const peer of room.values()) if (peer.cid === cid && peer.role !== "teacher") peer.role = role;
+      for (const peer of room.values()) {
+        if (peer.cid !== cid || peer.role === "teacher") continue;
+        peer.role = role;
+        if (msg.admin) {
+          set.add(peer.did);
+          revoked.get(main).delete(peer.did);
+        } else {
+          set.delete(peer.did);
+          revoked.get(main).add(peer.did);
+        }
+        // المشرف يحفظ مفتاحه في جهازه ليبقى مشرفاً عند عودته
+        send(peer, "adminKey", { code: main, key: msg.admin ? adminKey(main, peer.did) : null });
+      }
     }
     broadcastFamily(main, "role", { cid, role });
     sendPresence(main);
@@ -522,14 +562,14 @@ function handlePromote(req, res, roomId) {
   });
 }
 
-// ===== الدخول بإذن: الحلقة «المقفلة» تستقبل طلبات دخول يقبلها المعلّم أو الأدمن =====
+// ===== الدخول بإذن: الحلقة «المقفلة» تستقبل طلبات دخول يقبلها المعلّم أو المشرف =====
 // الحلقة الرئيسية -> Map(kid -> { name, cid, token, status: pending|admitted|denied, seen: آخر متابعة })
 const knocks = new Map();
 const KNOCK_IDLE = 20000;
 function pendingKnocks(main) {
   return [...(knocks.get(main)?.entries() || [])].filter(([, k]) => k.status === "pending").map(([kid, k]) => ({ kid, name: k.name }));
 }
-// القائمة تصل للمعلّم والأدمن فقط
+// القائمة تصل للمعلّم والمشرف فقط
 function sendKnocks(main) {
   const data = { knocks: pendingKnocks(main) };
   for (const room of familyRooms(main)) for (const peer of room.values()) if (STAFF.has(peer.role)) send(peer, "knocks", data);
@@ -569,7 +609,7 @@ function handleKnock(req, res, roomId, url) {
       return json(res, 200, { ok: true });
     }
     const c = controls.get(main);
-    const cid = String(msg.cid || "").slice(0, 64);
+    const cid = String(msg.did || msg.cid || "").slice(0, 64);
     if (!cid) return json(res, 400, { error: "bad_cid" });
     if (c?.kicked.has(cid)) return json(res, 403, { error: "kicked" });
     if (!c?.locked || c.seen.has(cid)) return json(res, 200, { status: "admitted" });
@@ -588,8 +628,8 @@ function handleKnock(req, res, roomId, url) {
   });
 }
 
-// أدوات الإدارة للمعلّم والأدمن: كتم، إيقاف كاميرا، إنزال يد، إخراج، كتم الجميع، قفل الحلقة، إيقاف الدردشة.
-// الأدمن يدير الطلاب فقط، والمعلّم يدير الجميع، ولا أحد يدير المعلّم.
+// أدوات الإدارة للمعلّم والمشرف: كتم، إيقاف كاميرا، إنزال يد، إخراج، كتم الجميع، قفل الحلقة، إيقاف الدردشة.
+// المشرف يدير الطلاب فقط، والمعلّم يدير الجميع، ولا أحد يدير المعلّم.
 const canManage = (sender, target) =>
   target && target.id !== sender.id && target.role !== "teacher" && (sender.role === "teacher" || target.role === "student");
 
@@ -608,9 +648,9 @@ function handleModerate(req, res, roomId) {
       if (!target) return json(res, 404, { error: "no_target" });
       if (!canManage(sender, target)) return json(res, 403, { error: "not_allowed" });
       if (action === "kick") {
-        // الإخراج العادي يسمح بالعودة، ومع ban يُمنع حتى يسمح له المعلّم أو الأدمن
+        // الإخراج العادي يسمح بالعودة، ومع ban يُمنع حتى يسمح له المعلّم أو المشرف
         const ban = !!msg.ban;
-        if (ban) controlsOf(main).kicked.set(target.cid, target.name);
+        if (ban) controlsOf(main).kicked.set(target.did, target.name);
         send(target, "kicked", { by, ban });
         removePeer(roomId, target.id);
         target.end();
@@ -633,6 +673,21 @@ function handleModerate(req, res, roomId) {
       }
       if (!n) return json(res, 404, { error: "no_knock" });
       sendKnocks(main);
+    } else if (action === "end") {
+      // إنهاء الحلقة للجميع (للمعلّم فقط): يخرج كل من في الحلقة وغرفها
+      if (sender.role !== "teacher") return json(res, 403, { error: "host_only" });
+      breakouts.delete(main);
+      for (const k of knocks.get(main)?.values() || []) if (k.status === "pending") k.status = "denied";
+      for (const [rid, r] of [...families.get(main) || []].map((id) => [id, rooms.get(id)])) {
+        for (const peer of [...(r?.values() || [])]) {
+          if (peer.id === sender.id) continue;
+          send(peer, "ended", { by });
+          peer.gone = true;
+          removePeer(rid, peer.id);
+          peer.end();
+          dropPollQuiet(peer.id);
+        }
+      }
     } else if (action === "unban") {
       // السماح لممنوع بالعودة
       const c = controlsOf(main);
@@ -711,12 +766,12 @@ function handleSignal(req, res, roomId) {
     if ((msg.type === "recite" || msg.type === "grade") && !STAFF.has(sender.role)) {
       return json(res, 403, { error: "teacher_only" });
     }
-    // الدردشة موقفة للطلاب من المعلّم أو الأدمن
+    // الدردشة موقفة للطلاب من المعلّم أو المشرف
     if (msg.type === "chat" && controls.get(mainOf(roomId))?.chatOff && !STAFF.has(sender.role)) {
       return json(res, 403, { error: "chat_off" });
     }
 
-    // الرسائل الخاصة: بين الطالب والمعلّم أو الأدمن فقط
+    // الرسائل الخاصة: بين الطالب والمعلّم أو المشرف فقط
     if (msg.type === "chat" && msg.to && !STAFF.has(sender.role) && !STAFF.has(room.get(String(msg.to))?.role)) {
       return json(res, 403, { error: "private_staff_only" });
     }

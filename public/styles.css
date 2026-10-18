@@ -1232,7 +1232,7 @@ body::after { background: radial-gradient(circle, rgba(29, 92, 70, .18), transpa
 :root[data-theme="light"] .op:not(.main) i { background: #fff; border-color: rgba(111, 191, 152, .5); box-shadow: 0 6px 16px rgba(15, 23, 42, .08); }
 :root[data-theme="light"] .op:not(.main) i .i { color: #2f8f6b; }
 
-/* ===== أدوات الأدمن ===== */
+/* ===== أدوات المشرف ===== */
 .admin-tools { margin-bottom: 14px; padding: 12px; border-radius: 16px; background: var(--glass); border: 1px solid var(--glass-border); }
 .admin-tools h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: .92rem; }
 .admin-tools h4 .i { width: 17px; height: 17px; color: var(--teal); }
@@ -1537,3 +1537,15 @@ body:has(#roomsStrip:not([hidden])) .toast { bottom: 168px; }
   .panel { background: #0f1814; }
   :root[data-theme="light"] .room .panel { background: #0f1814; }
 }
+
+/* المعلّم عند المغادرة: إنهاء للجميع أو مغادرة فقط */
+.leave-actions { display: grid; gap: 10px; }
+.leave-actions .btn { height: 50px; justify-content: center; }
+
+/* زر خيارات المشارك على مربعه (للمعلّم والمشرف) — بديل الضغطة المطوّلة */
+.tile-more {
+  display: none; position: absolute; bottom: 10px; left: 10px; z-index: 3; width: 40px; height: 40px; border-radius: 50%;
+  border: 0; background: rgba(0, 0, 0, .5); color: #fff; place-items: center; cursor: pointer;
+}
+.tile-more .i { width: 22px; height: 22px; }
+.tile.manageable .tile-more { display: grid; }

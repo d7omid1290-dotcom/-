@@ -355,6 +355,7 @@
           <div class="sheet-backdrop" id="moreBackdrop" hidden></div>
           <div class="more-menu" id="moreMenu" role="menu" hidden>
             <div class="sheet-handle" aria-hidden="true"></div>
+            <button class="mi" id="adminMenuBtn" type="button" role="menuitem" hidden><svg class="i"><use href="#i-shield"/></svg><span>أدوات الإدارة</span></button>
             <button class="mi" id="breakoutBtn" type="button" role="menuitem" hidden><svg class="i"><use href="#i-rooms"/></svg><span>غرف المراجعة</span></button>
             <button class="mi" id="recBtn" type="button" role="menuitem" hidden><svg class="i"><use href="#i-rec"/></svg><span id="recLabel">تسجيل الحلقة</span></button>
             <button class="mi" id="shareBtn" type="button" role="menuitem"><svg class="i"><use href="#i-screen"/></svg><span id="shareLabel">مشاركة الشاشة</span></button>
@@ -526,6 +527,20 @@
   </div>
 
   <!-- نافذة اختيار الأجهزة داخل الحلقة -->
+  <div class="modal confirm-modal" id="leaveModal" hidden>
+    <div class="modal-backdrop" data-cancel></div>
+    <div class="modal-card confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="leaveTitle">
+      <span class="confirm-icon"><svg class="i"><use href="#i-end"/></svg></span>
+      <h2 id="leaveTitle">مغادرة الحلقة</h2>
+      <p>أنت المعلّم: تقدر تنهي الحلقة للجميع، أو تغادر وتبقى الحلقة قائمة مع المشرفين والطلاب.</p>
+      <div class="leave-actions">
+        <button class="btn btn-danger-solid" id="leaveEnd" type="button">إنهاء الحلقة للجميع</button>
+        <button class="btn" id="leaveOnly" type="button">مغادرة فقط</button>
+        <button class="btn btn-ghost" type="button" data-cancel>إلغاء</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal confirm-modal" id="confirmModal" hidden>
     <div class="modal-backdrop" data-cancel></div>
     <div class="modal-card confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmText">
