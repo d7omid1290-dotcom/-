@@ -1602,8 +1602,3 @@ body:has(#roomsStrip:not([hidden])) .toast { bottom: 168px; }
   .orbit .fc-chat { top: -4%; right: -8%; }
   .orbit .fc-hand { bottom: -4%; left: -8%; }
 }
-
-/* زر «إنهاء الحلقة للجميع» في قائمة المزيد */
-.mi.mi-danger { color: #f87171; border-top: 1px solid var(--glass-border); }
-.mi.mi-danger .i { color: currentColor; }
-:root[data-theme="light"] .mi.mi-danger { color: #dc2626; }

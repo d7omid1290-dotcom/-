@@ -1875,11 +1875,6 @@ async function endCircle() {
   leave();
   $("leftSummary").textContent = "أنهيت الحلقة للجميع";
 }
-// وزر مستقل في قائمة «المزيد»
-$("endMenuBtn").addEventListener("click", async () => {
-  const yes = await askConfirm({ title: "إنهاء الحلقة للجميع؟", text: "يخرج جميع المشاركين وتنتهي الحلقة الآن.", ok: "إنهاء الحلقة", icon: "end" });
-  if (yes) endCircle();
-});
 function askLeave() {
   return new Promise((resolve) => {
     const m = $("leaveModal");
@@ -2057,7 +2052,6 @@ function applyRole() {
   tuneSenders();
   // التسجيل للمستضيف (المعلّم) فقط
   $("recBtn").hidden = state.role !== "teacher";
-  $("endMenuBtn").hidden = state.role !== "teacher" || DEMO;
   if (state.recorder && state.role !== "teacher") stopRecording();
   renderRoomsStrip();
   applyControls(false);

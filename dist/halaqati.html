@@ -1619,11 +1619,6 @@ body:has(#roomsStrip:not([hidden])) .toast { bottom: 168px; }
   .orbit .fc-chat { top: -4%; right: -8%; }
   .orbit .fc-hand { bottom: -4%; left: -8%; }
 }
-
-/* زر «إنهاء الحلقة للجميع» في قائمة المزيد */
-.mi.mi-danger { color: #f87171; border-top: 1px solid var(--glass-border); }
-.mi.mi-danger .i { color: currentColor; }
-:root[data-theme="light"] .mi.mi-danger { color: #dc2626; }
 </style>
   <script>
     // نطبّق الوضع (نهاري/ليلي) قبل ظهور الصفحة حتى لا تومض
@@ -1969,7 +1964,6 @@ body:has(#roomsStrip:not([hidden])) .toast { bottom: 168px; }
             <button class="mi" id="shareBtn" type="button" role="menuitem"><svg class="i"><use href="#i-screen"/></svg><span id="shareLabel">مشاركة الشاشة</span></button>
             <button class="mi" id="copyBtn" type="button" role="menuitem"><svg class="i"><use href="#i-link"/></svg><span>نسخ رابط الحلقة</span></button>
             <button class="mi" id="settingsBtn" type="button" role="menuitem"><svg class="i"><use href="#i-sliders"/></svg><span>الكاميرا والميكروفون</span></button>
-            <button class="mi mi-danger" id="endMenuBtn" type="button" role="menuitem" hidden><svg class="i"><use href="#i-end"/></svg><span>إنهاء الحلقة للجميع</span></button>
           </div>
         </div>
         <button class="ctrl ctrl-danger" id="leaveBtn" title="مغادرة الحلقة"><svg class="i"><use href="#i-end"/></svg></button>
@@ -4066,11 +4060,6 @@ async function endCircle() {
   leave();
   $("leftSummary").textContent = "أنهيت الحلقة للجميع";
 }
-// وزر مستقل في قائمة «المزيد»
-$("endMenuBtn").addEventListener("click", async () => {
-  const yes = await askConfirm({ title: "إنهاء الحلقة للجميع؟", text: "يخرج جميع المشاركين وتنتهي الحلقة الآن.", ok: "إنهاء الحلقة", icon: "end" });
-  if (yes) endCircle();
-});
 function askLeave() {
   return new Promise((resolve) => {
     const m = $("leaveModal");
@@ -4248,7 +4237,6 @@ function applyRole() {
   tuneSenders();
   // التسجيل للمستضيف (المعلّم) فقط
   $("recBtn").hidden = state.role !== "teacher";
-  $("endMenuBtn").hidden = state.role !== "teacher" || DEMO;
   if (state.recorder && state.role !== "teacher") stopRecording();
   renderRoomsStrip();
   applyControls(false);
