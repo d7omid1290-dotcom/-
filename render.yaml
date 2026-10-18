@@ -10,3 +10,8 @@ services:
       # سرّ توقيع مفاتيح المعلّمين — يولّده Render مرة واحدة ويبقى ثابتاً
       - key: WASL_SECRET
         generateValue: true
+      # خوادم TURN من Cloudflare (اختياري، يحسّن الاتصال على شبكات الجوال): تُكتب قيمها من لوحة Render
+      - key: CF_TURN_KEY_ID
+        sync: false
+      - key: CF_TURN_API_TOKEN
+        sync: false

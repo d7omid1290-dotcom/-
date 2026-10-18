@@ -841,7 +841,8 @@ function serveStatic(req, res, pathname) {
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
   if (url.pathname === "/api/config" && req.method === "GET") {
-    return iceServers().then((list) => json(res, 200, { iceServers: list, turn: !!(CF_TURN || process.env.TURN_URLS) }));
+    // turn: true فقط إذا وصلت خوادم TURN فعلاً (لا يكفي وجود المتغيرات)
+    return iceServers().then((list) => json(res, 200, { iceServers: list, turn: list.some((s) => [].concat(s.urls).some((u) => /^turns?:/.test(u))) }));
   }
   if (url.pathname === "/healthz") {
     let peers = 0;
