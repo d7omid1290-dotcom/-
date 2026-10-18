@@ -848,6 +848,49 @@ function serveStatic(req, res, pathname) {
   res.end(f.data);
 }
 
+// ===== ربط جهاز آخر للمعلّم: رمز من 6 أرقام يحمل مفاتيحه وحلقاته لعشر دقائق =====
+// الحلقات ومفاتيحها محفوظة في متصفح المعلّم فقط؛ هذا الرمز ينقلها لجهازه الآخر (الآيباد مثلاً) مرة واحدة
+const SYNC_TTL = 10 * 60000;
+const syncCodes = new Map(); // code -> { data, expires, uses }
+const syncFails = new Map(); // ip -> { n, until } حماية من تخمين الرموز
+function clientIp(req) {
+  return String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || req.socket.remoteAddress || "";
+}
+function handleSync(req, res, url) {
+  const now = Date.now();
+  for (const [c, v] of syncCodes) if (v.expires < now) syncCodes.delete(c);
+  if (req.method === "POST") {
+    return readJson(req, res, (msg) => {
+      const data = msg && typeof msg.data === "object" ? JSON.stringify(msg.data) : "";
+      if (!data || data.length > 48 * 1024) return json(res, 400, { error: "bad_data" });
+      if (syncCodes.size > 5000) return json(res, 503, { error: "busy" });
+      let code;
+      do code = String(crypto.randomInt(0, 1000000)).padStart(6, "0");
+      while (syncCodes.has(code));
+      syncCodes.set(code, { data, expires: now + SYNC_TTL, uses: 0 });
+      json(res, 200, { code, ttl: SYNC_TTL });
+    });
+  }
+  const ip = clientIp(req);
+  const f = syncFails.get(ip);
+  if (f && f.until > now && f.n >= 10) return json(res, 429, { error: "too_many" });
+  const code = String(url.searchParams.get("code") || "").replace(/\D/g, "");
+  const entry = syncCodes.get(code);
+  if (!entry) {
+    const next = f && f.until > now ? f : { n: 0, until: now + SYNC_TTL };
+    next.n++;
+    syncFails.set(ip, next);
+    return json(res, 404, { error: "not_found" });
+  }
+  // يكفي لربط جهازين أو ثلاثة ثم ينتهي
+  if (++entry.uses >= 3) syncCodes.delete(code);
+  json(res, 200, { data: JSON.parse(entry.data) });
+}
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, f] of syncFails) if (f.until < now) syncFails.delete(ip);
+}, 60000).unref();
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
   if (url.pathname === "/api/config" && req.method === "GET") {
@@ -860,6 +903,7 @@ const server = http.createServer((req, res) => {
     return json(res, 200, { ok: true, rooms: rooms.size, peers });
   }
   if (url.pathname === "/api/rooms" && req.method === "POST") return handleCreate(req, res);
+  if (url.pathname === "/api/sync" && (req.method === "POST" || req.method === "GET")) return handleSync(req, res, url);
   const m = url.pathname.match(/^\/api\/rooms\/([^/]+)\/(events|poll|leave|signal|peers|breakout|promote|moderate|knock)$/);
   if (m) {
     const [, roomId, action] = m;

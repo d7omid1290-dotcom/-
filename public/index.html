@@ -119,6 +119,7 @@
         <p class="error" id="homeError" role="alert"></p>
         <div class="home-links">
           <button class="link-btn" id="scheduleBtn"><svg class="i"><use href="#i-calendar"/></svg>جدولة حلقة لمرة واحدة</button>
+          <button class="link-btn" id="syncBtn"><svg class="i"><use href="#i-link"/></svg>ربط جهاز آخر</button>
         </div>
 
         <ul class="perks">
@@ -560,6 +561,31 @@
         <button class="btn" id="confirmCancel" type="button" data-cancel>إلغاء</button>
         <button class="btn btn-danger-solid" id="confirmOk" type="button"></button>
       </div>
+    </div>
+  </div>
+
+  <div class="modal" id="syncModal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card sync-card" role="dialog" aria-modal="true" aria-labelledby="syncTitle">
+      <button class="icon-btn modal-close" data-close aria-label="إغلاق"><svg class="i"><use href="#i-close"/></svg></button>
+      <h2 id="syncTitle">ربط جهاز آخر</h2>
+      <p class="sync-lead">تظهر حلقاتك وغرفك الثابتة على جوالك وآيبادك معاً، وتدخلها كمعلّم من أي منهما.</p>
+      <div class="sync-tabs" role="tablist">
+        <button type="button" class="on" data-sync-tab="send">هذا الجهاز فيه حلقاتي</button>
+        <button type="button" data-sync-tab="get">هذا هو الجهاز الجديد</button>
+      </div>
+      <div class="sync-pane" data-sync-pane="send">
+        <p class="sync-hint" id="syncSendHint">اضغط الزر، ثم اكتب الرمز في جهازك الآخر.</p>
+        <div class="sync-code" id="syncCode" hidden></div>
+        <p class="sync-note" id="syncNote" hidden>الرمز صالح ١٠ دقائق. لا تعطه لأحد، فهو يجعل حامله معلّماً لحلقاتك.</p>
+        <button class="btn btn-primary btn-block" type="button" id="syncMake">أظهر رمز الربط</button>
+      </div>
+      <div class="sync-pane" data-sync-pane="get" hidden>
+        <p class="sync-hint">اكتب الرمز اللي ظهر في جهازك الأول:</p>
+        <input class="sync-input" id="syncInput" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="000000" dir="ltr">
+        <button class="btn btn-primary btn-block" type="button" id="syncGet">ربط</button>
+      </div>
+      <p class="error" id="syncError" role="alert"></p>
     </div>
   </div>
 

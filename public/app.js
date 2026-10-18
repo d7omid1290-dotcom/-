@@ -3505,6 +3505,100 @@ $("boAnnounce").addEventListener("submit", async (e) => {
   }
 });
 
+/* ---------- ربط جهاز آخر للمعلّم ---------- */
+
+// كل ما يخص المعلّم محفوظ في هذا المتصفح: مفاتيح حلقاته، والجدولة، والغرف الثابتة، ومفاتيح الإشراف
+function readJSON(key, fallback) {
+  try {
+    return JSON.parse(localStorage.getItem(key)) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+function syncBundle() {
+  return {
+    keys: readJSON(KEYS, {}),
+    akeys: readJSON(AKEYS, {}),
+    scheduled: readJSON(SCHEDULE_KEY, []),
+    terms: readJSON(TERMS_KEY, []),
+    name: localStorage.getItem("halaqati:name") || "",
+  };
+}
+// الدمج لا يحذف شيئاً من الجهاز الجديد: نضيف ما ينقصه فقط
+function mergeBundle(b) {
+  const byId = (a, x) => JSON.stringify(a.id ?? a.code ?? a) === JSON.stringify(x.id ?? x.code ?? x);
+  const mergeList = (mine, theirs) => [...mine, ...(Array.isArray(theirs) ? theirs : []).filter((t) => !mine.some((m) => byId(m, t)))];
+  try {
+    localStorage.setItem(KEYS, JSON.stringify({ ...(b.keys || {}), ...readJSON(KEYS, {}) }));
+    localStorage.setItem(AKEYS, JSON.stringify({ ...(b.akeys || {}), ...readJSON(AKEYS, {}) }));
+    localStorage.setItem(SCHEDULE_KEY, JSON.stringify(mergeList(readJSON(SCHEDULE_KEY, []), b.scheduled)));
+    localStorage.setItem(TERMS_KEY, JSON.stringify(mergeList(readJSON(TERMS_KEY, []), b.terms)));
+    if (b.name && !localStorage.getItem("halaqati:name")) localStorage.setItem("halaqati:name", String(b.name).slice(0, 40));
+  } catch {}
+  return Object.keys(b.keys || {}).length;
+}
+
+function syncTab(name) {
+  for (const b of document.querySelectorAll("[data-sync-tab]")) b.classList.toggle("on", b.dataset.syncTab === name);
+  for (const p of document.querySelectorAll("[data-sync-pane]")) p.hidden = p.dataset.syncPane !== name;
+  $("syncError").textContent = "";
+  if (name === "get") setTimeout(() => $("syncInput").focus(), 50);
+}
+$("syncBtn").addEventListener("click", () => {
+  $("syncCode").hidden = $("syncNote").hidden = true;
+  $("syncMake").hidden = false;
+  $("syncInput").value = "";
+  // جهاز بلا حلقات غالباً هو الجهاز الجديد
+  syncTab(Object.keys(readJSON(KEYS, {})).length ? "send" : "get");
+  $("syncModal").hidden = false;
+});
+for (const b of document.querySelectorAll("[data-sync-tab]")) b.addEventListener("click", () => syncTab(b.dataset.syncTab));
+for (const el of document.querySelectorAll("#syncModal [data-close]")) el.addEventListener("click", () => ($("syncModal").hidden = true));
+$("syncMake").addEventListener("click", async () => {
+  const bundle = syncBundle();
+  if (!Object.keys(bundle.keys).length && !bundle.terms.length) {
+    $("syncError").textContent = "ما فيه حلقات على هذا الجهاز بعد. أنشئ حلقة أولاً، أو افتح هذه النافذة في الجهاز اللي فيه حلقاتك.";
+    return;
+  }
+  $("syncMake").disabled = true;
+  try {
+    const r = await fetch("/api/sync", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: bundle }) });
+    const { code } = await r.json();
+    if (!code) throw new Error();
+    $("syncCode").textContent = `${code.slice(0, 3)} ${code.slice(3)}`;
+    $("syncCode").hidden = $("syncNote").hidden = false;
+    $("syncMake").hidden = true;
+    $("syncSendHint").textContent = "في جهازك الآخر: افتح الموقع ← «ربط جهاز آخر» ← «هذا هو الجهاز الجديد»، واكتب هذا الرمز:";
+  } catch {
+    $("syncError").textContent = "تعذر إنشاء الرمز، تأكد من الإنترنت وحاول مرة أخرى.";
+  } finally {
+    $("syncMake").disabled = false;
+  }
+});
+async function syncFetch() {
+  const code = $("syncInput").value.replace(/\D/g, "");
+  if (code.length !== 6) return ($("syncError").textContent = "الرمز ٦ أرقام");
+  $("syncGet").disabled = true;
+  $("syncError").textContent = "";
+  try {
+    const r = await fetch(`/api/sync?code=${code}`, { cache: "no-store" });
+    if (r.status === 429) throw new Error("كثرت المحاولات، انتظر قليلاً ثم حاول.");
+    if (!r.ok) throw new Error("الرمز غير صحيح أو انتهت مدته. أظهر رمزاً جديداً من جهازك الأول.");
+    const { data } = await r.json();
+    const n = mergeBundle(data || {});
+    $("syncModal").hidden = true;
+    renderUpcoming();
+    renderTerms();
+    toast(n ? `تم الربط ✅ — صارت حلقاتك (${n}) على هذا الجهاز وتدخلها كمعلّم` : "تم الربط ✅");
+  } catch (err) {
+    $("syncError").textContent = err.message || "تعذر الربط، حاول مرة أخرى.";
+  } finally {
+    $("syncGet").disabled = false;
+  }
+}
+$("syncGet").addEventListener("click", syncFetch);
+$("syncInput").addEventListener("keydown", (e) => e.key === "Enter" && syncFetch());
+
 /* ---------- غرفة ثابتة بنفس الرابط ---------- */
 
 const TERMS_KEY = "wasl:terms";
@@ -3733,6 +3827,7 @@ function applyTheme(theme) {
 }
 applyTheme(document.documentElement.dataset.theme === "light" ? "light" : "dark");
 $("demoBar").hidden = !DEMO;
+$("syncBtn").hidden = DEMO;
 if (!DEMO) loadIceConfig();
 
 // نوقف دوران المدار حين يخرج من الشاشة أو تُخفى الصفحة، فلا يستهلك الجوال أثناء التمرير
