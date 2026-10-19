@@ -3738,7 +3738,10 @@ const PEER_LITE = { maxBitrate: 40000, scaleResolutionDownBy: 4, maxFramerate: 8
 const BIG_CIRCLE = 6;
 function classmateVideoOff(sender, receiver) {
   if (isStaff(sender.role) || isStaff(receiver.role) || sender.screen) return false;
-  if (state.peers.size < BIG_CIRCLE || state.reciter === sender.id) return false;
+  if (state.peers.size < BIG_CIRCLE) return false;
+  // من يُسمّع: يراه المعلّم دائماً، ويراه زملاؤه على الكمبيوتر صورة صغيرة، ولا تُرسل صورته لجوالات زملائه
+  // (حتى لا يحتاج رفعاً كبيراً على 4G، فالتسميع صوت أولاً)
+  if (state.reciter === sender.id) return receiver.lite;
   return receiver.lite || sender.lite;
 }
 const me = () => ({ id: state.myId, role: state.role, lite: IS_PHONE || !!state.netPoor, screen: !!state.screenStream });
@@ -3749,6 +3752,15 @@ function tuneSenders() {
     tuneAudio(peer);
     const lite = !isStaff(state.role) && !isStaff(peer.role) && !state.screenStream && effectivePin() !== "local";
     const enc = lite ? { ...base, ...PEER_LITE, maxBitrate: Math.min(base.maxBitrate, PEER_LITE.maxBitrate) } : { ...base };
+    // الحلقة الكبيرة: المعلّم يرى الطلاب مربعات صغيرة، فصورة الطالب له مصغّرة (إلا من يُسمّع فيراه كبيراً)
+    if (!isStaff(state.role) && isStaff(peer.role) && state.peers.size >= BIG_CIRCLE && !state.screenStream && effectivePin() !== "local") {
+      Object.assign(enc, { maxBitrate: Math.min(enc.maxBitrate, 90000), scaleResolutionDownBy: Math.max(enc.scaleResolutionDownBy, 3), maxFramerate: Math.min(enc.maxFramerate, 12) });
+    }
+    // أنا أُسمّع في حلقة كبيرة: صورة واضحة للمعلّم فقط، وصورة صغيرة لزملائي، فيبقى رفعي في حدود 4G الضعيف
+    if (!isStaff(state.role) && effectivePin() === "local" && state.peers.size >= BIG_CIRCLE && !state.screenStream) {
+      if (isStaff(peer.role)) Object.assign(enc, { maxBitrate: Math.min(enc.maxBitrate, 250000), scaleResolutionDownBy: Math.max(enc.scaleResolutionDownBy, 1.5) });
+      else Object.assign(enc, { maxBitrate: 50000, scaleResolutionDownBy: 4, maxFramerate: 10 });
+    }
     // المستقبِل جوال أو إنترنته ضعيف: صورة أخف له (الطلاب أخف بكثير، والمعلّم يبقى واضحاً)
     if (peer.lite && !state.screenStream) {
       if (lite) Object.assign(enc, { maxBitrate: 90000, scaleResolutionDownBy: 4, maxFramerate: 12 });
@@ -3761,7 +3773,8 @@ function tuneSenders() {
     // إنترنتي ضعيف: الصوت أولاً، والصورة في أدنى حد
     if (state.netPoor && !state.screenStream) {
       Object.assign(enc, {
-        maxBitrate: Math.min(enc.maxBitrate, isStaff(state.role) ? 160000 : 80000),
+        // المعلّم بإنترنت ضعيف: مجموع صورته لكل الحلقة نحو 0.6 ميغابت فقط
+        maxBitrate: Math.min(enc.maxBitrate, isStaff(state.role) ? Math.min(160000, Math.round(600000 / Math.max(1, state.peers.size))) : 80000),
         scaleResolutionDownBy: Math.max(enc.scaleResolutionDownBy, isStaff(state.role) ? 2 : 4),
         maxFramerate: Math.min(enc.maxFramerate, 12),
       });
