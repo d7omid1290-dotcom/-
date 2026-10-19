@@ -1230,6 +1230,7 @@ async function handleSignal({ from, type, data }) {
       if (peer.lite !== !!data.lite) {
         peer.lite = !!data.lite;
         tuneSenders();
+        updatePeerTile(peer);
       }
       updatePeerTile(peer);
       layoutGrid();
@@ -1320,6 +1321,7 @@ function createPeer(id, name, initiator, cid, role) {
   }
   renderPeople();
   layoutGrid();
+  repaintTiles(); // قد يكبر العدد إلى «حلقة كبيرة» فتُخفى صور الزملاء على الجوال
   return peer;
 }
 
@@ -1385,6 +1387,7 @@ function removePeer(id, silent) {
   // عند الإزالة الجماعية (انتقال/مغادرة) لا نعدّل جودة اتصالات ستُغلق حالاً
   if (!silent) tuneSenders();
   if (!silent) {
+    repaintTiles(); // قد يصغر العدد عن «الحلقة الكبيرة» فتعود صور الزملاء
     renderPeople();
     layoutGrid();
     updateRecBanner();
@@ -1456,6 +1459,17 @@ function videoEncoding(remotes) {
 // الطالب يرى زملاءه صغاراً ويرى المعلّم كبيراً، فنرسل لزملائه صورة خفيفة جداً
 // ونوفّر الإنترنت للصورة المرسلة للمعلّم وللصوت
 const PEER_LITE = { maxBitrate: 40000, scaleResolutionDownBy: 4, maxFramerate: 8 };
+
+// الحلقات الكبيرة على الجوال: صورة الزميل الطالب (غير المُسمِّع) لا تُرسل أصلاً، فيظهر مكانها حرف اسمه.
+// هكذا يفك الجوال صورة المعلّم ومن يُسمّع فقط، ولا يضغط نسخة من صورته لكل زميل.
+// القاعدة نفسها يحسبها المرسل والمستقبل من معلومات يعرفانها معاً (الأدوار، والجوال، والمُسمِّع، وعدد الحاضرين)
+const BIG_CIRCLE = 6;
+function classmateVideoOff(sender, receiver) {
+  if (isStaff(sender.role) || isStaff(receiver.role) || sender.screen) return false;
+  if (state.peers.size < BIG_CIRCLE || state.reciter === sender.id) return false;
+  return receiver.lite || sender.lite;
+}
+const me = () => ({ id: state.myId, role: state.role, lite: IS_PHONE || !!state.netPoor, screen: !!state.screenStream });
 function tuneSenders() {
   const base = videoEncoding(state.peers.size);
   for (const peer of state.peers.values()) {
@@ -1468,6 +1482,8 @@ function tuneSenders() {
       if (lite) Object.assign(enc, { maxBitrate: 90000, scaleResolutionDownBy: 4, maxFramerate: 12 });
       else enc.maxBitrate = Math.min(enc.maxBitrate, 300000);
     }
+    // زميل في حلقة كبيرة وأحدنا على الجوال: لا صورة بيننا (يبقى الصوت)
+    enc.active = !classmateVideoOff(me(), peer);
     // جوالي يرسل بإطارات أقل فلا يسخن
     if (IS_PHONE && !state.screenStream) enc.maxFramerate = Math.min(enc.maxFramerate, isStaff(state.role) ? 20 : 15);
     // إنترنتي ضعيف: الصوت أولاً، والصورة في أدنى حد
@@ -1618,7 +1634,11 @@ function effectivePin() {
 
 function updatePeerTile(peer) {
   peer.tile.classList.toggle("manageable", canManagePeer(peer));
-  paintTile(peer.tile, peer.blockedMic || peer.blockedCam ? { ...peer, mic: peer.mic && !peer.blockedMic, cam: peer.cam && !peer.blockedCam } : peer);
+  // صورته لا تصلني لتخفيف الجوال: يظهر مربعه بحرف اسمه كأن الكاميرا مغلقة
+  const saved = peer.cam && classmateVideoOff(peer, me());
+  peer.tile.classList.toggle("saved-video", saved);
+  const cam = peer.cam && !peer.blockedCam && !saved;
+  paintTile(peer.tile, peer.blockedMic || peer.blockedCam || saved ? { ...peer, mic: peer.mic && !peer.blockedMic, cam } : peer);
 }
 
 function repaintTiles() {
@@ -1874,7 +1894,7 @@ async function checkNetwork() {
   if (!state.joinedAt || document.hidden || !state.peers.size) return;
   let worstRtt = 0;
   let worstLoss = 0;
-  let minOut = Infinity;
+  let bwLimited = false;
   for (const peer of state.peers.values()) {
     if (isClosed(peer) || peer.pc.connectionState !== "connected") continue;
     let stats;
@@ -1883,11 +1903,16 @@ async function checkNetwork() {
     } catch {
       continue;
     }
+    let out = Infinity;
+    let limited = false;
     for (const s of stats.values()) {
       if (s.type === "candidate-pair" && s.nominated && s.state === "succeeded") {
         if (s.currentRoundTripTime) worstRtt = Math.max(worstRtt, s.currentRoundTripTime);
-        if (s.availableOutgoingBitrate) minOut = Math.min(minOut, s.availableOutgoingBitrate);
+        if (s.availableOutgoingBitrate) out = s.availableOutgoingBitrate;
       }
+      // سرعة الرفع تُحتسب فقط حيث نرسل صورة فعلاً ويقيّدها المتصفح بسبب الشبكة؛
+      // الاتصال الذي لا يحمل إلا صوتاً ساكتاً يقدّر المتصفح سرعته منخفضة دائماً
+      if (s.type === "outbound-rtp" && s.kind === "video" && s.qualityLimitationReason === "bandwidth" && s.framesPerSecond > 0) limited = true;
       // فقد الحزم في الصوت القادم (منذ آخر قراءة)
       if (s.type === "inbound-rtp" && s.kind === "audio" && s.packetsReceived) {
         const prev = net.lost.get(peer.id + s.id) || { r: 0, l: 0 };
@@ -1897,8 +1922,9 @@ async function checkNetwork() {
         if (prev.r && dr + dl > 20) worstLoss = Math.max(worstLoss, dl / (dr + dl));
       }
     }
+    if (limited && out < 150000) bwLimited = true;
   }
-  const poor = worstRtt > 0.7 || worstLoss > 0.08 || minOut < 150000;
+  const poor = worstRtt > 0.7 || worstLoss > 0.08 || bwLimited;
   if (poor) (net.bad++, (net.good = 0));
   else (net.good++, (net.bad = 0));
   if (!state.netPoor && net.bad >= 2) setNetPoor(true);
@@ -1908,6 +1934,7 @@ function setNetPoor(on) {
   state.netPoor = on;
   $("netBadge").hidden = !on;
   tuneSenders();
+  repaintTiles();
   broadcastState();
   toast(on ? "الإنترنت ضعيف — خفّضنا جودة الصورة ليبقى الصوت واضحاً" : "تحسّن الإنترنت — عادت جودة الصورة");
 }
