@@ -878,6 +878,8 @@ function registerReport(main, wa, title) {
   const phone = normalizePhone(wa);
   if (!phone) return;
   const r = reports.get(main) || { att: null, timer: 0, sentToday: ["", 0] };
+  // في السجل نُظهر آخر 4 أرقام فقط
+  if (r.phone !== phone) console.log(`تقرير الحضور: سُجّل رقم المعلّم (…${phone.slice(-4)}) للحلقة ${main}`);
   r.phone = phone;
   r.title = String(title || "").trim().slice(0, 60) || r.title || main;
   reports.set(main, r);
@@ -928,6 +930,7 @@ function scheduleReport(main, wait) {
   r.due = due;
   r.timer = setTimeout(() => sendReport(main), wait);
   r.timer.unref?.();
+  console.log(`تقرير الحضور: انتهت الحلقة ${main}، يُرسل التقرير بعد ${Math.round(wait / 1000)} ثانية`);
 }
 const fmtMin = (ms) => {
   const m = Math.max(1, Math.round(ms / 60000));
@@ -956,7 +959,7 @@ async function sendReport(main) {
   r.ended = false;
   const att = r.att;
   r.att = null; // الجلسة التالية تبدأ من جديد
-  if (!att.students.size) return;
+  if (!att.students.size) return console.log(`تقرير الحضور: لم يحضر طلاب في ${main}، فلا تقرير`);
   const day = new Date().toISOString().slice(0, 10);
   if (r.sentToday[0] !== day) r.sentToday = [day, 0];
   if (r.sentToday[1] >= 6) return; // حد يومي حتى لا يُزعَج المعلّم
@@ -973,7 +976,7 @@ async function sendReport(main) {
       });
       if (res.ok) {
         r.sentToday[1]++;
-        return;
+        return console.log(`تقرير الحضور: ✅ أُرسل للمعلّم (…${r.phone.slice(-4)}) — ${att.students.size} طالب`);
       }
       console.warn("تقرير الحضور: رفض WaSender", res.status);
       if (res.status < 500 && res.status !== 429) return;
