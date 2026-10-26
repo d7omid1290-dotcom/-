@@ -296,6 +296,7 @@ function route() {
     show("home");
     renderUpcoming();
     renderTerms();
+    renderRecent();
   }
 }
 
@@ -763,7 +764,9 @@ function myStatus() {
     recording: !!state.recorder,
     role: state.role,
     // أطلب صورة خفيفة: الجوال (حتى لا يسخن من فك عشرات الصور) أو عند ضعف الإنترنت
-    lite: IS_PHONE || !!state.netPoor,
+    lite: IS_PHONE || !!state.netPoor || !!state.saveData,
+    // إنترنتي ضعيف: يظهر للمعلّم بجانب اسمي، فيعرف لماذا يتقطع صوتي
+    weak: !!state.netPoor,
     handAt: state.handAt,
   };
 }
@@ -913,6 +916,7 @@ function connect(roomId, resume) {
   });
   on("presence", (e) => {
     state.presence = JSON.parse(e.data);
+    trackAttendance(state.presence);
     renderRoomsStrip();
     if (!$("panel").hidden) renderPeople();
   });
@@ -1227,6 +1231,11 @@ async function handleSignal({ from, type, data }) {
         screen: !!data.screen,
         recording: !!data.recording,
       });
+      if (peer.weak !== !!data.weak) {
+        peer.weak = !!data.weak;
+        peer.tile?.classList.toggle("weak", peer.weak);
+        if (peer.weak && isStaff(state.role)) toast(`📶 إنترنت ${peer.name} ضعيف الآن`);
+      }
       if (peer.lite !== !!data.lite) {
         peer.lite = !!data.lite;
         tuneSenders();
@@ -1472,7 +1481,7 @@ function classmateVideoOff(sender, receiver) {
   if (state.reciter === sender.id) return receiver.lite;
   return receiver.lite || sender.lite;
 }
-const me = () => ({ id: state.myId, role: state.role, lite: IS_PHONE || !!state.netPoor, screen: !!state.screenStream });
+const me = () => ({ id: state.myId, role: state.role, lite: IS_PHONE || !!state.netPoor || !!state.saveData, screen: !!state.screenStream });
 function tuneSenders() {
   const base = videoEncoding(state.peers.size);
   for (const peer of state.peers.values()) {
@@ -1498,8 +1507,8 @@ function tuneSenders() {
     enc.active = !classmateVideoOff(me(), peer);
     // جوالي يرسل بإطارات أقل فلا يسخن
     if (IS_PHONE && !state.screenStream) enc.maxFramerate = Math.min(enc.maxFramerate, isStaff(state.role) ? 20 : 15);
-    // إنترنتي ضعيف: الصوت أولاً، والصورة في أدنى حد
-    if (state.netPoor && !state.screenStream) {
+    // إنترنتي ضعيف (أو اخترت توفير البيانات): الصوت أولاً، والصورة في أدنى حد
+    if ((state.netPoor || state.saveData) && !state.screenStream) {
       Object.assign(enc, {
         // المعلّم بإنترنت ضعيف: مجموع صورته لكل الحلقة نحو 0.6 ميغابت فقط
         maxBitrate: Math.min(enc.maxBitrate, isStaff(state.role) ? Math.min(160000, Math.round(600000 / Math.max(1, state.peers.size))) : 80000),
@@ -2023,6 +2032,9 @@ function enterRoom() {
   state.pinned = null;
   state.inviteDismissed = false;
   state.sessionStars = 0;
+  state.attendance = new Map();
+  state.attendStart = Date.now();
+  rememberRecent(state.code);
   applyRole();
   updateRoomUI();
   $("inviteLink").textContent = meetingLink().replace(/^https?:\/\//, "");
@@ -2126,7 +2138,9 @@ function leave(navigate = true) {
     $("leftSummary").textContent = `مدة حضورك: ${formatDuration(Date.now() - state.joinedAt)}`;
     $("leftStars").hidden = !state.sessionStars;
     $("leftStarsCount").textContent = state.sessionStars;
+    $("leftAttendBtn").hidden = !(isStaff(state.role) && state.attendance?.size);
   }
+  if (state.attendance) closeAttendance();
   stopRecording();
   state.es?.close();
   state.es = null;
@@ -3545,6 +3559,151 @@ $("boAnnounce").addEventListener("submit", async (e) => {
   }
 });
 
+/* ---------- حلقاتي الأخيرة ---------- */
+
+// كل حلقة دخلها هذا الجهاز تُحفظ (آخر 6)، فيعود الطالب أو المعلّم إليها بضغطة دون البحث عن الرابط
+const RECENT_KEY = "wasl:recent";
+function loadRecent() {
+  try {
+    return (JSON.parse(localStorage.getItem(RECENT_KEY)) || []).filter((r) => r && ROOM_RE.test(r.code));
+  } catch {
+    return [];
+  }
+}
+function rememberRecent(code) {
+  if (DEMO || !code) return;
+  const title = loadTerms().find((t) => t.code === code)?.title || loadScheduled().find((m) => m.code === code)?.title || "";
+  const list = [{ code, title, at: Date.now() }, ...loadRecent().filter((r) => r.code !== code)].slice(0, 6);
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(list));
+  } catch {}
+}
+function agoText(ts) {
+  const d = new Date(ts);
+  const day = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((day(new Date()) - day(d)) / 86400000);
+  const time = d.toLocaleTimeString("ar", { hour: "numeric", minute: "2-digit" });
+  if (diff === 0) return `اليوم ${time}`;
+  if (diff === 1) return `أمس ${time}`;
+  return d.toLocaleDateString("ar", { weekday: "long", day: "numeric", month: "long" });
+}
+function renderRecent() {
+  // ما يظهر في «غرفي الثابتة» أو «الحلقات القادمة» لا نكرره هنا
+  const shown = new Set([...loadTerms().map((t) => t.code), ...loadScheduled().map((m) => m.code)]);
+  const list = loadRecent().filter((r) => !shown.has(r.code));
+  $("recent").hidden = !list.length;
+  const ul = $("recentList");
+  ul.innerHTML = "";
+  for (const r of list) {
+    const li = document.createElement("li");
+    li.innerHTML = `
+      <div class="when"><b></b><span></span></div>
+      <button class="btn btn-primary" data-join>دخول</button>
+      <button class="icon-btn del-btn" data-del title="إزالة من القائمة" aria-label="إزالة">${icon("close")}</button>`;
+    li.querySelector("b").textContent = (r.title || `حلقة ${r.code}`);
+    li.querySelector("span").textContent = `${getKey(r.code) ? "أنت معلّمها · " : ""}آخر دخول ${agoText(r.at)}`;
+    li.querySelector("[data-join]").addEventListener("click", () => goTo(r.code));
+    li.querySelector("[data-del]").addEventListener("click", () => {
+      try {
+        localStorage.setItem(RECENT_KEY, JSON.stringify(loadRecent().filter((x) => x.code !== r.code)));
+      } catch {}
+      renderRecent();
+    });
+    ul.appendChild(li);
+  }
+}
+
+/* ---------- تقرير الحضور للمعلّم ---------- */
+
+// من قائمة الحضور التي يرسلها الخادم (تشمل غرف المراجعة) نحسب لكل طالب أول دخول ومدة حضوره
+function trackAttendance(presence) {
+  if (!state.attendance || !state.joinedAt) return;
+  const now = Date.now();
+  const here = new Set();
+  for (const members of Object.values(presence || {})) {
+    for (const m of members) {
+      if (m.cid === state.cid || m.role === "teacher") continue;
+      here.add(m.cid);
+      const rec = state.attendance.get(m.cid) || { name: m.name, first: now, ms: 0, since: 0 };
+      rec.name = m.name;
+      if (!rec.since) rec.since = now;
+      state.attendance.set(m.cid, rec);
+    }
+  }
+  for (const [cid, rec] of state.attendance) {
+    if (!here.has(cid) && rec.since) {
+      rec.ms += now - rec.since;
+      rec.since = 0;
+    }
+  }
+}
+function closeAttendance() {
+  trackAttendance({});
+  state.attendEnd = Date.now();
+}
+function attendanceText() {
+  const now = state.attendEnd && !state.joinedAt ? state.attendEnd : Date.now();
+  const rows = [...(state.attendance || new Map()).entries()]
+    .map(([cid, r]) => ({ ...r, cid, total: r.ms + (r.since ? now - r.since : 0) }))
+    .sort((a, b) => a.first - b.first);
+  const d = new Date(state.attendStart || now);
+  const title = loadTerms().find((t) => t.code === state.code)?.title || loadScheduled().find((m) => m.code === state.code)?.title || state.code;
+  const lines = [
+    `📋 حضور الحلقة: ${title}`,
+    `📅 ${d.toLocaleDateString("ar-SA-u-ca-gregory", { weekday: "long", day: "numeric", month: "long" })} — ${d.toLocaleTimeString("ar-SA", { hour: "numeric", minute: "2-digit" })}`,
+    `⏱️ مدة الحلقة: ${formatDuration(now - (state.attendStart || now))}`,
+    `👥 الحضور: ${rows.length}`,
+    "",
+    ...rows.map((r, i) => `${i + 1}. ${r.name} — ${formatDuration(r.total)}${state.stars?.[r.cid] ? ` ⭐${state.stars[r.cid]}` : ""}`),
+    "",
+    "منصة وصل — بالقرآن نتّصل",
+  ];
+  return lines.join("\n");
+}
+async function shareAttendance() {
+  if (!state.attendance?.size) return toast("لم يحضر أحد من الطلاب بعد");
+  const text = attendanceText();
+  if (navigator.share && IS_PHONE) {
+    try {
+      return await navigator.share({ text });
+    } catch (err) {
+      if (err?.name === "AbortError") return;
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    toast("نُسخ تقرير الحضور — ألصقه في الواتساب");
+  } catch {
+    await askConfirm({ title: "تقرير الحضور", text, ok: "تم", icon: "users", danger: false });
+  }
+}
+$("attendBtn").addEventListener("click", shareAttendance);
+$("leftAttendBtn").addEventListener("click", shareAttendance);
+
+/* ---------- توفير البيانات ---------- */
+
+// لمن إنترنته ضعيف أو باقته محدودة: تُطفأ كاميرته، ويستقبل صورة المعلّم خفيفة، وتصله صور الزملاء مصغّرة جداً
+try {
+  state.saveData = localStorage.getItem("wasl:save") === "1";
+} catch {}
+function applySaveData() {
+  $("saveDataBtn").classList.toggle("on", !!state.saveData);
+  $("saveDataLabel").textContent = state.saveData ? "توفير البيانات: مفعّل" : "توفير البيانات";
+}
+$("saveDataBtn").addEventListener("click", () => {
+  state.saveData = !state.saveData;
+  try {
+    localStorage.setItem("wasl:save", state.saveData ? "1" : "0");
+  } catch {}
+  if (state.saveData && state.camOn) setCam(false);
+  applySaveData();
+  tuneSenders();
+  broadcastState();
+  repaintTiles();
+  toast(state.saveData ? "فُعّل توفير البيانات: الكاميرا مطفأة والصور خفيفة، والصوت كما هو" : "أُلغي توفير البيانات");
+});
+applySaveData();
+
 /* ---------- ربط جهاز آخر للمعلّم ---------- */
 
 // كل ما يخص المعلّم محفوظ في هذا المتصفح: مفاتيح حلقاته، والجدولة، والغرف الثابتة، ومفاتيح الإشراف
@@ -3561,6 +3720,7 @@ function syncBundle() {
     akeys: readJSON(AKEYS, {}),
     scheduled: readJSON(SCHEDULE_KEY, []),
     terms: readJSON(TERMS_KEY, []),
+    recent: readJSON(RECENT_KEY, []),
     name: localStorage.getItem("halaqati:name") || "",
   };
 }
@@ -3573,6 +3733,7 @@ function mergeBundle(b) {
     localStorage.setItem(AKEYS, JSON.stringify({ ...(b.akeys || {}), ...readJSON(AKEYS, {}) }));
     localStorage.setItem(SCHEDULE_KEY, JSON.stringify(mergeList(readJSON(SCHEDULE_KEY, []), b.scheduled)));
     localStorage.setItem(TERMS_KEY, JSON.stringify(mergeList(readJSON(TERMS_KEY, []), b.terms)));
+    localStorage.setItem(RECENT_KEY, JSON.stringify(mergeList(readJSON(RECENT_KEY, []), b.recent).slice(0, 6)));
     if (b.name && !localStorage.getItem("halaqati:name")) localStorage.setItem("halaqati:name", String(b.name).slice(0, 40));
   } catch {}
   return Object.keys(b.keys || {}).length;
@@ -3629,6 +3790,7 @@ async function syncFetch() {
     $("syncModal").hidden = true;
     renderUpcoming();
     renderTerms();
+    renderRecent();
     toast(n ? `تم الربط ✅ — صارت حلقاتك (${n}) على هذا الجهاز وتدخلها كمعلّم` : "تم الربط ✅");
   } catch (err) {
     $("syncError").textContent = err.message || "تعذر الربط، حاول مرة أخرى.";

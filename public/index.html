@@ -137,6 +137,10 @@
           <h3>الحلقات القادمة</h3>
           <ul id="upcomingList"></ul>
         </div>
+        <div class="upcoming recent" id="recent" hidden>
+          <h3>حلقاتي الأخيرة</h3>
+          <ul id="recentList"></ul>
+        </div>
       </div>
 
       <div class="home-art" aria-hidden="true">
@@ -331,6 +335,7 @@
               <button class="adm" id="micLockBtn" type="button"><svg class="i"><use href="#i-mic-off"/></svg><span>المايك بإذن</span></button>
               <button class="adm" id="camLockBtn" type="button"><svg class="i"><use href="#i-cam-off"/></svg><span>الكاميرا بإذن</span></button>
               <button class="adm" id="autoQueueBtn" type="button"><svg class="i"><use href="#i-book"/></svg><span>تسميع تلقائي</span></button>
+              <button class="adm" id="attendBtn" type="button"><svg class="i"><use href="#i-users"/></svg><span>تقرير الحضور</span></button>
             </div>
           </div>
           <div class="banned" id="bannedBox" hidden>
@@ -371,6 +376,7 @@
             <button class="mi" id="shareBtn" type="button" role="menuitem"><svg class="i"><use href="#i-screen"/></svg><span id="shareLabel">مشاركة الشاشة</span></button>
             <button class="mi" id="copyBtn" type="button" role="menuitem"><svg class="i"><use href="#i-link"/></svg><span>نسخ رابط الحلقة</span></button>
             <button class="mi" id="settingsBtn" type="button" role="menuitem"><svg class="i"><use href="#i-sliders"/></svg><span>الكاميرا والميكروفون</span></button>
+            <button class="mi" id="saveDataBtn" type="button" role="menuitem"><svg class="i"><use href="#i-download"/></svg><span id="saveDataLabel">توفير البيانات</span></button>
           </div>
         </div>
         <button class="ctrl ctrl-danger" id="leaveBtn" title="مغادرة الحلقة"><svg class="i"><use href="#i-end"/></svg></button>
@@ -386,6 +392,7 @@
       <p class="lead" id="leftSummary"></p>
       <div class="left-stars" id="leftStars" hidden><span>⭐</span><b id="leftStarsCount">0</b><small>نجمة جمعتها في هذه الحلقة</small></div>
       <div class="home-actions center">
+        <button class="btn btn-lg" id="leftAttendBtn" hidden>📋 تقرير الحضور</button>
         <button class="btn btn-lg" id="rejoinBtn">العودة للحلقة</button>
         <button class="btn btn-primary btn-lg" id="goHomeBtn">الصفحة الرئيسية</button>
       </div>

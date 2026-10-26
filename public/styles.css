@@ -1654,3 +1654,12 @@ body:has(#roomsStrip:not([hidden])) .toast { bottom: 168px; }
 .sync-input { width: 100%; height: 56px; font-size: 1.8rem; text-align: center; letter-spacing: .3em; border-radius: 14px; margin-bottom: 10px; font-variant-numeric: tabular-nums; }
 /* «ربط جهاز آخر»: زر صغير بإطار، أوضح من الروابط النصية دون أن يزاحم البطاقات */
 .link-btn.link-pill { padding: 7px 14px; border-radius: 999px; border: 1px solid rgba(111, 191, 152, .45); background: rgba(111, 191, 152, .1); }
+
+/* مشارك إنترنته ضعيف: إشارة صغيرة أعلى مربعه */
+.tile.weak::after {
+  content: "📶 إنترنته ضعيف"; position: absolute; top: 8px; inset-inline-start: 8px; z-index: 3; pointer-events: none;
+  padding: 3px 8px; border-radius: 999px; font-size: .7rem; color: #fbbf24; background: rgba(0, 0, 0, .6);
+}
+.tile.away.weak::after { content: "انقطع مؤقتاً… بانتظار عودته"; }
+/* توفير البيانات مفعّل */
+.mi.on { color: var(--teal); background: rgba(111, 191, 152, .14); }
