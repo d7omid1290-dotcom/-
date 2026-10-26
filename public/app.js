@@ -811,6 +811,12 @@ function connect(roomId, resume) {
   if (key) params.set("key", key);
   const akey = getAdminKey(state.code);
   if (akey) params.set("akey", akey);
+  // المعلّم: رقم واتسابه لتقرير الحضور (من الغرفة الثابتة في جهازه)
+  const term = key && loadTerms().find((t) => t.code === state.code);
+  if (term?.phone) {
+    params.set("wa", term.phone);
+    params.set("wat", term.title || "");
+  }
   if (resume?.rid && resume?.rtoken) {
     params.set("rid", resume.rid);
     params.set("rtoken", resume.rtoken);
@@ -3866,6 +3872,7 @@ function renderTerms() {
     const li = document.createElement("li");
     li.innerHTML = `
       <div class="when"><b></b><span></span></div>
+      <button class="icon-btn" data-phone title="رقم واتساب تقرير الحضور">📱</button>
       <button class="icon-btn" data-copy title="نسخ الرابط">${icon("copy")}</button>
       <button class="btn btn-primary" data-join>دخول</button>
       <button class="icon-btn del-btn" data-del title="حذف" aria-label="حذف">${icon("trash")}</button>`;
@@ -3875,6 +3882,13 @@ function renderTerms() {
     span.classList.toggle("soon", !!live);
     li.querySelector("[data-join]").addEventListener("click", () => goTo(t.code));
     li.querySelector("[data-copy]").addEventListener("click", () => copyText(termInvite(t), "تم نسخ رابط الغرفة الثابتة"));
+    li.querySelector("[data-phone]").addEventListener("click", () => {
+      const v = prompt("رقم واتساب المعلّم لتقرير الحضور بعد كل حلقة (مثال 05xxxxxxxx). اتركه فارغاً لإيقاف التقرير:", t.phone || "");
+      if (v === null) return;
+      t.phone = v.replace(/[^0-9+]/g, "").slice(0, 16);
+      saveTerms([...loadTerms().filter((x) => x.code !== t.code), t]);
+      toast(t.phone ? "حُفظ الرقم — يصل التقرير بعد كل حلقة تدخلها كمعلّم" : "أُوقف تقرير الواتساب");
+    });
     li.querySelector("[data-del]").addEventListener("click", async () => {
       const yes = await askConfirm({
         title: `حذف «${t.title}»؟`,
@@ -3909,6 +3923,7 @@ function openTerm() {
   $("tSlug").value = `sahaba-${rand}`;
   $("tTime").value = "16:30";
   $("tUntil").value = "";
+  $("tPhone").value = "";
   for (const c of document.querySelectorAll("#termForm .day input")) c.checked = Number(c.value) <= 4;
   $("termError").textContent = "";
   $("termForm").hidden = false;
@@ -3964,6 +3979,7 @@ $("termForm").addEventListener("submit", async (e) => {
     time: $("tTime").value || "16:30",
     duration: Number($("tDuration").value),
     until: $("tUntil").value || "",
+    phone: $("tPhone").value.replace(/[^0-9+]/g, "").slice(0, 16),
   };
   saveTerms([...loadTerms().filter((x) => x.code !== t.code), t]);
   lastTerm = t;

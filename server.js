@@ -170,7 +170,9 @@ function sendPresence(main) {
     main,
     setTimeout(() => {
       presenceTimers.delete(main);
-      broadcastFamily(main, "presence", presenceOf(main));
+      const presence = presenceOf(main);
+      trackReport(main, presence);
+      broadcastFamily(main, "presence", presence);
     }, 120)
   );
 }
@@ -258,7 +260,11 @@ function addPeer(roomId, url, push) {
   // الدور يقرّره الخادم: مفتاح المعلّم ← معلّم، ومن عيّنه المعلّم (أو يحمل مفتاح مشرف صالحاً) ← مشرف، والباقي طلاب
   const main = mainOf(roomId);
   let role = "student";
-  if (isHostKey(main, url.searchParams.get("key"))) role = "teacher";
+  if (isHostKey(main, url.searchParams.get("key"))) {
+    role = "teacher";
+    // المعلّم يسجّل رقم واتسابه (المحفوظ في جهازه مع الغرفة الثابتة) كلما دخل، فيبقى معروفاً حتى بعد إعادة تشغيل الخادم
+    registerReport(main, url.searchParams.get("wa"), url.searchParams.get("wat"));
+  }
   else if (admins.get(main)?.has(did)) role = "admin";
   else if (isAdminKey(main, did, url.searchParams.get("akey")) && !revoked.get(main)?.has(did)) {
     role = "admin";
@@ -293,6 +299,7 @@ function removePeer(roomId, id) {
   if (familyRooms(main).length === 0) {
     breakouts.delete(main);
     controls.delete(main);
+    scheduleReport(main, REPORT_WAIT);
   }
 }
 
@@ -686,6 +693,8 @@ function handleModerate(req, res, roomId) {
     } else if (action === "end") {
       // إنهاء الحلقة للجميع (للمعلّم فقط): يخرج كل من في الحلقة وغرفها
       if (sender.role !== "teacher") return json(res, 403, { error: "host_only" });
+      if (reports.get(main)) reports.get(main).ended = true;
+      scheduleReport(main, 5000);
       breakouts.delete(main);
       for (const k of knocks.get(main)?.values() || []) if (k.status === "pending") k.status = "denied";
       for (const [rid, r] of [...families.get(main) || []].map((id) => [id, rooms.get(id)])) {
@@ -785,6 +794,7 @@ function handleSignal(req, res, roomId) {
     if (msg.type === "chat" && msg.to && !STAFF.has(sender.role) && !STAFF.has(room.get(String(msg.to))?.role)) {
       return json(res, 403, { error: "private_staff_only" });
     }
+    if (msg.type === "grade" && msg.data) noteStars(mainOf(roomId), String(msg.data.cid || ""), Number(msg.data.total) || 0);
     const payload = { from: sender.id, type: msg.type, data: msg.data };
     if (msg.to) {
       const target = room.get(msg.to);
@@ -846,6 +856,132 @@ function serveStatic(req, res, pathname) {
   }
   res.writeHead(200, { ...headers, "Content-Length": f.data.length });
   res.end(f.data);
+}
+
+// ===== تقرير الحضور بالواتساب للغرفة الثابتة =====
+// المعلّم يضع رقمه عند إنشاء الغرفة الثابتة. الخادم يتابع الحضور (مع غرف المراجعة) من قائمة الحاضرين،
+// وحين تنتهي الحلقة (يغادر الجميع، أو ينهيها المعلّم) يرسل التقرير لرقمه عبر WaSender.
+// مفتاح WaSender في متغير البيئة WASENDER_API_KEY، ولا يُرسل شيء بدونه.
+const WASENDER_URL = process.env.WASENDER_URL || "https://www.wasenderapi.com/api/send-message";
+const REPORT_WAIT = Number(process.env.REPORT_WAIT_MS || 5 * 60000); // ننتظر قليلاً: قد يعود المعلّم أو الطلاب
+const reports = new Map(); // main -> { phone, title, att: { start, end, students: Map(cid -> rec) } | null, timer, sentToday: [day, n] }
+
+function normalizePhone(raw) {
+  let d = String(raw || "").replace(/[^0-9+]/g, "");
+  if (d.startsWith("+")) d = d.slice(1);
+  else if (d.startsWith("00")) d = d.slice(2);
+  else if (/^05\d{8}$/.test(d)) d = "966" + d.slice(1);
+  else if (/^5\d{8}$/.test(d)) d = "966" + d;
+  return /^\d{10,15}$/.test(d) ? "+" + d : null;
+}
+function registerReport(main, wa, title) {
+  const phone = normalizePhone(wa);
+  if (!phone) return;
+  const r = reports.get(main) || { att: null, timer: 0, sentToday: ["", 0] };
+  r.phone = phone;
+  r.title = String(title || "").trim().slice(0, 60) || r.title || main;
+  reports.set(main, r);
+}
+function trackReport(main, presence) {
+  const r = reports.get(main);
+  if (!r) return;
+  const now = Date.now();
+  const here = new Set();
+  let anyone = false;
+  for (const members of Object.values(presence)) {
+    for (const m of members) {
+      anyone = true;
+      if (m.role === "teacher") continue;
+      r.att ||= { start: now, end: now, students: new Map() };
+      here.add(m.cid);
+      const rec = r.att.students.get(m.cid) || { name: m.name, first: now, ms: 0, since: 0, stars: 0 };
+      rec.name = m.name;
+      if (!rec.since) rec.since = now;
+      r.att.students.set(m.cid, rec);
+    }
+  }
+  if (anyone && r.timer && !r.ended) {
+    // عاد أحد قبل الإرسال: الحلقة مستمرة
+    clearTimeout(r.timer);
+    r.timer = 0;
+  }
+  if (!r.att) return;
+  for (const [cid, rec] of r.att.students) {
+    if (!here.has(cid) && rec.since) {
+      rec.ms += now - rec.since;
+      rec.since = 0;
+    }
+  }
+  if (anyone) r.att.end = now;
+}
+function noteStars(main, cid, total) {
+  const rec = reports.get(main)?.att?.students.get(cid);
+  if (rec) rec.stars = Math.max(rec.stars, total);
+}
+function scheduleReport(main, wait) {
+  const r = reports.get(main);
+  if (!r?.att) return;
+  // لا نؤخّر موعداً أقرب (أنهى المعلّم الحلقة ثم غادر الجميع: يُرسل خلال ثوانٍ)
+  const due = Date.now() + wait;
+  if (r.timer && r.due <= due) return;
+  clearTimeout(r.timer);
+  r.due = due;
+  r.timer = setTimeout(() => sendReport(main), wait);
+  r.timer.unref?.();
+}
+const fmtMin = (ms) => {
+  const m = Math.max(1, Math.round(ms / 60000));
+  return m < 60 ? `${m} دقيقة` : `${Math.floor(m / 60)} ساعة${m % 60 ? ` و${m % 60} دقيقة` : ""}`;
+};
+function reportText(r) {
+  const now = Date.now();
+  const rows = [...r.att.students.values()].map((x) => ({ ...x, total: x.ms + (x.since ? now - x.since : 0) })).sort((a, b) => a.first - b.first);
+  const tz = { timeZone: process.env.REPORT_TZ || "Asia/Riyadh" };
+  const d = new Date(r.att.start);
+  return [
+    `📋 تقرير حضور: ${r.title}`,
+    `📅 ${d.toLocaleDateString("ar-SA-u-ca-gregory", { ...tz, weekday: "long", day: "numeric", month: "long" })} — ${d.toLocaleTimeString("ar-SA", { ...tz, hour: "numeric", minute: "2-digit" })}`,
+    `⏱️ مدة الحلقة: ${fmtMin(r.att.end - r.att.start)}`,
+    `👥 عدد الحضور: ${rows.length}`,
+    "",
+    ...rows.map((x, i) => `${i + 1}. ${x.name} — ${fmtMin(x.total)}${x.stars ? ` ⭐${x.stars}` : ""}`),
+    "",
+    "منصة وصل — بالقرآن نتّصل",
+  ].join("\n");
+}
+async function sendReport(main) {
+  const r = reports.get(main);
+  if (!r?.att) return;
+  r.timer = 0;
+  r.ended = false;
+  const att = r.att;
+  r.att = null; // الجلسة التالية تبدأ من جديد
+  if (!att.students.size) return;
+  const day = new Date().toISOString().slice(0, 10);
+  if (r.sentToday[0] !== day) r.sentToday = [day, 0];
+  if (r.sentToday[1] >= 6) return; // حد يومي حتى لا يُزعَج المعلّم
+  const key = process.env.WASENDER_API_KEY;
+  if (!key) return console.warn("تقرير الحضور: لم يُضبط WASENDER_API_KEY، فلم يُرسل");
+  const text = reportText({ ...r, att });
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(WASENDER_URL, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ to: r.phone, text }),
+        signal: AbortSignal.timeout(15000),
+      });
+      if (res.ok) {
+        r.sentToday[1]++;
+        return;
+      }
+      console.warn("تقرير الحضور: رفض WaSender", res.status);
+      if (res.status < 500 && res.status !== 429) return;
+    } catch (err) {
+      console.warn("تقرير الحضور: تعذر الإرسال", err.message);
+    }
+    await new Promise((ok) => setTimeout(ok, 5000 * (attempt + 1)));
+  }
 }
 
 // ===== ربط جهاز آخر للمعلّم: رمز من 6 أرقام يحمل مفاتيحه وحلقاته لعشر دقائق =====
